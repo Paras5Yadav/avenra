@@ -1,0 +1,94 @@
+# Repository structure rules, checked by `cargo arch` (crates/tools/archcheck).
+
+[rules.file_size]
+limit = 1000                          # code lines per production Rust file
+
+[rules.file_size.no_crossing]         # no file outside the baseline may exceed the limit
+mode = "advisory"
+
+[rules.file_size.no_new_entries]      # a pull request may not add entries to the baseline
+mode = "advisory"
+
+[rules.file_size.no_raised_caps]      # a pull request may not raise a cap in the baseline
+mode = "advisory"
+
+[rules.file_size.listed_no_growth]    # files in the baseline may not gain code lines
+mode = "advisory"
+
+[rules.file_size.stale_entries]       # entries whose file shrank, fell under the limit, or is gone
+mode = "advisory"
+
+# Direct-only control-plane Postgres tables belong to the Direct substrate;
+# existing users outside it are baselined until moved behind it. Postgres folds
+# unquoted identifiers, so the names match in any case.
+[rules.pattern_ratchet.direct_tables]
+patterns = [
+  '(?i)\bnode_direct\b',
+  '(?i)\bsandbox_direct_route_identities\b',
+  '(?i)\bsandbox_direct_route_provenance\b',
+]
+allow = [
+  "crates/libs/api/src/controllers/substrate/direct.rs",
+  "crates/libs/api/src/controllers/substrate/direct/**",
+]
+
+[rules.pattern_ratchet.direct_tables.no_crossing]       # only allowed and listed files may match
+mode = "advisory"
+
+[rules.pattern_ratchet.direct_tables.no_new_entries]    # a pull request may not add entries to the baseline
+mode = "advisory"
+
+[rules.pattern_ratchet.direct_tables.no_raised_caps]    # a pull request may not raise a cap in the baseline
+mode = "advisory"
+
+[rules.pattern_ratchet.direct_tables.listed_no_growth]  # listed files may not gain matching lines
+mode = "advisory"
+
+[rules.pattern_ratchet.direct_tables.stale_entries]     # entries with fewer matches, none, or gone
+mode = "advisory"
+
+# Rootfs copies must preserve NoCoW and sparse extents through common-io's
+# reflink helper. A line matcher cannot infer a path variable's contents, so
+# conservatively fence all new plain filesystem copies and cp launches.
+# Existing non-rootfs, non-Linux and deferred builder/local paths are counted
+# in the baseline, not freely allowed; their counts may only decrease.
+[rules.pattern_ratchet.rootfs_copy]
+patterns = [
+  '\bCommand\s*::\s*new\s*\(\s*"(?:/bin/|/usr/bin/)?cp"',
+  '\bcommand_as_root\s*\(\s*"(?:/bin/|/usr/bin/)?cp"',
+  '\bfs\s*::\s*copy\s*\(',
+  '\buse\s+(?:std|tokio)\s*::\s*fs\s*::[^;]*\bcopy\b',
+]
+allow = ["crates/libs/common/io/src/reflink.rs"]
+
+[rules.pattern_ratchet.rootfs_copy.no_crossing]
+mode = "required"
+
+# Seeding a new ratchet reports these initial exceptions against the base.
+# Subsequent additions remain explicit review findings; ordinary new uses fail.
+[rules.pattern_ratchet.rootfs_copy.no_new_entries]
+mode = "advisory"
+
+[rules.pattern_ratchet.rootfs_copy.no_raised_caps]
+mode = "required"
+
+[rules.pattern_ratchet.rootfs_copy.listed_no_growth]
+mode = "required"
+
+[rules.pattern_ratchet.rootfs_copy.stale_entries]
+mode = "required"
+
+[rules.crate_names]
+# A crate matches if a part of its package or library name, lowercased and
+# split on `-` and `_`, is one of these.
+banned_tokens = ["common", "shared", "util", "utils", "helper", "helpers", "misc", "core"]
+allow = []                            # exact package names exempt from the rule
+
+[rules.crate_names.no_new]            # no new catch-all crate, and no new baseline entries
+mode = "required"
+
+[rules.crate_names.stale_entries]     # entries and allow names that no longer apply
+mode = "advisory"
+
+[rules.crate_names.policy_changed]    # changes to this table, compared with the base branch
+mode = "advisory"

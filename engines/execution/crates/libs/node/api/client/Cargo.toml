@@ -1,0 +1,58 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-node-api-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+kubernetes = ["dep:avenra-runtime-common-grpc-lb", "avenra-runtime-common-grpc-lb/k8s"]
+
+[dependencies]
+hyper-util = { workspace = true, features = ["tokio"] }
+prost = { workspace = true }
+prost-types = { workspace = true }
+tokio = { workspace = true, features = ["net", "sync"] }
+thiserror = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+tonic-prost = { workspace = true }
+tower = { workspace = true }
+tracing = { workspace = true }
+
+# internal
+avenra-runtime-build-mgr-client = { workspace = true }
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-common-grpc = { workspace = true, features = ["internal-tls"] }
+avenra-runtime-common-grpc-lb = { workspace = true, optional = true }
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-execution-common = { workspace = true }
+avenra-runtime-net-common = { workspace = true }
+avenra-runtime-net-gateway-client = { workspace = true }
+avenra-runtime-node-mgr-client = { workspace = true }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+avenra-runtime-template-mgr-client = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+avenra-runtime-common-proto-build = { workspace = true }
+tonic-prost-build = { workspace = true }
+
+[dev-dependencies]
+rcgen = { workspace = true, features = ["aws_lc_rs", "pem"] }
+rustls = { workspace = true, features = ["aws_lc_rs"] }
+bytes = { workspace = true }
+http-body-util = { workspace = true }
+avenra-runtime-test-env = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt", "sync"] }
+tokio-stream = { workspace = true, features = ["net"] }

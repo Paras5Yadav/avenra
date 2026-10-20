@@ -1,0 +1,52 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package v1
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/url"
+
+	"avenra.local/accounting/internal/controller/ledger"
+	"avenra.local/accounting/pkg/accounts"
+
+	"errors"
+
+	"github.com/formancehq/go-libs/v3/api"
+	"github.com/formancehq/go-libs/v3/metadata"
+	"avenra.local/accounting/internal/api/common"
+	"github.com/go-chi/chi/v5"
+)
+
+func addAccountMetadata(w http.ResponseWriter, r *http.Request) {
+	l := common.LedgerFromContext(r.Context())
+	address, err := url.PathUnescape(chi.URLParam(r, "address"))
+	if err != nil {
+		api.BadRequestWithDetails(w, common.ErrValidation, err, err.Error())
+		return
+	}
+
+	if !accounts.ValidateAddress(address) {
+		api.BadRequest(w, common.ErrValidation, errors.New("invalid account address format"))
+		return
+	}
+
+	var m metadata.Metadata
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		api.BadRequest(w, common.ErrValidation, errors.New("invalid metadata format"))
+		return
+	}
+
+	_, idempotencyHit, err := l.SaveAccountMetadata(r.Context(), getCommandParameters(r, ledger.SaveAccountMetadata{
+		Address:  address,
+		Metadata: m,
+	}))
+	if err != nil {
+		common.HandleCommonWriteErrors(w, r, err)
+		return
+	}
+	if idempotencyHit {
+		w.Header().Set("Idempotency-Hit", "true")
+	}
+
+	api.NoContent(w)
+}

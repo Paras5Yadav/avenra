@@ -1,0 +1,98 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-cluster-controller-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+# On by default: every reconciler in this crate drives the Kubernetes
+# substrate today, so the library has no meaning without it. The gate is kept
+# rather than folded in so a direct-substrate build can grow behind it without
+# a manifest change; a `--no-default-features` build does not compile yet.
+default = ["kubernetes"]
+otel = [
+    "avenra-runtime-common-svc/otel",
+    "avenra-runtime-api/otel",
+]
+datadog = [
+    "otel",
+    "avenra-runtime-common-svc/datadog",
+    "avenra-runtime-api/datadog",
+]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+# Gates the kube client, k8s-openapi types, and the kube-specific sink and
+# reconciler impls. Mirrors the same feature in `avenra-runtime-api`.
+kubernetes = [
+    "dep:k8s-openapi",
+    "dep:kube",
+    "avenra-runtime-api/kubernetes",
+    "avenra-runtime-common-core/kubernetes",
+    "avenra-runtime-common-svc/k8s",
+]
+test-hooks = ["avenra-runtime-common-core/test-hooks"]
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+aws-config = { workspace = true, features = ["behavior-version-latest", "credentials-process", "default-https-client", "rt-tokio", "sso"] }
+aws-smithy-types = { workspace = true }
+dashmap = { workspace = true }
+futures-util = { workspace = true }
+jiff = { workspace = true }
+k8s-openapi = { workspace = true, features = ["v1_32"], optional = true }
+kube = { workspace = true, default-features = false, features = ["client"], optional = true }
+prost-types = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true, features = ["postgres", "runtime-tokio", "tls-rustls-aws-lc-rs"] }
+time = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio-util = { workspace = true }
+tonic = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v7"] }
+
+# internal
+avenra-runtime-api = { workspace = true }
+avenra-runtime-aws-client = { workspace = true }
+avenra-runtime-cluster-pool = { workspace = true }
+avenra-runtime-cluster-reconciler = { workspace = true }
+avenra-runtime-common-core = { workspace = true, features = ["sqlx"] }
+avenra-runtime-common-grpc = { workspace = true, features = ["internal-tls"] }
+avenra-runtime-sandbox-store = { workspace = true }
+avenra-runtime-sandbox-teardown = { workspace = true }
+avenra-runtime-snapshot-storage = { workspace = true, features = ["s3"] }
+avenra-runtime-snapshot-retention = { workspace = true, features = ["s3"] }
+avenra-runtime-snapshot-store = { workspace = true }
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-events = { workspace = true }
+avenra-runtime-feature-flags = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-node-api-client = { workspace = true }
+avenra-runtime-public-api = { workspace = true }
+avenra-runtime-sandbox-portability = { workspace = true }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-common-core = { workspace = true, features = ["sqlx", "test-hooks"] }
+avenra-runtime-common-svc = { workspace = true, features = ["test-support"] }
+avenra-runtime-metrics = { workspace = true, features = ["test-capture"] }
+avenra-runtime-observability = { workspace = true, features = ["test-capture"] }
+bytes = { workspace = true }
+http-body-util = { workspace = true }
+avenra-runtime-db-test-fixtures = { workspace = true }
+avenra-runtime-test-env = { workspace = true }
+serde = { workspace = true }
+sqlx = { workspace = true, features = ["migrate", "postgres", "runtime-tokio", "tls-rustls-aws-lc-rs"] }
+tokio = { workspace = true, features = ["macros", "rt", "rt-multi-thread", "test-util"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tower = { workspace = true, features = ["util"] }
+tracing-subscriber = { workspace = true }

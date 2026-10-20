@@ -1,0 +1,27 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+# Smoke recipe for the seed-based OCI overlay path.
+#
+# Usage:
+#   avenra-builder build --recipe /avenra/templates/firecracker/recipes/oci-python-smoke.toml --id oci-python-smoke
+
+[metadata]
+name = "oci-python-smoke"
+description = "Python 3.12 image overlaid onto the Avenra seed"
+from = "oci-image"
+base = "seed"
+image = "docker.io/library/python:3.12-slim-bookworm"
+vcpu = 2
+memory_mib = 2048
+disk_size_mb = 4096
+
+[[steps]]
+name = "Validate the image and Avenra user"
+type = "run"
+command = """
+set -eu
+python3 -c 'import sys; assert sys.version_info[:2] == (3, 12)'
+grep -q '^VERSION_CODENAME=bookworm$' /etc/os-release
+test "$(id -u user)" = 2000
+install -d /opt/space
+printf 'python-oci-smoke\n' > /opt/avenra/oci-python-smoke
+"""

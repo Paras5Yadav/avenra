@@ -1,0 +1,81 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-net-gateway"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+test-support = []
+default = []
+otel = ["avenra-runtime-common-svc/otel"]
+datadog = ["otel", "avenra-runtime-common-svc/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+
+[dependencies]
+zeroize = { workspace = true }
+arc-swap = { workspace = true }
+aws-lc-rs = { workspace = true }
+jiff = { workspace = true }
+rcgen = { workspace = true, features = ["aws_lc_rs", "x509-parser"] }
+time = { workspace = true }
+rustls = { workspace = true, features = ["aws_lc_rs", "std", "tls12"] }
+x509-parser = { workspace = true, features = ["verify-aws"] }
+bytes = { workspace = true }
+base64 = { workspace = true }
+futures-util = { workspace = true }
+hickory-resolver = { workspace = true }
+h2 = { workspace = true }
+http = { workspace = true }
+http-body-util = { workspace = true }
+hyper = { workspace = true, features = ["client", "server", "http1", "http2"] }
+hyper-util = { workspace = true, features = ["tokio", "server", "server-auto", "http1", "http2"] }
+libc = { workspace = true }
+lru = { workspace = true }
+parking_lot = { workspace = true }
+rand = { workspace = true }
+socket2 = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "sync", "rt", "time"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-rustls = { workspace = true, features = ["aws_lc_rs", "tls12"] }
+tokio-util = { workspace = true, features = ["codec"] }
+tonic = { workspace = true }
+tracing = { workspace = true }
+webpki-roots = { workspace = true }
+
+# internal
+avenra-runtime-common-connection-admission = { workspace = true }
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-events = { workspace = true }
+avenra-runtime-net-common = { workspace = true }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-credmgr-client = { workspace = true }
+avenra-runtime-credential-injection-core = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-observability = { workspace = true, default-features = false }
+avenra-runtime-net-gateway-client = { workspace = true }
+avenra-runtime-avenrad-common = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-test-env.workspace = true
+prost = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }
+rcgen = { workspace = true, features = ["aws_lc_rs", "x509-parser", "pem"] }
+tempfile = { workspace = true }
+insta = { workspace = true }
+nix = { workspace = true, features = ["net"] }
+avenra-runtime-common-svc = { workspace = true, features = ["test-support"] }
+avenra-runtime-metrics = { workspace = true, features = ["test-capture"] }
+avenra-runtime-observability = { workspace = true, features = ["test-capture"] }
+# Devbox validation (`#[ignore]`d): capture the proxy's real tracing output to
+# assert the SNI was extracted end-to-end through `tcp_proxy::run`.
+tracing-subscriber = { workspace = true }

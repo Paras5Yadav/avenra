@@ -1,0 +1,220 @@
+/*****
+ License
+ --------------
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
+ Names of the original copyright holders (individuals or organizations)
+ should be listed with a '*' in the first column. People who have
+ contributed from an organization can be listed under the organization
+ that actually holds the copyright for their contributions (see the
+ Mojaloop Foundation for an example). Those individuals should have
+ their names indented and be marked with a '-'. Email address can be added
+ optionally within square brackets <email>.
+
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
+
+ * ModusBox
+ * Georgi Logodazhki <georgi.logodazhki@modusbox.com>
+ * Vijaya Kumar Guthi <vijaya.guthi@modusbox.com> (Original Author)
+ --------------
+ ******/
+
+const storageAdapter = require('./storageAdapter')
+const SYSTEM_CONFIG_FILE = 'spec_files/system_config.json'
+const USER_CONFIG_FILE = 'spec_files/user_config.json'
+const _ = require('lodash')
+
+let SYSTEM_CONFIG = {}
+
+const USER_CONFIG = {
+  data: undefined
+}
+
+const getSystemConfig = () => {
+  return SYSTEM_CONFIG
+}
+
+const getUserConfig = async (user) => {
+  const item = user ? user.dfspId : 'data'
+  if (!USER_CONFIG[item]) {
+    await loadUserConfig(user)
+  }
+  return USER_CONFIG[item]
+}
+
+const getStoredUserConfig = async (user) => {
+  try {
+    const storedConfig = await loadUserConfigDFSPWise(user)
+    return storedConfig
+  } catch (err) {
+    console.log(`Can not read the file ${USER_CONFIG_FILE}`, err)
+    return {}
+  }
+}
+
+const setStoredUserConfig = async (newConfig, user) => {
+  try {
+    await storageAdapter.upsert(USER_CONFIG_FILE, { ...getUserConfig(), ...newConfig }, user)
+    return true
+  } catch (err) {
+    return false
+  }
+}
+
+const loadUserConfig = async (user, filename = USER_CONFIG_FILE) => {
+  try {
+    USER_CONFIG[user ? user.dfspId : 'data'] = await loadUserConfigDFSPWise(user, filename)
+  } catch (err) {
+    console.log(`Can not read the file ${USER_CONFIG_FILE}`, err)
+  }
+  return true
+}
+
+const loadUserConfigDFSPWise = async (user, filename = USER_CONFIG_FILE) => {
+  const userConfig = await storageAdapter.read(filename, user)
+  return userConfig.data
+}
+
+const loadSystemConfig = async (filename = SYSTEM_CONFIG_FILE) => {
+  try {
+    SYSTEM_CONFIG = (await storageAdapter.read(filename)).data
+    const systemConfigFromEnvironment = _getSystemConfigFromEnvironment()
+    _.merge(SYSTEM_CONFIG, systemConfigFromEnvironment)
+    const secretsFromEnvironment = _getSecretsFromEnvironment()
+    _.merge(SYSTEM_CONFIG, secretsFromEnvironment)
+  } catch (err) {
+    console.log(`Can not read the file ${filename}`, err)
+  }
+  return true
+}
+
+const mask = value => (value && value.length > 4) ? `${value.slice(0, 2)}***${value.slice(-2)}` : value
+
+const _getSecretsFromEnvironment = () => {
+  const secretsFromEnvironment = {}
+  if (
+    process.env.REPORTING_DB_CONNECTION_PASSWORD ||
+    process.env.REPORTING_DB_CONNECTION_STRING ||
+    process.env.REPORTING_DB_SSL_ENABLED ||
+    process.env.REPORTING_DB_SSL_VERIFY ||
+    process.env.REPORTING_DB_SSL_CA_FILE_PATH ||
+    process.env.REPORTING_DB_SSL_CLIENT_CERT_FILE_PATH ||
+    process.env.REPORTING_DB_PARAMS
+  ) {
+    try {
+      const reportingDbConnectionPassword = process.env.REPORTING_DB_CONNECTION_PASSWORD
+      const reportingDbConnectionString = process.env.REPORTING_DB_CONNECTION_STRING
+      const reportingDbSslEnabled = process.env.REPORTING_DB_SSL_ENABLED === 'true'
+      const reportingDbSslVerify = process.env.REPORTING_DB_SSL_VERIFY !== 'false'
+      const reportingDbSslCa = process.env.REPORTING_DB_SSL_CA_FILE_PATH
+      const reportingDbClientCert = process.env.REPORTING_DB_SSL_CLIENT_CERT_FILE_PATH
+      const reportingDbConnectionParams = process.env.REPORTING_DB_PARAMS
+        ? JSON.parse(process.env.REPORTING_DB_PARAMS)
+        : undefined
+
+      secretsFromEnvironment.DB = {
+        PASSWORD: reportingDbConnectionPassword,
+        CONNECTION_STRING: reportingDbConnectionString
+      }
+
+      if (process.env.REPORTING_DB_PARAMS && reportingDbConnectionParams) {
+        secretsFromEnvironment.DB.PARAMS = reportingDbConnectionParams
+      }
+
+      if (
+        process.env.REPORTING_DB_SSL_ENABLED ||
+        process.env.REPORTING_DB_SSL_VERIFY ||
+        process.env.REPORTING_DB_SSL_CA_FILE_PATH ||
+        process.env.REPORTING_DB_SSL_CLIENT_CERT_FILE_PATH
+      ) {
+        secretsFromEnvironment.DB.SSL_ENABLED = reportingDbSslEnabled
+        secretsFromEnvironment.DB.SSL_VERIFY = reportingDbSslVerify
+        if (reportingDbSslCa) {
+          secretsFromEnvironment.DB.SSL_CA_FILE_PATH = reportingDbSslCa
+        }
+        if (reportingDbClientCert) {
+          secretsFromEnvironment.DB.SSL_CLIENT_CERT_FILE_PATH = reportingDbClientCert
+        }
+      }
+
+      // Hide CA from being logged
+      const logSecrets = _.cloneDeep(secretsFromEnvironment)
+      if (logSecrets.DB && logSecrets.DB.SSL_CA_FILE_PATH) logSecrets.DB.SSL_CA_FILE_PATH = mask(logSecrets.DB.SSL_CA_FILE_PATH)
+      if (logSecrets.DB && logSecrets.DB.PASSWORD) logSecrets.DB.PASSWORD = mask(logSecrets.DB.PASSWORD)
+      if (logSecrets.DB && logSecrets.DB.CONNECTION_STRING) logSecrets.DB.CONNECTION_STRING = mask(logSecrets.DB.CONNECTION_STRING)
+      if (logSecrets.DB && logSecrets.DB.SSL_CLIENT_CERT_FILE_PATH) logSecrets.DB.SSL_CLIENT_CERT_FILE_PATH = mask(logSecrets.DB.SSL_CLIENT_CERT_FILE_PATH)
+      console.log('Secrets retrieved from environment to be merged into system config', logSecrets)
+      if (logSecrets.DB && logSecrets.DB.PARAMS) logSecrets.DB.PARAMS = JSON.stringify(logSecrets.DB.PARAMS)
+    } catch (err) {
+      console.log(err)
+      console.log('Failed to retrieve reporting database secrets or SSL/TLS settings from environment')
+    }
+  }
+  return secretsFromEnvironment
+}
+
+const _getSystemConfigFromEnvironment = () => {
+  let systemConfigFromEnvironment = {}
+  if (process.env.TTK_SYSTEM_CONFIG) {
+    try {
+      systemConfigFromEnvironment = JSON.parse(process.env.TTK_SYSTEM_CONFIG)
+    } catch (err) {
+      console.log(`Failed to parse system config passed in environment ${process.env.TTK_SYSTEM_CONFIG}`)
+    }
+  }
+  return systemConfigFromEnvironment
+}
+
+const setSystemConfig = async (newConfig) => {
+  try {
+    await storageAdapter.upsert(SYSTEM_CONFIG_FILE, { ...getSystemConfig(), ...newConfig })
+    await loadSystemConfig()
+    return true
+  } catch (err) {
+    return false
+  }
+}
+
+// const _getObjectStoreInitConfigFromEnvironment = () => {
+//   let objectStoreInitConfigFromEnvironment = {}
+//   if (process.env.TTK_OBJECT_STORE_INIT_CONFIG) {
+//     try {
+//       objectStoreInitConfigFromEnvironment = JSON.parse(process.env.TTK_OBJECT_STORE_INIT_CONFIG)
+//     } catch (err) {
+//       console.log(`Failed to parse objectStore init config passed in environment ${process.env.TTK_OBJECT_STORE_INIT_CONFIG}`)
+//     }
+//   }
+//   return objectStoreInitConfigFromEnvironment
+// }
+
+const _getObjectStoreInitConfigFromSystemConfig = () => {
+  let objectStoreInitConfigFromSystemConfig = {}
+  if (SYSTEM_CONFIG.INIT_CONFIG && SYSTEM_CONFIG.INIT_CONFIG.objectStore) {
+    objectStoreInitConfigFromSystemConfig = SYSTEM_CONFIG.INIT_CONFIG.objectStore
+  }
+  return objectStoreInitConfigFromSystemConfig
+}
+
+const getObjectStoreInitConfig = async () => {
+  return _getObjectStoreInitConfigFromSystemConfig()
+}
+
+module.exports = {
+  getUserConfig,
+  getStoredUserConfig,
+  setStoredUserConfig,
+  loadUserConfig,
+  getSystemConfig,
+  loadSystemConfig,
+  setSystemConfig,
+  getObjectStoreInitConfig
+}

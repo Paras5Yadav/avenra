@@ -1,0 +1,92 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+{{- $ctx := dict "ctx" . "component" "volume-manager" -}}
+{{- include "avenra-node-service.serviceAccount" $ctx }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "avenra-node-service.name" $ctx }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "avenra-node-service.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "avenra-node-service.selectorLabels" $ctx | nindent 6 }}
+  # Delete first: volume-manager holds /avenra/run/volume-manager/service.mutex
+  # and runs as avenra-volmgr. Nodes created with a different account must be
+  # recreated, not upgraded in place (docs/installation.md, "Volume-manager
+  # identity and credentials"). Fresh Kind nodes have no retained state.
+  {{- include "avenra-node-service.updateStrategy" (dict "strategy" "deleteFirst") | nindent 2 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "avenra-node-service.podAnnotations" $ctx | nindent 8 }}
+      labels:
+        {{- include "avenra-node-service.labels" $ctx | nindent 8 }}
+    spec:
+      {{- include "avenra-node-service.nodeSelector" $ctx | nindent 6 }}
+      {{- include "avenra-node-service.priorityClass" $ctx | nindent 6 }}
+      serviceAccountName: {{ include "avenra-node-service.name" $ctx }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | int }}
+      # The volume-manager account: avenra-volmgr (UID 964) with
+      # AVENRA_VOLUME_MANAGER_GROUPS, the production shape. node-manager's
+      # btrfs send-lease RPCs authorize this principal and no other
+      # (crates/libs/node/mgr/server/src/service/btrfs_send_transport.rs), so
+      # deferred btrfs-send capture depends on it. Credentials come through
+      # credential-manager's volume socket, the only listener that admits this
+      # identity (docs/installation.md, "Volume-manager identity and
+      # credentials"); Kind's static object-store credentials bypass
+      # the token exchange, but DEK issue and unwrap still use it.
+      securityContext:
+        {{- include "avenra-node-service.runAs" (dict "ctx" . "user" "AVENRA_VOLMGR" "groups" "AVENRA_VOLUME_MANAGER_GROUPS") | nindent 8 }}
+      initContainers:
+        # sandbox-manager and template-manager reach the socket through
+        # avenra-sbxclients (crates/libs/vol/mgr/server/src/run.rs).
+        {{- include "avenra-node-service.prepareRunDir" (dict "ctx" . "path" "/avenra/run/volume-manager" "mode" "0750"
+            "uid" (include "avenra-node-service.identityNumber" (dict "ctx" . "name" "AVENRA_VOLMGR_UID"))
+            "gid" (include "avenra-node-service.groupId" (dict "ctx" . "name" "avenra-sbxclients"))) | nindent 8 }}
+      containers:
+        - name: volume-manager
+          {{- include "avenra-node-service.image" . | nindent 10 }}
+          command:
+            - /opt/avenra/bin/avenra-volmgr-svc
+            - --health-socket={{ include "avenra-node-service.healthSocket" $ctx }}
+          # File transfers only: no mounts, devices or ownership changes in
+          # the service path (crates/libs/vol/mgr/server/src/{executor,staging}.rs).
+          {{- include "avenra-node-service.restrictedContainer" . | nindent 10 }}
+          env:
+            {{- include "avenra-node-service.env.identity" . | nindent 12 }}
+            {{- include "avenra-node-service.env.diskAdmission" . | nindent 12 }}
+            # The volume-manager identity is denied the standard credential
+            # listener; it uses the volume socket credential-manager binds for
+            # it (crates/libs/credential/mgr/server/src/run/volume_socket.rs).
+            - name: AVENRA_CREDMGR_ENDPOINT
+              value: unix:///avenra/run/volume-credentials/credmgr.sock
+            # Static object-store credentials instead of credential-manager's
+            # token exchange (the local escape hatch,
+            # crates/libs/vol/mgr/server/src/run.rs).
+            {{- include "avenra-node-service.env.objectStoreCredentials" . | nindent 12 }}
+            {{- $budget := .Values.streamPushBufferBudgetBytes }}
+            {{- if not (kindIs "invalid" $budget) }}
+            # Streaming snapshot upload part budget; null keeps the service
+            # default (values.yaml). Rendered for any non-null value, so a
+            # numeric 0 still selects file uploads; a number read from a
+            # values file arrives as a float and is written out whole.
+            - name: AVENRA_VOLUME_STREAM_PUSH_BUFFER_BUDGET_BYTES
+              value: {{ ternary (printf "%.0f" $budget) (toString $budget) (kindIs "float64" $budget) | quote }}
+            {{- end }}
+          {{- include "avenra-node-service.probes" $ctx | nindent 10 }}
+          volumeMounts:
+            {{- include "avenra-node-service.mount.run" . | nindent 12 }}
+            {{- include "avenra-node-service.mount.cache" (dict) | nindent 12 }}
+            {{- include "avenra-node-service.mount.private" . | nindent 12 }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- include "avenra-node-service.volume.run" . | nindent 8 }}
+        {{- include "avenra-node-service.volume.cache" . | nindent 8 }}
+        {{- include "avenra-node-service.volume.private" . | nindent 8 }}

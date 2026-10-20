@@ -1,0 +1,379 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+{{- $ctx := dict "ctx" . "component" "node-manager" -}}
+{{- include "avenra-node-service.serviceAccount" $ctx }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "avenra-node-service.name" $ctx }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "avenra-node-service.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "avenra-node-service.selectorLabels" $ctx | nindent 6 }}
+  # Surge: node-manager holds /avenra/run/node-manager/service.mutex, and a
+  # successor binds its health socket, reports ready while passive and takes
+  # over when the predecessor releases the lock
+  # (crates/libs/node/mgr/server/src/run.rs). The runtime-supervisor upgrade
+  # is built around that overlap: the successor's init container stages the
+  # new supervisor while the old node-manager still runs and defers the
+  # restart, which the successor performs once it holds the mutex
+  # (scripts/k8s/node-manager-runtime-supervisor.sh).
+  {{- include "avenra-node-service.updateStrategy" (dict "strategy" "surge") | nindent 2 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "avenra-node-service.podAnnotations" $ctx | nindent 8 }}
+      labels:
+        {{- include "avenra-node-service.labels" $ctx | nindent 8 }}
+    spec:
+      {{- include "avenra-node-service.nodeSelector" $ctx | nindent 6 }}
+      {{- include "avenra-node-service.priorityClass" $ctx | nindent 6 }}
+      serviceAccountName: {{ include "avenra-node-service.name" $ctx }}
+      # node-manager makes no Kubernetes API calls.
+      automountServiceAccountToken: false
+      # Host network: node-manager builds each sandbox's veth/tap pair, routes
+      # and nftables in the node's root network namespace and sets
+      # net.ipv4.ip_forward there (crates/libs/node/mgr/server/src/net.rs,
+      # firewall.rs). ClusterFirstWithHostNet keeps in-cluster DNS.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      # Host PID: node-manager opens pidfds on the Firecracker and sidecar
+      # processes the host runtime-supervisor reports, and reads the
+      # /proc/<pid> links it records under /avenra/run/firecracker/sandboxes
+      # (crates/libs/node/runtime/supervisor/src/inventory.rs). The init
+      # container's `nsenter --target 1` reaches the node's systemd through it
+      # (scripts/k8s/node-manager-init.sh).
+      hostPID: true
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | int }}
+      initContainers:
+        # Kind-only, ahead of the production init: the node's
+        # /avenra/config/space.env, the EnvironmentFile of the host
+        # avenra-runtime-supervisor.service (scripts/k8s/node-manager-init.sh).
+        # A production node's bootstrap writes that file. A Kind node has no
+        # bootstrap, so without this the supervisor ignores the telemetry
+        # selector and keeps exporting to a Datadog Agent that is not there.
+        # The file holds this pod's telemetry settings and nothing else, with
+        # each Collector at the address the node reaches without cluster DNS,
+        # as the shim's wrapper names it (scripts/telemetry_config.py). A
+        # changed file marks the restart node-manager already performs for a
+        # staged supervisor: the production init below defers it while the
+        # node's current node-manager runs, and this pod's node-manager makes
+        # it once it holds the service mutex. On a new node there is no
+        # supervisor yet, and the init below starts it with this file.
+        - name: kind-node-env
+          {{- include "avenra-node-service.image" . | nindent 10 }}
+          {{- if (include "avenra-kind-telemetry.observability" . | fromJson).enabled }}
+          # global.observability (avenra-kind-telemetry README): the node's
+          # bootstrap may own other lines of space.env, so this replaces only
+          # the names any mode sets and keeps the rest. It also writes the
+          # same settings, shell-quoted, to shim-telemetry.env for a shim
+          # wrapper to read at each shim start.
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              env_file=/avenra/config/space.env
+              shim_file=/avenra/config/shim-telemetry.env
+              owned=" {{ include "avenra-kind-telemetry.ownedEnvNames" . }} "
+              current=(AVENRA_CLUSTER_ID AVENRA_K8S_NODE_NAME {{ include "avenra-kind-telemetry.envNames" . }})
+              kept=
+              if [[ -f $env_file ]]; then
+                while IFS= read -r line || [[ -n $line ]]; do
+                  name=${line%%=*}
+                  if [[ $line == *=* && $owned == *" $name "* ]]; then continue; fi
+                  kept+="$line"$'\n'
+                done <"$env_file"
+              fi
+              written="$kept$(for name in "${current[@]}"; do printf '%s=%s\n' "$name" "${!name}"; done)"
+              shim=$(
+                for name in "${current[@]}"; do
+                  if [[ ${!name} == *"'"* || ${!name} == *$'\n'* ]]; then
+                    echo "node-env: $name is not representable in $shim_file" >&2; exit 1
+                  fi
+                  printf "export %s='%s'\n" "$name" "${!name}"
+                done
+              )
+              if [[ ! -f $shim_file || "$(<"$shim_file")" != "$shim" ]]; then
+                printf '%s\n' "$shim" >"$shim_file.tmp"
+                chmod 0600 "$shim_file.tmp"
+                mv -f "$shim_file.tmp" "$shim_file"
+                echo "node-env: wrote $shim_file"
+              fi
+              if [[ -f $env_file && "$(<"$env_file")" == "$written" ]]; then
+                echo "node-env: $env_file unchanged"
+                exit 0
+              fi
+              printf '%s\n' "$written" >"$env_file.tmp"
+              chmod 0600 "$env_file.tmp"
+              mv -f "$env_file.tmp" "$env_file"
+              echo "node-env: wrote $env_file"
+              if [[ -d /avenra/run/runtime-supervisor ]]; then
+                touch /avenra/run/runtime-supervisor/restart-required
+                echo "node-env: marked runtime-supervisor for restart"
+              fi
+          {{- else }}
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              env_file=/avenra/config/space.env
+              written=$(
+                for name in AVENRA_CLUSTER_ID AVENRA_K8S_NODE_NAME DD_ENV DD_VERSION \
+                    AVENRA_ENV AVENRA_VERSION DD_TAGS OTEL_RESOURCE_ATTRIBUTES \
+                    DD_TRACE_ENABLED DD_AGENT_HOST DD_DOGSTATSD_PORT \
+                    AVENRA_METRICS_SINK AVENRA_TRACE_EXPORTER \
+                    OTEL_EXPORTER_OTLP_METRICS_PROTOCOL \
+                    OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE \
+                    OTEL_EXPORTER_OTLP_TRACES_PROTOCOL OTEL_TRACES_SAMPLER; do
+                  if [[ -v $name ]]; then printf '%s=%s\n' "$name" "${!name}"; fi
+                done
+                # Present exactly when the mode exports that signal over OTLP.
+                if [[ -v OTEL_EXPORTER_OTLP_METRICS_ENDPOINT && -n $NODE_OTLP_METRICS_ENDPOINT ]]; then
+                  printf 'OTEL_EXPORTER_OTLP_METRICS_ENDPOINT=%s\n' "$NODE_OTLP_METRICS_ENDPOINT"
+                fi
+                if [[ -v OTEL_EXPORTER_OTLP_TRACES_ENDPOINT && -n $NODE_OTLP_TRACES_ENDPOINT ]]; then
+                  printf 'OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=%s\n' "$NODE_OTLP_TRACES_ENDPOINT"
+                fi
+              )
+              if [[ -f $env_file && "$(<"$env_file")" == "$written" ]]; then
+                echo "kind-node-env: $env_file unchanged"
+                exit 0
+              fi
+              printf '%s\n' "$written" >"$env_file.tmp"
+              chmod 0600 "$env_file.tmp"
+              mv -f "$env_file.tmp" "$env_file"
+              echo "kind-node-env: wrote $env_file"
+              if [[ -d /avenra/run/runtime-supervisor ]]; then
+                touch /avenra/run/runtime-supervisor/restart-required
+                echo "kind-node-env: marked runtime-supervisor for restart"
+              fi
+          {{- end }}
+          # Root for the root-owned node paths it writes, and nothing more.
+          securityContext:
+            runAsUser: 0
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: AVENRA_CLUSTER_ID
+              value: {{ .Values.clusterId | quote }}
+            # The resolver drops a node name inherited through
+            # OTEL_RESOURCE_ATTRIBUTES; it reads this setting instead.
+            - name: AVENRA_K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            {{- include "avenra-kind-telemetry.env" . | nindent 12 }}
+            {{- if not (include "avenra-kind-telemetry.observability" . | fromJson).enabled }}
+            - name: NODE_OTLP_METRICS_ENDPOINT
+              value: {{ .Values.telemetry.nodeOtlpMetricsEndpoint | quote }}
+            - name: NODE_OTLP_TRACES_ENDPOINT
+              value: {{ .Values.telemetry.nodeOtlpTracesEndpoint | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: avenra-config
+              mountPath: /avenra/config
+            {{- include "avenra-node-service.mount.run" . | nindent 12 }}
+        # The production node-manager init path, unmodified: stages the host
+        # binaries under /avenra/bin/releases/<tag>, prepares /avenra/run, stages
+        # the guest kernel into /avenra/cache, and installs, starts or schedules
+        # the restart of the host's avenra-runtime-supervisor.service through
+        # `nsenter --target 1` and systemctl.
+        - name: node-manager-init
+          {{- include "avenra-node-service.image" . | nindent 10 }}
+          # AVENRA_IMAGE_TAG keys the release directory the binaries are staged
+          # under. Production passes its image tag; every Kind build is tagged
+          # `local`, so the tag here is the digest of what the script stages,
+          # which changes exactly when a staged binary or the supervisor
+          # compatibility identity does.
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              AVENRA_IMAGE_TAG="kind-$(cat \
+                /opt/avenra/bin/avenra-runtime-supervisor-svc \
+                /opt/avenra/bin/avenra-nodemgr-svc \
+                /opt/avenra/bin/avenra-sbxmgr-svc \
+                /opt/avenra/bin/avenra-avenrad-host-svc \
+                /opt/avenra/bin/avenra-netgtw-svc \
+                /opt/avenra/bin/avenra-sbxmgr \
+                /opt/avenra/etc/avenra-runtime-supervisor-compatibility \
+                | sha256sum | cut -c1-16)"
+              export AVENRA_IMAGE_TAG
+              exec /opt/avenra/bin/node-manager-init.sh
+          # Privileged: it writes the node's systemd unit and runs systemctl in
+          # the node's mount, PID and other namespaces via nsenter, and stages
+          # root-owned files on the host paths below.
+          securityContext:
+            privileged: true
+          volumeMounts:
+            # /avenra/bin/releases/<tag> and the /avenra/bin/<binary> links the
+            # host supervisor's unit and sidecar launches use.
+            - name: avenra-bin
+              mountPath: /avenra/bin
+            - name: avenra-etc
+              mountPath: /avenra/etc
+            {{- include "avenra-node-service.mount.run" . | nindent 12 }}
+            # Guest-kernel staging writes files, not mounts, so the node's view
+            # is enough.
+            {{- include "avenra-node-service.mount.cache" (dict) | nindent 12 }}
+            - name: vendor
+              mountPath: /avenra/vendor
+              readOnly: true
+      containers:
+        - name: node-manager
+          {{- include "avenra-node-service.image" . | nindent 10 }}
+          command:
+            - /opt/avenra/bin/avenra-nodemgr-svc
+            - --health-socket={{ include "avenra-node-service.healthSocket" $ctx }}
+          # Privileged: node-manager mounts (jail rootfs and snapshot-memory
+          # binds, btrfs on loop and device-mapper devices), creates loop and
+          # device-mapper devices, unshares and bind-mounts network namespaces,
+          # writes /sys/fs/cgroup/space, and programs nftables and links
+          # (crates/libs/node/mgr/server/src/{launch_prepare,snapshots,
+          # loop_devices,rootfs_dmcrypt,net}.rs). Bidirectional mount
+          # propagation below also requires it.
+          securityContext:
+            privileged: true
+          env:
+            {{- include "avenra-node-service.env.identity" . | nindent 12 }}
+            {{- include "avenra-node-service.env.diskAdmission" . | nindent 12 }}
+            {{- if ne (toString .Values.diskIoMaxOperationsPerSec) "" }}
+            {{- if not (regexMatch "^[1-9][0-9]*$" (toString .Values.diskIoMaxOperationsPerSec)) }}
+            {{- fail "diskIoMaxOperationsPerSec must be a positive integer or empty" }}
+            {{- end }}
+            - name: AVENRA_NODEMGR_DISK_IO_MAX_OPERATIONS_PER_SEC
+              value: {{ .Values.diskIoMaxOperationsPerSec | quote }}
+            {{- end }}
+            # The node image stages a protected copy of the developer-owned
+            # vendor downloads on this hostPath before kubelet starts.
+            - name: AVENRA_FIRECRACKER_VENDOR_DIR
+              value: /avenra/bin/runtime/firecracker
+            # Sandbox volume DEKs come straight from the authority, which
+            # admits GetOrIssueSandboxVolumeDek only from node-manager, never
+            # through the node agent
+            # (crates/libs/node/mgr/server/src/service/encrypted_volumes.rs,
+            # crates/libs/credential/mgr/server/src/service.rs).
+            {{- include "avenra-node-service.env.credmgrAuthority" . | nindent 12 }}
+            # The successor activates a supervisor restart its init container
+            # staged, once it holds the service mutex
+            # (crates/libs/node/mgr/server/src/run.rs).
+            - name: AVENRA_NODEMGR_ACTIVATE_RUNTIME_SUPERVISOR_ON_START
+              value: "true"
+            # Sandbox pods own their network namespaces (KubernetesSubstrate).
+            - name: AVENRA_NODEMGR_SERVICE_PORT_INGRESS_ISOLATION
+              value: shared_host
+            # No warm network-slot pool, as deployed nodes run. Each slot is its
+            # own network namespace, bridged to the sandbox pod's namespace or,
+            # for an allocation without one, to the node's; claim_allocation
+            # (crates/libs/node/mgr/server/src/slot_pool.rs) serves only the
+            # latter from the pool. Sandbox pods bring their own namespace
+            # (KubernetesSubstrate), so their slots are set up on allocation
+            # and torn down on release either way. The binary defaults also
+            # keep max(target, retained) slots, every slot the node has, ready
+            # and bridged to the node (the fill loop in slot_pool/worker.rs):
+            # a sandbox claim then takes one of those and rebuilds it for the
+            # pod, and the pool rebuilds it after release. build-manager
+            # allocates without a namespace, so with the pool off builders set
+            # up their slots on demand instead of leasing pooled ones. With no
+            # ready minimum the pool reports healthy while empty (pool_status
+            # in service/network_helpers.rs). Read at startup in
+            # crates/libs/node/mgr/server/src/run.rs.
+            - name: AVENRA_NODEMGR_NETWORK_POOL_TARGET
+              value: "0"
+            - name: AVENRA_NODEMGR_NETWORK_POOL_RETAIN_READY
+              value: "0"
+            - name: AVENRA_NODEMGR_NETWORK_POOL_MIN_READY
+              value: "0"
+            {{- if ne (toString .Values.loopDeviceTarget) "" }}
+            - name: AVENRA_LOOP_DEVICE_TARGET
+              value: {{ .Values.loopDeviceTarget | quote }}
+            {{- end }}
+          {{- include "avenra-node-service.probes" $ctx | nindent 10 }}
+          volumeMounts:
+            {{- include "avenra-node-service.mount.run" . | nindent 12 }}
+            {{- include "avenra-node-service.mount.credmgrToken" . | nindent 12 }}
+            # Bidirectional: the jailer runs on the node under the host
+            # runtime-supervisor, in a mount namespace that is a slave of the
+            # node's. node-manager bind-mounts each instance's rootfs into its
+            # jail before launch and the snapshot memory file after Firecracker
+            # is already running on restore
+            # (crates/libs/node/mgr/server/src/service/snapshots.rs); those
+            # mounts reach the jail only if they propagate from this pod to the
+            # node's shared /avenra/cache. Without it Firecracker opens the
+            # zero-byte bind target and restore fails ("Total sum of memory
+            # regions exceeds largest possible file offset").
+            {{- include "avenra-node-service.mount.cache" (dict "propagation" "Bidirectional") | nindent 12 }}
+            # Bidirectional: node-manager bind-mounts each sandbox network
+            # namespace at /run/netns/<ns> (crates/libs/node/mgr/server/src/net/linux.rs);
+            # the host jailer (`--netns`) and the supervisor's sidecar launcher
+            # (setns) open those paths on the node. Kubelet's CNI namespaces
+            # for sandbox pods arrive the other way.
+            - name: netns
+              mountPath: /var/run/netns
+              mountPropagation: Bidirectional
+            # The sandbox cgroup parent's cpu/memory/io limits and per-sandbox
+            # children (crates/libs/node/runtime/core/src/cgroup.rs).
+            - name: cgroup
+              mountPath: /sys/fs/cgroup
+            # Includes the root-owned runtime tree used by the host supervisor.
+            - name: avenra-bin
+              mountPath: /avenra/bin
+              readOnly: true
+            - name: vendor
+              mountPath: /avenra/vendor
+              readOnly: true
+            - name: avenra-etc
+              mountPath: /avenra/etc
+              readOnly: true
+            # Fail fast on a node without KVM rather than at the first launch.
+            - name: kvm
+              mountPath: /dev/kvm
+            - name: health
+              mountPath: /run/health
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- include "avenra-node-service.volume.run" . | nindent 8 }}
+        {{- include "avenra-node-service.volume.credmgrToken" . | nindent 8 }}
+        {{- include "avenra-node-service.volume.cache" . | nindent 8 }}
+        - name: avenra-bin
+          hostPath:
+            path: /avenra/bin
+            type: DirectoryOrCreate
+        - name: avenra-etc
+          hostPath:
+            path: /avenra/etc
+            type: DirectoryOrCreate
+        - name: avenra-config
+          hostPath:
+            path: /avenra/config
+            type: DirectoryOrCreate
+        - name: netns
+          hostPath:
+            path: /var/run/netns
+            type: DirectoryOrCreate
+        - name: cgroup
+          hostPath:
+            path: /sys/fs/cgroup
+            type: Directory
+        # The Firecracker vendor tree, bind-mounted into the kind node from
+        # $AVENRA_VENDOR_ROOT by kind-cluster.yaml.tmpl's extraMounts.
+        - name: vendor
+          hostPath:
+            path: /avenra/vendor
+            type: Directory
+        - name: kvm
+          hostPath:
+            path: /dev/kvm
+            type: CharDevice
+        - name: health
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi

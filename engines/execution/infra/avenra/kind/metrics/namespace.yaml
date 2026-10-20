@@ -1,0 +1,8 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: avenra-metrics
+  labels:
+    avenra-local-owner: metrics
+    pod-security.kubernetes.io/enforce: restricted

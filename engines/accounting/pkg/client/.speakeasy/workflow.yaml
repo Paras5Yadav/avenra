@@ -1,0 +1,19 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+workflowVersion: 1.0.0
+speakeasyVersion: v1.563.0
+sources:
+    Avenra-OAS:
+        inputs:
+            - location: ../../openapi.yaml
+        registry:
+            location: registry.speakeasyapi.dev/formance/gfyrag/formance-oas
+targets:
+    formance:
+        target: go
+        source: Avenra-OAS
+        codeSamples:
+            registry:
+                location: registry.speakeasyapi.dev/formance/gfyrag/formance-oas-go-code-samples
+            labelOverride:
+                fixedValue: Go (SDK)
+            blocking: false

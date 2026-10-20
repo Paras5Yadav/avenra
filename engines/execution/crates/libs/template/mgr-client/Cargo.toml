@@ -1,0 +1,38 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-template-mgr-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+otel = ["avenra-runtime-observability/otel"]
+datadog = ["otel", "avenra-runtime-observability/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+
+[dependencies]
+prost = { workspace = true }
+thiserror = { workspace = true }
+tonic = { workspace = true }
+tonic-prost = { workspace = true }
+
+# internal
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-execution-common = { workspace = true }
+avenra-runtime-net-common = { workspace = true }
+avenra-runtime-observability = { workspace = true, default-features = false }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+avenra-runtime-common-proto-build = { workspace = true }
+tonic-prost-build = { workspace = true }

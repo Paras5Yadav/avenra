@@ -1,0 +1,19 @@
+version: "3.7"
+
+services:
+  mojaloop-testing-toolkit-int:
+    image: mojaloop-testing-toolkit:local
+    build:
+      context: .
+      target: builder
+    container_name: mojaloop-testing-toolkit-int
+    command:
+      - sh
+      - -c
+      - "tail -f /dev/null"
+    volumes:
+      - ./src:/opt/app/src
+      - ./test:/opt/app/test
+      - ./package.json:/opt/app/package.json
+      - ./test/integration-config.json:/opt/app/config/default.json
+      - ./docker/wait-for:/opt/wait-for

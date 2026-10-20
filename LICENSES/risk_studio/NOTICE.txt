@@ -1,0 +1,3 @@
+Avenra includes adapted source from https://github.com/tazama-lf/rule-studio at 26a5caccf793388c8571aa525b0f843b7ebedd6f.
+Original terms and notices are retained in original/. Modified files and original hashes are recorded in adaptations.json.
+These modifications do not imply endorsement by the original authors.

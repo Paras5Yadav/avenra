@@ -1,0 +1,196 @@
+# Kind-only: every Avenra Rust binary from ONE cargo-chef cook and ONE build.
+#
+# docker/Dockerfile.rust-build-common — the CI/publish path — compiles each
+# artifact set (worker, api, data-plane, cluster-controller) in its own stage,
+# so a cold `tilt up` cooked the shared dependency graph four times and every
+# source change recompiled the workspace crates four times, once per image.
+# The dev cluster does not need per-set images: it needs the same binaries with
+# the same cargo features, once. This file produces a single artifact image
+# whose `/artifacts` layout is the union of the four production sets, so the
+# unchanged production runtime Dockerfiles (Dockerfile.api, .data-plane,
+# .cluster-controller, .worker) consume it through AVENRA_RUST_BUILD_IMAGE.
+#
+# Same toolchain, same flags: the base is the production Dockerfile's own
+# `chef-base` stage (built by the caller as AVENRA_RUST_CHEF_IMAGE), the bin and
+# feature lists below are the union of the production sets' lists, and the
+# planner/build-context COPY sets match the production stages. Only LTO is off,
+# as build-images.sh and the Tiltfile already chose for local images, and
+# every crate's `test-hooks` feature is on so the test-only environment
+# overrides the Kind charts set take effect (production images never enable it). Keep the
+# lists in step with Dockerfile.rust-build-common when a set changes.
+#
+# Build (repo root context):
+#   docker build -t avenra-rust-chef-base:local -f docker/Dockerfile.rust-build-common --target chef-base .
+#   docker build -t avenra-grpc-health-probe:local -f docker/Dockerfile.rust-build-common --target grpc-health-probe-downloader .
+#   docker build -t avenra-rust-build-kind:local -f docker/Dockerfile.rust-build-kind .
+
+ARG AVENRA_RUST_CHEF_IMAGE=avenra-rust-chef-base:local
+ARG AVENRA_GRPC_HEALTH_PROBE_IMAGE=avenra-grpc-health-probe:local
+
+FROM ${AVENRA_RUST_CHEF_IMAGE} AS planner
+
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY .cargo/config.toml .cargo/config.toml
+COPY crates ./crates
+COPY proto ./proto
+COPY infra/avenra/identity/node-identities.sh infra/avenra/identity/node-identities.sh
+COPY templates/firecracker/seed/rootfs-builder.sh templates/firecracker/seed/rootfs-builder.sh
+COPY templates/firecracker/recipes/seed.toml templates/firecracker/recipes/code-runtime.toml templates/firecracker/recipes/
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM ${AVENRA_RUST_CHEF_IMAGE} AS cook
+
+ENV CARGO_PROFILE_RELEASE_LTO=false
+
+COPY --from=planner /workavenra/recipe.json recipe.json
+COPY infra/avenra/identity/node-identities.sh infra/avenra/identity/node-identities.sh
+
+# The union of the worker, api, data-plane and cluster-controller sets.
+# avenra-runtime-supervisor-svc is cooked here but built by
+# scripts/build-runtime-supervisor.sh below, as the production worker stage does.
+RUN cargo chef cook --locked --release --recipe-path recipe.json \
+      --features "avenra-runtime-node-api-svc/otel,avenra-runtime-node-api-svc/datadog,avenra-runtime-node-api-svc/k8s,avenra-runtime-internal-api-svc/otel,avenra-runtime-internal-api-svc/datadog,avenra-runtime-internal-api-svc/k8s,avenra-runtime-node-ctl-svc/otel,avenra-runtime-node-ctl-svc/datadog,avenra-runtime-node-ctl-svc/kubernetes,avenra-runtime-node-mgr-svc/otel,avenra-runtime-node-mgr-svc/datadog,avenra-runtime-build-mgr-svc/otel,avenra-runtime-build-mgr-svc/datadog,avenra-runtime-build-mgr-svc/k8s,avenra-runtime-runtime-supervisor-svc/otel,avenra-runtime-runtime-supervisor-svc/datadog,avenra-runtime-runtime-manager-svc/otel,avenra-runtime-runtime-manager-svc/datadog,avenra-runtime-sbxmgr-svc/otel,avenra-runtime-sbxmgr-svc/datadog,avenra-runtime-avenrad-host-svc/otel,avenra-runtime-avenrad-host-svc/datadog,avenra-runtime-net-gateway-svc/otel,avenra-runtime-net-gateway-svc/datadog,avenra-runtime-tmplmgr-svc/otel,avenra-runtime-tmplmgr-svc/datadog,avenra-runtime-volmgr-svc/otel,avenra-runtime-volmgr-svc/datadog,avenra-runtime-api-svc/otel,avenra-runtime-api-svc/datadog,avenra-runtime-api-svc/kubernetes,avenra-runtime-api-svc/federated-identity,avenra-runtime-data-plane-svc/otel,avenra-runtime-data-plane-svc/datadog,avenra-runtime-data-plane-svc/kubernetes,avenra-runtime-cluster-controller/otel,avenra-runtime-cluster-controller/datadog,avenra-runtime-avenrad-guest-svc/test-hooks,avenra-runtime-node-mgr-svc/test-hooks,avenra-runtime-sbxmgr-svc/test-hooks,avenra-runtime-tmplmgr-svc/test-hooks,avenra-runtime-template-mgr/test-hooks,avenra-runtime-internal-api-server/test-hooks,avenra-runtime-credmgr/test-hooks,avenra-runtime-common-svc/test-hooks,avenra-runtime-avenrad-guest-server/test-hooks,avenra-runtime-observability/test-hooks,avenra-runtime-cluster-controller-server/test-hooks,avenra-runtime-common-core/test-hooks,avenra-runtime-sbx-mgr/test-hooks,avenra-runtime-api/test-hooks,avenra-runtime-build-mgr-server/test-hooks,avenra-runtime-node-api-server/test-hooks,avenra-runtime-node-mgr/test-hooks" \
+      --bin avenrad \
+      --bin avenrad-svc \
+      --bin avenra-buildmgr \
+      --bin avenra-buildmgr-svc \
+      --bin avenra-tmplmgr \
+      --bin avenra-runtime-supervisor-svc \
+      --bin avenra-rtmgr-svc \
+      --bin avenra-rtmgr \
+      --bin avenra-nodemgr-svc \
+      --bin avenra-sbxmgr \
+      --bin avenra-nodectl \
+      --bin avenra-sbxmgr-svc \
+      --bin avenra-avenrad-host-svc \
+      --bin avenra-netgtw-svc \
+      --bin avenra-tmplmgr-svc \
+      --bin avenra-volmgr \
+      --bin avenra-credmgr-svc \
+      --bin avenra-volmgr-svc \
+      --bin avenra-node-api-svc \
+      --bin avenra-internal-api-svc \
+      --bin avenra-nodectl-svc \
+      --bin avenra-db-migrator \
+      --bin avenra-api-svc \
+      --bin avenra-template-publish \
+      --bin avenra-data-plane-svc \
+      --bin avenra-cluster-controller \
+      --bin avenra-mock-branching-key-provider-svc
+
+FROM cook AS build
+
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY .cargo/config.toml .cargo/config.toml
+COPY crates ./crates
+COPY proto ./proto
+COPY db ./db
+COPY infra/avenra/identity/node-identities.sh infra/avenra/identity/node-identities.sh
+COPY templates/firecracker/seed/rootfs-builder.sh templates/firecracker/seed/rootfs-builder.sh
+COPY templates/firecracker/recipes/seed.toml templates/firecracker/recipes/code-runtime.toml templates/firecracker/recipes/
+COPY scripts/build-runtime-supervisor.sh scripts/build-runtime-supervisor.sh
+
+RUN cargo build --locked --release \
+      -F avenra-runtime-node-api-svc/otel,avenra-runtime-node-api-svc/datadog \
+      -F avenra-runtime-node-api-svc/k8s \
+      -F avenra-runtime-internal-api-svc/otel,avenra-runtime-internal-api-svc/datadog \
+      -F avenra-runtime-internal-api-svc/k8s \
+      -F avenra-runtime-node-ctl-svc/otel,avenra-runtime-node-ctl-svc/datadog \
+      -F avenra-runtime-node-ctl-svc/kubernetes \
+      -F avenra-runtime-node-mgr-svc/otel,avenra-runtime-node-mgr-svc/datadog \
+      -F avenra-runtime-build-mgr-svc/otel,avenra-runtime-build-mgr-svc/datadog \
+      -F avenra-runtime-build-mgr-svc/k8s \
+      -F avenra-runtime-runtime-manager-svc/otel,avenra-runtime-runtime-manager-svc/datadog \
+      -F avenra-runtime-sbxmgr-svc/otel,avenra-runtime-sbxmgr-svc/datadog \
+      -F avenra-runtime-avenrad-host-svc/otel,avenra-runtime-avenrad-host-svc/datadog \
+      -F avenra-runtime-net-gateway-svc/otel,avenra-runtime-net-gateway-svc/datadog \
+      -F avenra-runtime-tmplmgr-svc/otel,avenra-runtime-tmplmgr-svc/datadog \
+      -F avenra-runtime-volmgr-svc/otel,avenra-runtime-volmgr-svc/datadog \
+      -F avenra-runtime-api-svc/otel,avenra-runtime-api-svc/datadog \
+      -F avenra-runtime-api-svc/kubernetes \
+      -F avenra-runtime-api-svc/federated-identity \
+      -F avenra-runtime-data-plane-svc/otel,avenra-runtime-data-plane-svc/datadog \
+      -F avenra-runtime-data-plane-svc/kubernetes \
+      -F avenra-runtime-cluster-controller/otel,avenra-runtime-cluster-controller/datadog \
+      -F avenra-runtime-avenrad-guest-svc/test-hooks,avenra-runtime-node-mgr-svc/test-hooks,avenra-runtime-sbxmgr-svc/test-hooks,avenra-runtime-tmplmgr-svc/test-hooks \
+      -F avenra-runtime-template-mgr/test-hooks,avenra-runtime-internal-api-server/test-hooks,avenra-runtime-credmgr/test-hooks \
+      -F avenra-runtime-common-svc/test-hooks,avenra-runtime-avenrad-guest-server/test-hooks,avenra-runtime-observability/test-hooks \
+      -F avenra-runtime-cluster-controller-server/test-hooks,avenra-runtime-common-core/test-hooks,avenra-runtime-sbx-mgr/test-hooks,avenra-runtime-api/test-hooks \
+      -F avenra-runtime-build-mgr-server/test-hooks,avenra-runtime-node-api-server/test-hooks,avenra-runtime-node-mgr/test-hooks \
+      --bin avenrad \
+      --bin avenrad-svc \
+      --bin avenra-buildmgr \
+      --bin avenra-buildmgr-svc \
+      --bin avenra-tmplmgr \
+      --bin avenra-rtmgr-svc \
+      --bin avenra-rtmgr \
+      --bin avenra-nodemgr-svc \
+      --bin avenra-sbxmgr \
+      --bin avenra-nodectl \
+      --bin avenra-sbxmgr-svc \
+      --bin avenra-avenrad-host-svc \
+      --bin avenra-netgtw-svc \
+      --bin avenra-tmplmgr-svc \
+      --bin avenra-volmgr \
+      --bin avenra-credmgr-svc \
+      --bin avenra-volmgr-svc \
+      --bin avenra-node-api-svc \
+      --bin avenra-internal-api-svc \
+      --bin avenra-nodectl-svc \
+      --bin avenra-db-migrator \
+      --bin avenra-api-svc \
+      --bin avenra-template-publish \
+      --bin avenra-data-plane-svc \
+      --bin avenra-cluster-controller \
+      --bin avenra-mock-branching-key-provider-svc
+
+RUN bash scripts/build-runtime-supervisor.sh \
+      target/release/avenra-runtime-supervisor-svc \
+      target/release/avenra-runtime-supervisor-compatibility \
+      cargo build --locked --release \
+        -F avenra-runtime-runtime-supervisor-svc/otel,avenra-runtime-runtime-supervisor-svc/datadog \
+        --bin avenra-runtime-supervisor-svc
+
+FROM ${AVENRA_GRPC_HEALTH_PROBE_IMAGE} AS grpc-health-probe
+
+FROM scratch AS build-artifacts-kind
+
+LABEL org.opencontainers.image.title="avenra-rust-build-kind"
+LABEL org.opencontainers.image.description="Avenra Rust build artifacts for the local kind stack: the union of every production artifact set from one build."
+
+# worker set
+COPY --from=build /workavenra/target/release/avenrad /artifacts/bin/avenrad
+COPY --from=build /workavenra/target/release/avenrad-svc /artifacts/bin/avenrad-svc
+COPY --from=build /workavenra/target/release/avenra-runtime-supervisor-svc /artifacts/bin/avenra-runtime-supervisor-svc
+COPY --from=build /workavenra/target/release/avenra-runtime-supervisor-compatibility /artifacts/etc/avenra-runtime-supervisor-compatibility
+COPY --from=build /workavenra/target/release/avenra-rtmgr-svc /artifacts/bin/avenra-rtmgr-svc
+COPY --from=build /workavenra/target/release/avenra-rtmgr /artifacts/bin/avenra-rtmgr
+COPY --from=build /workavenra/target/release/avenra-nodemgr-svc /artifacts/bin/avenra-nodemgr-svc
+COPY --from=build /workavenra/target/release/avenra-sbxmgr /artifacts/bin/avenra-sbxmgr
+COPY --from=build /workavenra/target/release/avenra-nodectl /artifacts/bin/avenra-nodectl
+COPY --from=build /workavenra/target/release/avenra-sbxmgr-svc /artifacts/bin/avenra-sbxmgr-svc
+COPY --from=build /workavenra/target/release/avenra-avenrad-host-svc /artifacts/bin/avenra-avenrad-host-svc
+COPY --from=build /workavenra/target/release/avenra-netgtw-svc /artifacts/bin/avenra-netgtw-svc
+COPY --from=build /workavenra/target/release/avenra-tmplmgr-svc /artifacts/bin/avenra-tmplmgr-svc
+COPY --from=build /workavenra/target/release/avenra-volmgr /artifacts/bin/avenra-volmgr
+COPY --from=build /workavenra/target/release/avenra-credmgr-svc /artifacts/bin/avenra-credmgr-svc
+COPY --from=build /workavenra/target/release/avenra-volmgr-svc /artifacts/bin/avenra-volmgr-svc
+COPY --from=build /workavenra/target/release/avenra-node-api-svc /artifacts/bin/avenra-node-api-svc
+COPY --from=build /workavenra/target/release/avenra-internal-api-svc /artifacts/bin/avenra-internal-api-svc
+COPY --from=build /workavenra/target/release/avenra-nodectl-svc /artifacts/bin/avenra-nodectl-svc
+COPY --from=build /workavenra/target/release/avenra-buildmgr /artifacts/bin/avenra-buildmgr
+COPY --from=build /workavenra/target/release/avenra-buildmgr-svc /artifacts/bin/avenra-buildmgr-svc
+COPY --from=build /workavenra/target/release/avenra-tmplmgr /artifacts/bin/avenra-tmplmgr
+COPY --from=build /workavenra/target/release/avenra-db-migrator /artifacts/bin/avenra-db-migrator
+COPY --from=grpc-health-probe /grpc_health_probe /artifacts/bin/grpc_health_probe
+# api set
+COPY --from=build /workavenra/target/release/avenra-api-svc /artifacts/bin/avenra-api-svc
+COPY --from=build /workavenra/target/release/avenra-template-publish /artifacts/bin/avenra-template-publish
+# data-plane and cluster-controller sets
+COPY --from=build /workavenra/target/release/avenra-data-plane-svc /artifacts/bin/avenra-data-plane-svc
+COPY --from=build /workavenra/target/release/avenra-cluster-controller /artifacts/bin/avenra-cluster-controller
+# Kind-only fixture: the in-repo intermediate-key broker the Kind
+# credential-manager authority uses (avenra-kind-key-broker); no production
+# image copies it.
+COPY --from=build /workavenra/target/release/avenra-mock-branching-key-provider-svc /artifacts/bin/avenra-mock-branching-key-provider-svc

@@ -1,0 +1,35 @@
+{
+  "scope": "Local service artifacts; not a production compatibility qualification",
+  "images": [
+    {
+      "original": "quay.io/microcks/microcks:1.15.0",
+      "local_alias": "avenra/api-contracts:1.15.0",
+      "image_id": "sha256:a21fa22bc8350d0a454f1803fcf889856c44e6f17a64a23a93b1f91582b694c9",
+      "repo_digests": [
+        "avenra/api-contracts@sha256:a21fa22bc8350d0a454f1803fcf889856c44e6f17a64a23a93b1f91582b694c9",
+        "quay.io/microcks/microcks@sha256:a21fa22bc8350d0a454f1803fcf889856c44e6f17a64a23a93b1f91582b694c9"
+      ],
+      "architecture": "arm64"
+    },
+    {
+      "original": "mongo:8.0",
+      "local_alias": "avenra/contract-storage:8",
+      "image_id": "sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907",
+      "repo_digests": [
+        "avenra/contract-storage@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907",
+        "mongo@sha256:4a4ab5d4834207389e0d7270fac988e21ffedccecba77991a552f755df229907"
+      ],
+      "architecture": "arm64"
+    },
+    {
+      "original": "postgres:16",
+      "local_alias": "avenra/product-storage:16",
+      "image_id": "sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+      "repo_digests": [
+        "avenra/product-storage@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d",
+        "postgres@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d"
+      ],
+      "architecture": "arm64"
+    }
+  ]
+}

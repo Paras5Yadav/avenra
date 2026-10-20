@@ -1,0 +1,72 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-node-api-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+test-hooks = ["avenra-runtime-common-svc/test-hooks"]
+default = []
+otel = ["avenra-runtime-template-mgr-client/otel"]
+datadog = ["otel", "avenra-runtime-template-mgr-client/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+# Opt-in Kubernetes projected-token (TokenReview) auth, which pulls in the kube
+# stack. Off by default so the workspace builds without kube for non-k8s
+# deployments (dev box, UTM, self-deploy); prod image builds enable it. Forwards
+# to `common-svc`'s `k8s` feature, which is where the node-api auth layer this
+# crate installs reads its TokenReview configuration.
+k8s = ["avenra-runtime-common-svc/k8s", "dep:kube"]
+
+[dependencies]
+bytes = { workspace = true }
+dashmap = { workspace = true }
+futures-util = { workspace = true }
+http = { workspace = true }
+http-body = { workspace = true }
+hyper-util = { workspace = true }
+kube = { workspace = true, default-features = false, features = ["client", "config", "rustls-tls"], optional = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+socket2 = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true, features = ["formatting"] }
+tokio = { workspace = true, features = ["macros", "net", "sync", "rt", "time"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+tonic-reflection = { workspace = true }
+tower = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v7"] }
+
+# internal
+avenra-runtime-build-mgr-client = { workspace = true }
+avenra-runtime-common-core = { workspace = true, features = ["serde"] }
+avenra-runtime-common-grpc = { workspace = true, features = ["internal-tls"] }
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-net-common = { workspace = true, features = ["serde"] }
+avenra-runtime-net-gateway-client = { workspace = true }
+avenra-runtime-node-api-client = { workspace = true }
+avenra-runtime-node-mgr-client = { workspace = true }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+avenra-runtime-template-mgr-client = { workspace = true }
+
+[dev-dependencies]
+prost = { workspace = true }
+rstest = { workspace = true }
+axum = { workspace = true }
+avenra-runtime-test-env = { workspace = true }
+avenra-runtime-common-svc = { workspace = true, features = ["test-support", "test-hooks"] }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt", "time", "test-util"] }
+tonic = { workspace = true }

@@ -1,0 +1,295 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+image:
+  repository: avenra-api
+  tag: local
+  pullPolicy: IfNotPresent
+
+datadogTeam: team-space
+
+# Telemetry defaults come from the avenra-kind-telemetry library.
+telemetry: {}
+
+service:
+  name: avenra-api
+  port: 8080
+  type: ClusterIP
+
+# Load-balanced entry, as a deployment's load balancer gives the public API: a
+# NodePort Service carrying only the HTTP port, which kind-cluster.yaml.tmpl
+# maps to 127.0.0.1:8080 on the host, so clients reach every replica rather
+# than the one pod a `kubectl port-forward` pins. kube-proxy balances per
+# connection. In-cluster callers keep the ClusterIP Service above, which also
+# carries the ingress activation port.
+entry:
+  name: avenra-api-entry
+  # Service type. nodePort applies only to NodePort; a cluster outside Kind
+  # picks its own exposure (infra/avenra/cluster).
+  type: NodePort
+  nodePort: 30080
+
+# Replicas follow load, as production's do. Two at least, so every request
+# path runs against more than one replica; three at most, so the worst case
+# (3 x the 1-CPU / 512 MiB limits below) still fits the shared infra node of a
+# 16-core Kind CI runner alongside the data plane's three. CPU is judged
+# against the 50m request; memory by absolute use, since the 128 MiB request
+# is a scheduling floor an idle replica already approaches.
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryAverageValue: 384Mi
+
+# Graceful shutdown, as deployments run it, for both surfaces (one binary).
+#
+# On SIGTERM the process reports draining on /readyz and stops accepting in the
+# same instant, then gives in-flight work --shutdown-grace-secs to finish
+# (drain_before_shutdown and drain_server, crates/libs/api/src/run.rs): HTTP
+# requests, including operation and sandbox-event SSE streams, the ingress
+# activation listener, and the substrate work its TaskTracker holds, such as
+# a restore leader or a suspend continuation. Rendered at the binary's
+# default, DEFAULT_SHUTDOWN_GRACE_SECS in that file.
+shutdownGraceSeconds: 150
+
+# Seconds the pod keeps serving after it starts terminating, before SIGTERM,
+# so it leaves the Services' endpoints before its listener stops: the process
+# itself has no lame-duck window. Deployments size this for their load
+# balancer's deregistration; Kind's NodePort entry is kube-proxy, which drops
+# the endpoint in about a second, so 5 s (the builder node-api's delay) covers
+# it.
+preStopSleepSeconds: 5
+
+# Covers the preStop delay, the full shutdown grace, and the telemetry flush
+# and exit after it. The template refuses a value that does not exceed the
+# first two.
+terminationGracePeriodSeconds: 180
+
+# The boot budget the Pod reflector leaves to Kubernetes (`start`,
+# crates/libs/api/src/controllers/substrate/kubernetes/pod_reflector.rs): a
+# replica whose reflector never completes its initial LIST stays NotReady
+# until restarted. Startup blocks up to 30 s on the node caches before serving
+# (STORE_READY_TIMEOUT, kubernetes/caches.rs), then the LIST runs; 18 x 5 s
+# gives that three times over before the kubelet restarts the container.
+startupProbe:
+  periodSeconds: 5
+  failureThreshold: 18
+
+# A replacement counts as available only after staying Ready this long, two
+# readiness periods, so one that fails its first probes stops the rollout
+# before an old replica is retired.
+minReadySeconds: 10
+
+# The dedicated admin API (`--surface admin`) in its own Deployment, as a
+# deployment that separates the admin surface from the public one runs it.
+# The harness and the admin CLI keep using the shared surface's
+# /admin/api/v1 on localhost:8080; this process is reached in-cluster at the
+# avenra-admin-api Service (`kubectl port-forward svc/avenra-admin-api
+# 8081:8080` from the host). One replica: operator traffic only.
+admin:
+  enabled: true
+  replicas: 1
+  serviceName: avenra-admin-api
+
+# Render the three Secrets in templates/secret.yaml (development tokens and a
+# development route-signing key). Off outside Kind, where the caller creates
+# them under the names below.
+secrets:
+  create: true
+
+internal:
+  secretName: avenra-internal
+  internalToken: "dev-internal-token"
+  controlToken: "dev-control-token"
+  publicCursorSecret: "dev-public-cursor-secret"
+  ecwCredentialKey: "kind-local-ecw-credential-key"
+
+spaceApiRouteToken:
+  # Public RFC 8032 test-vector material, intentionally limited to the local
+  # kind harness. Shared environments source independent keys from Secrets Manager.
+  ed25519:
+    signingSecretName: avenra-route-signing
+    verificationSecretName: avenra-route-verification
+    signingKey: |-
+      -----BEGIN PRIVATE KEY-----
+      MC4CAQAwBQYDK2VwBCIEIJ1hsZ3v/VpguoRK9JLsLMREScVpezJpGXA7rAMcrn9g
+      -----END PRIVATE KEY-----
+    signingKeyId: "kind-local-route-v2-1"
+    issuer: "kind-local-route-authority"
+    verificationBundle: '{"generation":1,"issuer":"kind-local-route-authority","keys":[{"key_id":"kind-local-route-v2-1","public_key_pem":"-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\n-----END PUBLIC KEY-----\n"}]}'
+
+clusterId: "kind-local"
+
+# The migrator runs once, as the avenra-db-migrate Job (templates/migrate-job.yaml),
+# before the api-server starts. It reuses the same image (the api bundle ships
+# avenra-db-migrator + avenra-api-svc).
+migrate:
+  enabled: true
+  # activeDeadlineSeconds, also passed to the migrator. The migrator's own
+  # default for an unstated deadline (MIGRATION_JOB_ACTIVE_DEADLINE,
+  # crates/libs/db/migrator/src/migration_retry.rs).
+  jobDeadlineSeconds: 1800
+  # A one-shot Job, re-run by the next rollout: replaceable
+  # (infra/avenra/kind/manifests/priorityclasses.yaml).
+  priorityClassName: avenra-replaceable
+
+postgres:
+  # Secret holding POSTGRES_CONNECTION_STRING.
+  secretName: avenra-postgres
+  # Secret with every managed role password (AVENRA_DB_BOOTSTRAP_<ROLE>_PASSWORD
+  # keys). Empty uses the Kind development passwords below.
+  rolesSecretName: ""
+  # Dev-default managed-login passwords. bootstrap-roles (the migrate Job)
+  # provisions the roles with these; the services connect as avenra_user and
+  # avenra_creds using the same values.
+  managedUserPassword: avenra-dev-user
+  managedCredentialsPassword: avenra-dev-creds
+  bootstrapSuperadminPassword: avenra-dev-superadmin
+  bootstrapReadOnlyPassword: avenra-dev-ro
+  bootstrapMigratorPassword: avenra-dev-migrator
+  # POSTGRES_POOL_MAX_CONNECTIONS for avenra-api and avenra-admin-api, each of
+  # whose two pools (avenra_user and avenra_creds) it sizes
+  # (crates/libs/common/svc/src/sql/mod.rs). The api tier runs a pool far
+  # above the binary's default of 25, as deployed. The avenra-postgres chart's
+  # max_connections is sized to hold every replica's pools.
+  poolMaxConnections: 100
+
+# K8s control-plane substrate. AVENRA_K8S_CONTROL_PLANE=true runs the
+# api-server on the KubernetesSubstrate: it discovers nodes through the Pod
+# reflector (watching pods with label app.kubernetes.io/component=node-api, the
+# avenra-node-api-local DaemonSets), and cluster-controller materializes
+# per-sandbox pods, pause containers hijacked by containerd-shim-avenra-v2 into
+# real Firecracker sandboxes (install-shim.sh wires the shim into each sandbox
+# worker's containerd).
+k8s:
+  # Namespace where per-sandbox pause pods are created and where the
+  # KubernetesSubstrate's pod reflector watches: their own, apart from the
+  # control plane, as a deployment that confines sandboxes with
+  # namespace-scoped policy runs them (manifests/namespace.yaml creates it;
+  # the avenra-sandbox-network-policy chart isolates it). The node-api pods
+  # the reflector discovers nodes from stay in the release namespace
+  # (AVENRA_NODE_API_NAMESPACE in the Deployment).
+  sandboxNamespace: sandboxes
+  # The shim never runs the pause container; it reads pod annotations
+  # (space.pplx.net/sandbox-id, vcpu, memory, template, …) and calls
+  # sandbox-manager to bring up the real sandbox. KinD's containerd pulls
+  # this from registry.k8s.io directly (no `kind load` needed).
+  sandboxPodImage: registry.k8s.io/pause:3.10
+  # The api-server pins sandbox pods to nodes with this label value. Tilt
+  # labels the KinD workers before bringing the charts up.
+  sandboxNodeSelectorKey: node.kubernetes.io/avenra-enabled
+  sandboxNodeSelectorValue: "true"
+
+# Scheduling priority (infra/avenra/kind/manifests/priorityclasses.yaml).
+priorityClassName: avenra-control-plane
+
+nodeSelector:
+  space.pplx.net/infra: "true"
+
+# ECW (E2B-compatible) host routing. The api-server only serves the ECW API for
+# requests whose Host header matches an `apiHost`, and parses data-plane sandbox
+# hosts of the form `<port>-<sandbox>.<host>`. Wired here so the typed ECW suite
+# can reach the ECW surface via Host-header overrides against the local api.
+# JSON array of
+# {apiHost, host} pairs (AVENRA_ECW_HOSTS).
+ecwHosts: '[{"apiHost":"api.local.e2b.test","host":"local.e2b.test"},{"apiHost":"127.0.0.1","host":"local.e2b.test"}]'
+
+fork:
+  enabled: "true"
+
+# AVENRA_DATA_PLANE_PUBLIC_URL — when empty, api-server returns RELATIVE
+# `/v1/sessions/<id>/...` URLs. The UI's Next.js rewrites in
+# ui/next.config.js then proxy those to the in-cluster data-plane Service,
+# which keeps the browser same-origin and sidesteps CORS preflight on
+# devbox-fronted UIs (the devbox gateway redirects unauthenticated
+# preflights, which preflight cannot follow).
+#
+# Override only if you have a stable, same-origin-or-CORS-friendly
+# data-plane URL the browser can hit directly.
+dataPlanePublicUrl: ""
+
+# Deploy-time masters for the two avenra-api guardrails whose dynamic flag the
+# `eppo` block below can only ever *close*. What they add is the ability to
+# turn a guardrail off on a bench with no flag provider.
+#
+# Empty rather than the binary's own default, and rendered either way: an
+# unrecognised value reads as "not configured", so an empty one leaves whichever
+# default the binary ships. Writing a value here would be a copy of a Rust
+# constant with nothing linking the two, and would silently override it the day
+# it changes. The client-concurrency mode accepts `off` as the hard off.
+#
+# The one exception is the client-concurrency mode, which deployments pin to
+# `observe` rather than inherit: it is their configured value, not a copy of
+# the binary's default, and it stays `observe` if that default ever moves.
+# Observe needs no allowlist to classify traffic: an id outside
+# AVENRA_API_CLIENT_CONCURRENCY_KNOWN_CLIENTS, or none, lands in the shared
+# `unspecified` bucket, which is metered like any other
+# (`ClientKey::classify` in crates/libs/api/src/client_concurrency), so the
+# allowlist stays at its empty default.
+clusterActivationAdmission:
+  enabled: ""
+clientConcurrency:
+  mode: "observe"
+
+# The store both limiters keep their state in: the avenra-redis Deployment
+# (charts/avenra-redis-local). Each limiter reads AVENRA_REDIS_URL when the
+# process builds its state, above the `--surface` branch
+# (`AppState::from_pools_with_lifecycle`), so the admin API reads it too:
+# `ClusterSandboxAdmissionConfig::from_env` and
+# `ClientConcurrencyConfig::from_env`. Without it both fail open as
+# `misconfigured`. Plaintext `redis://`, unlike a deployment's
+# `rediss://`: the clients trust only the webpki roots (the
+# `tls-rustls-webpki-roots` feature in the workspace Cargo.toml), so they
+# would refuse a per-cluster CA. Must equal `redis.url` in the
+# cluster-controller chart, whose copy of the activation limiter shares the
+# bucket.
+redis:
+  url: "redis://avenra-redis:6379"
+
+eppo:
+  secretName: ""
+  secretKey: EPPO_SDK_KEY
+  sdkKey: ""
+  baseUrl: ""
+
+serviceAccount:
+  name: avenra-api
+
+# Lifetime of the projected node-api tokens, as deployed; the kubelet
+# refreshes them at 80% of that.
+nodeApiTokenExpirationSeconds: 600
+
+# ServiceAccounts the ingress activation listener admits: internal-api, the
+# only route resolver that delegates cold wakes (RemoteIngressActivation).
+ingressActivation:
+  allowedServiceAccounts:
+    - avenra-internal-api
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+# BYOK: stamp volume_encryption on creates for byok_enabled orgs. On by
+# default in the bench (org enrollment still gates per-org).
+byokVolumeEncryption: "1"
+
+# Node-census residency discount. **Must equal
+# `reconcilers.nodeDrain.env.AVENRA_NODE_DRAIN_NODE_CENSUS_RESIDENCY` in
+# `charts/avenra-cluster-controller-local/values.yaml`** — that chart turns the
+# discount ON here so the census-aware SQL runs on the bench. The resident
+# count it feeds gates `draining -> drained` in either drain mode, and
+# `local.gentle_drain_leaves_sandbox_resident` holds a node in `draining` for
+# ~20 ticks. That scenario asserts the drain, not the discount — it passes
+# either way — so what the bench buys is the query executing. The discount
+# itself is `node_drain/store/residency_tests.rs`, against real Postgres.
+#
+# On this bench api and cluster-controller are separate chart renders — via
+# `bootstrap.sh`'s `helm template | kubectl apply` or via Tilt — so one cannot
+# read the other's values the way the EKS chart has both containers render
+# from the controller's own key. Nothing in Helm can stop these two from drifting;
+# `scripts/tests/test_node_drain_activation_parity.py` is what holds them
+# equal.
+nodeCensusResidency: "true"

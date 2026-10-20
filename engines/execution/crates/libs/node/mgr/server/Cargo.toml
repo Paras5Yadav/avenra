@@ -1,0 +1,80 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-node-mgr"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+otel = ["avenra-runtime-common-svc/otel"]
+datadog = ["otel", "avenra-runtime-common-svc/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+# Compiles in the test-only environment hooks; never enabled for release builds.
+test-hooks = ["avenra-runtime-common-core/test-hooks"]
+
+[dependencies]
+arc-swap = { workspace = true }
+dashmap = { workspace = true }
+h2 = { workspace = true }
+hyper = { workspace = true }
+jiff = { workspace = true }
+libc = { workspace = true }
+rustix = { workspace = true, features = ["fs", "mount"] }
+nix = { workspace = true, features = ["dir", "fs", "mount", "sched", "process", "resource", "signal", "user"] }
+rusqlite = { workspace = true }
+socket2 = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["fs", "macros", "net", "process", "rt", "time"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true }
+toml = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+tracing = { workspace = true }
+futures-util = { workspace = true }
+zeroize = { workspace = true }
+
+# internal
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-common-io = { workspace = true, features = ["reflink"] }
+avenra-runtime-common-svc = { workspace = true, features = ["sqlite"] }
+avenra-runtime-credmgr-client = { workspace = true }
+avenra-runtime-events = { workspace = true }
+avenra-runtime-execution-common = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-net-common = { workspace = true }
+avenra-runtime-node-ctl-client = { workspace = true }
+avenra-runtime-node-mgr-client = { workspace = true }
+avenra-runtime-node-runtime-core = { workspace = true, features = ["artifact-store", "host-runtime"] }
+avenra-runtime-observability = { workspace = true, default-features = false }
+sqlx = { workspace = true, features = ["macros", "migrate"] }
+uuid = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+rtnetlink = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-common-core = { workspace = true, features = ["test-hooks"] }
+insta = { workspace = true, features = ["json"] }
+rstest = { workspace = true }
+# test-capture lets the encrypted-volume tests assert which BYOK counters a
+# code path emitted, so the attempted/failed pairing is enforced rather than
+# reviewed.
+avenra-runtime-metrics = { workspace = true, features = ["test-capture"] }
+hyper-util = { workspace = true, features = ["tokio"] }
+avenra-runtime-test-env = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }
+tower = { workspace = true }

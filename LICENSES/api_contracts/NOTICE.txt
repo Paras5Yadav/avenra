@@ -1,0 +1,3 @@
+Avenra includes adapted source from https://github.com/microcks/microcks at fa743c82c9ceca01c7b295b048cc405c7e1b04cc.
+Original terms and notices are retained in original/. Modified files and original hashes are recorded in adaptations.json.
+These modifications do not imply endorsement by the original authors.

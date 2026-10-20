@@ -1,0 +1,43 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package common
+
+import (
+	"avenra.local/accounting/deployments/pulumi/pkg/monitoring"
+	"avenra.local/accounting/deployments/pulumi/pkg/utils"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumix"
+)
+
+type CommonArgs struct {
+	utils.ImageConfiguration
+	Namespace       pulumix.Input[string]
+	Monitoring      *monitoring.Args
+	ImagePullPolicy pulumix.Input[string]
+	Debug           pulumix.Input[bool]
+}
+
+func (args *CommonArgs) SetDefaults() {
+	if args.Namespace == nil {
+		args.Namespace = pulumi.String("")
+	}
+	if args.Tag == nil {
+		args.Tag = pulumi.String("latest")
+	} else {
+		args.Tag = pulumix.Apply(args.Tag, func(tag string) string {
+			if tag == "" {
+				return "latest"
+			}
+			return tag
+		})
+	}
+	if args.ImagePullPolicy == nil {
+		args.ImagePullPolicy = pulumi.String("")
+	}
+	if args.Debug == nil {
+		args.Debug = pulumi.Bool(false)
+	}
+	if args.Monitoring != nil {
+		args.Monitoring.SetDefaults()
+	}
+	args.ImageConfiguration.SetDefaults()
+}

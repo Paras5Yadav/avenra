@@ -1,0 +1,76 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+# The `avenra-builder` release: the node services on the builder pool, plus
+# build-manager, and no control plane. install.sh passes this file before the
+# caller's values, so it carries only the role and the role-specific settings
+# of the Kind charts' own values-builder.yaml files; templates/validate.yaml
+# rejects a caller file that changes the role's shape.
+role: builder
+
+controlPlane:
+  enabled: false
+nodeServices:
+  enabled: true
+buildManager:
+  enabled: true
+
+avenra-node-manager-local:
+  node:
+    role: builder
+avenra-runtime-manager-local:
+  node:
+    role: builder
+avenra-volume-manager-local:
+  node:
+    role: builder
+avenra-credential-manager-local:
+  node:
+    role: builder
+avenra-template-manager-local:
+  node:
+    role: builder
+  # kind/charts/avenra-template-manager-local/values-builder.yaml
+  templateCache: null
+avenra-sandbox-manager-local:
+  node:
+    role: builder
+  # kind/charts/avenra-sandbox-manager-local/values-builder.yaml
+  networkCredentials:
+    enabled: false
+  sandboxEviction: null
+  snapshotReaper: null
+avenra-node-ctl-local:
+  node:
+    role: builder
+avenra-node-api-local:
+  node:
+    role: builder
+  # kind/charts/avenra-node-api-local/values-builder.yaml
+  serviceName: avenra-builder-node-api
+  buildManagerEndpoint: https://avenra-builder-build-manager:9900
+  # The builder's TokenReview allowlists, which replace the worker's
+  # (values.yaml), as the same file sets them; without the template-build
+  # grant every BuildTemplate call would be refused.
+  auth:
+    AVENRA_NODE_API_AUTH_ALLOWED_SERVICE_ACCOUNTS:
+      - avenra-api
+      - avenra-cluster-controller
+      - avenra-node-api
+      - avenra-builder-node-api
+    AVENRA_NODE_API_INTERNAL_AUTH_ALLOWED_SERVICE_ACCOUNTS: []
+    AVENRA_NODE_API_AUTH_TRUSTED_WAIT_READY_SERVICE_ACCOUNTS: []
+    AVENRA_NODE_API_AUTH_TRUSTED_POLICY_SERVICE_ACCOUNTS:
+      - avenra-api
+    AVENRA_NODE_API_AUTH_GUEST_BRIDGE_SERVICE_ACCOUNTS: []
+    AVENRA_NODE_API_AUTH_TEMPLATE_TRANSFER_SERVICE_ACCOUNTS:
+      - avenra-api
+      - avenra-node-api
+      - avenra-builder-node-api
+    AVENRA_NODE_API_AUTH_TEMPLATE_BUILD_SERVICE_ACCOUNTS:
+      - avenra-api
+    AVENRA_BUILD_AUTH_SYSTEM_SERVICE_ACCOUNTS:
+      - avenra-api
+    AVENRA_BUILD_AUTH_TENANT_SERVICE_ACCOUNTS:
+      - avenra-api
+avenra-build-manager-local:
+  node:
+    role: builder

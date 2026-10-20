@@ -1,0 +1,7 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-ui-local
+description: Local-only avenra-ui chart targeting the KinD stack
+type: application
+version: 0.1.0
+appVersion: "0.8.0"

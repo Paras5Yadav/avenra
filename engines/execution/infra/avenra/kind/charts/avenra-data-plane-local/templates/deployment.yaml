@@ -1,0 +1,156 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-data-plane
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: avenra-data-plane
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    team: {{ .Values.datadogTeam | quote }}
+spec:
+  {{- if .Values.autoscaling.enabled }}
+  # The HorizontalPodAutoscaler (hpa.yaml) owns the replica count.
+  {{- else }}
+  replicas: 1
+  {{- end }}
+  minReadySeconds: {{ .Values.minReadySeconds }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: avenra-data-plane
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  strategy:
+    {{- if .Values.autoscaling.enabled }}
+    # Several replicas serve behind the load-balanced entry, so a rollout
+    # replaces them one at a time instead of taking every replica down at once.
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    {{- else }}
+    type: Recreate
+    {{- end }}
+  template:
+    metadata:
+      annotations:
+        {{- include "avenra-kind-telemetry.logAnnotations" . | nindent 8 }}
+        ad.datadoghq.com/tags: '{"team":"{{ .Values.datadogTeam }}"}'
+      labels:
+        app.kubernetes.io/name: avenra-data-plane
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        team: {{ .Values.datadogTeam | quote }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      serviceAccountName: {{ .Release.Name }}-data-plane
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | int }}
+      containers:
+        - name: data-plane
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/avenra/bin/avenra-data-plane-svc"]
+          env:
+            - name: AVENRA_CLUSTER_API_TOKEN_PATH
+              value: "/var/run/avenra-publication/cluster-api.token"
+            # Authenticated internal RPC TLS (docs/internal-rpc-tls.md): the
+            # cluster's internal RPC CA, and the shared node-api identity, since NodeApi is dialled by node IP.
+            - name: AVENRA_INTERNAL_RPC_TLS_CA
+              value: /etc/avenra-rpc-ca/ca.crt
+            - name: AVENRA_NODE_API_TLS_SERVER_NAME
+              value: avenra-node-api
+            # The guest bridge's NodeApi credential (SpaceBearerToken::NodeApi,
+            # crates/libs/data/plane/server/src/native/protocol.rs); node-api
+            # admits it by TokenReview and confines it to guest calls. The data
+            # plane never calls WorkerApiInternal.
+            - name: AVENRA_NODE_API_TOKEN_PATH
+              value: /var/run/avenra-auth/node-api.token
+            # Datadog tracing — see datadog-agent-local chart.
+            {{- include "avenra-kind-telemetry.env" . | nindent 12 }}
+            - name: AVENRA_K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: AVENRA_K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: AVENRA_INTERNAL_API_ENDPOINT
+              value: {{ .Values.internal.apiEndpoint | quote }}
+            {{- with .Values.grpcClient.endpointDiscovery }}
+            - name: AVENRA_CLUSTER_API_ENDPOINT_DISCOVERY
+              value: {{ . | quote }}
+            {{- end }}
+            - name: AVENRA_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.internal.secretName }}
+                  key: AVENRA_INTERNAL_TOKEN
+            - name: AVENRA_ECW_HOSTS
+              value: {{ .Values.ecwHosts | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          # Leave the entry Services' endpoints before SIGTERM stops the
+          # listener (values.yaml).
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.preStopSleepSeconds | int }}
+          # The boot budget (values.yaml). Liveness and readiness start once
+          # it passes.
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 15
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: rpc-ca
+              mountPath: /etc/avenra-rpc-ca
+              readOnly: true
+            - name: publication-token
+              mountPath: /var/run/avenra-publication
+              readOnly: true
+            - name: node-api-token
+              mountPath: /var/run/avenra-auth
+              readOnly: true
+      volumes:
+        - name: rpc-ca
+          secret:
+            secretName: avenra-internal-rpc-ca
+            defaultMode: 0444
+        - name: publication-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: cluster-api.token
+                  audience: avenra-cluster-api
+                  expirationSeconds: 3600
+        - name: node-api-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: node-api.token
+                  audience: avenra-node-api
+                  expirationSeconds: {{ .Values.nodeApiTokenExpirationSeconds | int }}

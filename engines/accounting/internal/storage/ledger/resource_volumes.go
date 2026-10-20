@@ -1,0 +1,207 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package ledger
+
+import (
+	"errors"
+	"fmt"
+	"avenra.local/accounting/internal/storage/common"
+	"avenra.local/accounting/pkg/features"
+	"github.com/uptrace/bun"
+	"strings"
+)
+
+type volumesResourceHandler struct {
+	store *Store
+}
+
+func (h volumesResourceHandler) Schema() common.EntitySchema {
+	return common.EntitySchema{
+		Fields: map[string]common.Field{
+			"address": common.NewStringField().
+				WithAliases("account").
+				Paginated(),
+			"balance":     common.NewNumericMapField(),
+			"first_usage": common.NewDateField(),
+			"metadata":    common.NewStringMapField(),
+		},
+	}
+}
+
+func (h volumesResourceHandler) BuildDataset(query common.RepositoryHandlerBuildContext[GetVolumesOptions]) (*bun.SelectQuery, error) {
+
+	var selectVolumes *bun.SelectQuery
+
+	allAddresses, needAddressSegments := collectAddressFilters(query)
+	canPushLateral := canPushAddressFilterToLateral(query.Builder)
+	if !query.UsePIT() && !query.UseOOT() {
+		selectVolumes = h.store.newScopedSelect().
+			Column("asset", "input", "output").
+			ColumnExpr("input - output as balance").
+			ColumnExpr("accounts_address as account").
+			ModelTableExpr(h.store.GetPrefixedRelationName("accounts_volumes")).
+			Order("accounts_address", "asset")
+
+		if query.UseFilter("metadata") || query.UseFilter("first_usage") || needAddressSegments {
+			accountsQuery := h.store.newScopedSelect().
+				TableExpr(h.store.GetPrefixedRelationName("accounts")).
+				Column("address").
+				Where("accounts.address = accounts_address")
+
+			if needAddressSegments {
+				accountsQuery = accountsQuery.ColumnExpr("address_array as account_array")
+				selectVolumes = selectVolumes.Column("account_array")
+				accountsQuery = applyLateralAddressFilter(accountsQuery, allAddresses, canPushLateral)
+			}
+			if query.UseFilter("metadata") {
+				accountsQuery = accountsQuery.ColumnExpr("metadata")
+				selectVolumes = selectVolumes.Column("metadata")
+			}
+			if query.UseFilter("first_usage") {
+				accountsQuery = accountsQuery.Column("first_usage")
+				selectVolumes = selectVolumes.Column("first_usage")
+			}
+
+			selectVolumes = selectVolumes.
+				Join(`join lateral (?) accounts on true`, accountsQuery)
+		}
+	} else {
+		if !h.store.ledger.HasFeature(features.FeatureMovesHistory, "ON") {
+			return nil, NewErrMissingFeature(features.FeatureMovesHistory)
+		}
+
+		selectVolumes = h.store.newScopedSelect().
+			Column("asset").
+			ColumnExpr("accounts_address as account").
+			ColumnExpr("sum(case when not is_source then amount else 0 end) as input").
+			ColumnExpr("sum(case when is_source then amount else 0 end) as output").
+			ColumnExpr("sum(case when not is_source then amount else -amount end) as balance").
+			ModelTableExpr(h.store.GetPrefixedRelationName("moves")).
+			GroupExpr("accounts_address, asset").
+			Order("accounts_address", "asset")
+
+		dateFilterColumn := "effective_date"
+		if query.Opts.UseInsertionDate {
+			dateFilterColumn = "insertion_date"
+		}
+
+		if query.UsePIT() {
+			selectVolumes = selectVolumes.Where(dateFilterColumn+" <= ?", query.PIT)
+		}
+
+		if query.UseOOT() {
+			selectVolumes = selectVolumes.Where(dateFilterColumn+" >= ?", query.OOT)
+		}
+
+		if needAddressSegments || query.UseFilter("first_usage") {
+			accountsQuery := h.store.newScopedSelect().
+				TableExpr(h.store.GetPrefixedRelationName("accounts")).
+				Where("accounts.address = accounts_address")
+
+			if needAddressSegments {
+				accountsQuery = accountsQuery.ColumnExpr("address_array")
+				selectVolumes = selectVolumes.ColumnExpr("(array_agg(accounts.address_array))[1] as account_array")
+				accountsQuery = applyLateralAddressFilter(accountsQuery, allAddresses, canPushLateral)
+			}
+			if query.UseFilter("first_usage") {
+				accountsQuery = accountsQuery.ColumnExpr("first_usage")
+				selectVolumes = selectVolumes.ColumnExpr("(array_agg(accounts.first_usage))[1] as first_usage")
+			}
+			selectVolumes = selectVolumes.Join(`join lateral (?) accounts on true`, accountsQuery)
+		}
+
+		if query.UseFilter("metadata") {
+			subQuery := h.store.newScopedSelect().
+				DistinctOn("accounts_address").
+				ModelTableExpr(h.store.GetPrefixedRelationName("accounts_metadata")).
+				ColumnExpr("first_value(metadata) over (partition by accounts_address order by revision desc) as metadata").
+				Where("accounts_metadata.accounts_address = moves.accounts_address")
+
+			// A filter as of a point in time tests the metadata as it stood then,
+			// so later revisions are out of scope.
+			if query.UsePIT() {
+				subQuery = subQuery.Where("date <= ?", query.PIT)
+			}
+
+			// Stands in an empty object where the join found none, for the reason
+			// metadataOrEmpty documents.
+			selectVolumes = selectVolumes.
+				Join(`left join lateral (?) accounts_metadata on true`, subQuery).
+				ColumnExpr("coalesce((array_agg(metadata))[1], '{}'::jsonb) as metadata")
+		}
+	}
+
+	return selectVolumes, nil
+}
+
+func (h volumesResourceHandler) ResolveFilter(
+	_ common.ResourceQuery[GetVolumesOptions],
+	operator, property string,
+	value any,
+) (string, []any, error) {
+
+	switch {
+	case property == "address" || property == "account":
+		return filterAccountAddress(value.(string), "account"), nil, nil
+	case property == "first_usage":
+		value, err := common.NormalizeDateFilterValue(value)
+		if err != nil {
+			return "", nil, err
+		}
+		return fmt.Sprintf("first_usage %s ?", common.ConvertOperatorToSQL(operator)), []any{value}, nil
+	case balanceRegex.MatchString(property) || property == "balance":
+		clauses := make([]string, 0)
+		args := make([]any, 0)
+
+		clauses = append(clauses, "balance "+common.ConvertOperatorToSQL(operator)+" ?")
+		args = append(args, value)
+
+		if balanceRegex.MatchString(property) {
+			clauses = append(clauses, "asset = ?")
+			args = append(args, balanceRegex.FindAllStringSubmatch(property, 2)[0][1])
+		}
+
+		return "(" + strings.Join(clauses, ") and (") + ")", args, nil
+	case common.MetadataRegex.Match([]byte(property)) || property == "metadata":
+		if property == "metadata" {
+			return "metadata -> ? is not null", []any{value}, nil
+		} else {
+			match := common.MetadataRegex.FindAllStringSubmatch(property, 3)
+
+			return "metadata @> ?", []any{map[string]any{
+				match[0][1]: value,
+			}}, nil
+		}
+	default:
+		return "", nil, fmt.Errorf("unsupported filter %s", property)
+	}
+}
+
+func (h volumesResourceHandler) Project(
+	query common.ResourceQuery[GetVolumesOptions],
+	selectQuery *bun.SelectQuery,
+) (*bun.SelectQuery, error) {
+	selectQuery = selectQuery.DistinctOn("account, asset")
+
+	if query.Opts.GroupLvl == 0 {
+		return selectQuery.ColumnExpr("*"), nil
+	}
+
+	intermediate := h.store.db.NewSelect().
+		ModelTableExpr("(?) data", selectQuery).
+		Column("asset", "input", "output", "balance").
+		ColumnExpr(fmt.Sprintf(`(array_to_string((string_to_array(account, ':'))[1:LEAST(array_length(string_to_array(account, ':'),1),%d)],':')) as account`, query.Opts.GroupLvl))
+
+	return h.store.db.NewSelect().
+		ModelTableExpr("(?) data", intermediate).
+		Column("account", "asset").
+		ColumnExpr("sum(input) as input").
+		ColumnExpr("sum(output) as output").
+		ColumnExpr("sum(balance) as balance").
+		GroupExpr("account, asset"), nil
+}
+
+func (h volumesResourceHandler) Expand(_ common.ResourceQuery[GetVolumesOptions], property string) (*bun.SelectQuery, *common.JoinCondition, error) {
+	return nil, nil, errors.New("no expansion available")
+}
+
+var _ common.RepositoryHandler[GetVolumesOptions] = volumesResourceHandler{}

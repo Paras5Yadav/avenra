@@ -1,0 +1,14 @@
+# Baked into the Kind node image (infra/avenra/kind/node/Dockerfile) and enabled
+# there. See infra/avenra/kind/node/avenra-kind-node.sh.
+[Unit]
+Description=Avenra Kind-only KVM and vhost device permissions
+Before=kubelet.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=-/etc/avenra/kind-node.env
+ExecStart=/usr/local/lib/avenra/kind-node/avenra-kind-node.sh devices
+
+[Install]
+WantedBy=multi-user.target

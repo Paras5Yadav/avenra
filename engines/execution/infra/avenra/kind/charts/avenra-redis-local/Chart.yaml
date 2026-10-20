@@ -1,0 +1,7 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-redis-local
+description: Local single-node Redis for the KinD Avenra stack — backs the cluster-activation and per-client-concurrency rate limiters (AVENRA_REDIS_URL)
+type: application
+version: 0.1.0
+appVersion: "7"

@@ -1,0 +1,81 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-internal-api-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+test-hooks = ["avenra-runtime-common-core/test-hooks", "avenra-runtime-common-svc/test-hooks"]
+default = []
+kubernetes = [
+    "dep:k8s-openapi",
+    "dep:kube",
+    "avenra-runtime-common-svc/k8s",
+]
+otel = ["avenra-runtime-template-mgr-client/otel"]
+datadog = ["otel", "avenra-runtime-template-mgr-client/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+
+[dependencies]
+futures-util = { workspace = true }
+k8s-openapi = { workspace = true, features = ["v1_32"], optional = true }
+kube = { workspace = true, default-features = false, features = ["aws-lc-rs", "client", "config", "rustls-tls"], optional = true }
+prost-types = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true, features = ["derive", "json", "migrate", "postgres", "runtime-tokio", "time", "tls-rustls-aws-lc-rs", "uuid"] }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true, features = ["formatting"] }
+tokio = { workspace = true, features = ["net", "sync", "rt", "time"] }
+tokio-util = { workspace = true }
+tonic = { workspace = true }
+tonic-reflection = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v7"] }
+
+# internal
+avenra-runtime-cluster-pool = { workspace = true }
+avenra-runtime-cluster-trigger-queue = { workspace = true }
+avenra-runtime-common-core = { workspace = true, features = ["serde", "sqlx"] }
+avenra-runtime-common-grpc = { workspace = true, features = ["internal-tls"] }
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-events = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-net-common = { workspace = true, features = ["serde"] }
+avenra-runtime-node-api-client = { workspace = true }
+avenra-runtime-node-mgr-client = { workspace = true }
+avenra-runtime-placement = { workspace = true }
+avenra-runtime-sandbox-portability = { workspace = true }
+avenra-runtime-sandbox-store = { workspace = true }
+avenra-runtime-sandbox-teardown = { workspace = true }
+avenra-runtime-public-api = { workspace = true }
+avenra-runtime-execution-common = { workspace = true }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+avenra-runtime-snapshot-store = { workspace = true }
+avenra-runtime-template-mgr-client = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-common-core = { workspace = true, features = ["serde", "sqlx", "test-hooks"] }
+hex = { workspace = true }
+insta = { workspace = true, features = ["yaml", "redactions"] }
+prost = { workspace = true }
+avenra-runtime-common-svc = { workspace = true, features = ["test-support", "test-hooks"] }
+avenra-runtime-db-test-fixtures = { workspace = true }
+avenra-runtime-metrics = { workspace = true, features = ["test-capture"] }
+avenra-runtime-node-api-sim = { workspace = true }
+avenra-runtime-test-env = { workspace = true }
+rstest = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tonic = { workspace = true }

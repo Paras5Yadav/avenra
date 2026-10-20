@@ -1,0 +1,15 @@
+{
+  "name": "avenra-runtime",
+  "owner": {
+    "name": "Avenra contributors"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for Avenra development."
+  },
+  "plugins": [
+    {
+      "name": "avenra-runtime",
+      "source": "./.agents/plugins/avenra-runtime"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package v2
+
+import (
+	"net/http"
+
+	"avenra.local/accounting/internal/controller/ledger"
+
+	"github.com/formancehq/go-libs/v3/api"
+)
+
+func getCommandParameters[INPUT any](r *http.Request, input INPUT) ledger.Parameters[INPUT] {
+	return ledger.Parameters[INPUT]{
+		DryRun:         api.QueryParamBool(r, "dryRun"),
+		IdempotencyKey: api.IdempotencyKeyFromRequest(r),
+		Input:          input,
+	}
+}

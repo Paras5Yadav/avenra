@@ -1,0 +1,17 @@
+.local/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+!.env.template
+.DS_Store
+engines/**/target/
+engines/**/node_modules/
+engines/banking_core/build/
+engines/banking_core/*/build/
+engines/banking_core/.gradle/
+engines/banking_core/*/.gradle/
+!engines/**/.dockerignore
+!engines/**/.gitignore
+!engines/**/.npmignore

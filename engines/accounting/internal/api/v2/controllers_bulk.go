@@ -1,0 +1,58 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package v2
+
+import (
+	"errors"
+	"avenra.local/accounting/internal/api/bulking"
+	"net/http"
+	"strings"
+
+	"github.com/formancehq/go-libs/v3/api"
+	"avenra.local/accounting/internal/api/common"
+)
+
+func bulkHandler(bulkerFactory bulking.BulkerFactory, bulkHandlerFactories map[string]bulking.HandlerFactory) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		contentType := r.Header.Get("Content-Type")
+		if contentType == "" {
+			contentType = "application/json"
+		}
+		if strings.Index(contentType, ";") > 0 {
+			contentType = strings.Split(contentType, ";")[0]
+		}
+
+		bulkHandlerFactory, ok := bulkHandlerFactories[contentType]
+		if !ok {
+			api.BadRequest(w, common.ErrValidation, errors.New("unsupported content type: "+contentType))
+			return
+		}
+
+		bulkHandler := bulkHandlerFactory.CreateBulkHandler()
+		send, receive, ok := bulkHandler.GetChannels(w, r)
+		if !ok {
+			return
+		}
+
+		l := common.LedgerFromContext(r.Context())
+
+		err := bulkerFactory.CreateBulker(l).Run(r.Context(), send, receive,
+			bulking.BulkingOptions{
+				ContinueOnFailure: api.QueryParamBool(r, "continueOnFailure"),
+				Atomic:            api.QueryParamBool(r, "atomic"),
+				Parallel:          api.QueryParamBool(r, "parallel"),
+			},
+		)
+		if err != nil {
+			switch {
+			case errors.Is(err, bulking.ErrAtomicParallelConflict):
+				api.WriteErrorResponse(w, http.StatusPreconditionFailed, common.ErrValidation, err)
+			default:
+				common.InternalServerError(w, r, err)
+			}
+			return
+		}
+
+		bulkHandler.Terminate(w, r)
+	}
+}

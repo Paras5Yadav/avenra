@@ -1,0 +1,125 @@
+{
+  "scope": "Local integration qualification; no production deployment qualification",
+  "images": [
+    {
+      "original": "tazamaorg/admin-service:4.0.0",
+      "alias": "avenra/monitor-admin-service:4",
+      "image_id": "sha256:43495a0a31a68fb692bdb7b6d3ddfa509eaf5c6328015d1c07a77cfee9d580d2",
+      "digests": [
+        "avenra/monitor-admin-service@sha256:43495a0a31a68fb692bdb7b6d3ddfa509eaf5c6328015d1c07a77cfee9d580d2",
+        "tazamaorg/admin-service@sha256:43495a0a31a68fb692bdb7b6d3ddfa509eaf5c6328015d1c07a77cfee9d580d2"
+      ],
+      "architecture": "amd64"
+    },
+    {
+      "original": "postgres:18",
+      "alias": "avenra/monitor-core-postgres:4",
+      "image_id": "sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336",
+      "digests": [
+        "avenra/monitor-core-postgres@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336",
+        "postgres@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336"
+      ],
+      "architecture": "arm64"
+    },
+    {
+      "original": "tazamaorg/event-adjudicator:4.0.0",
+      "alias": "avenra/monitor-event-adjudicator:4",
+      "image_id": "sha256:ba2184202f4f43f28b5fba4e1c0cc7b8a2f24c4c212c58d21d4ee55b25de6df0",
+      "digests": [
+        "avenra/monitor-event-adjudicator@sha256:ba2184202f4f43f28b5fba4e1c0cc7b8a2f24c4c212c58d21d4ee55b25de6df0",
+        "tazamaorg/event-adjudicator@sha256:ba2184202f4f43f28b5fba4e1c0cc7b8a2f24c4c212c58d21d4ee55b25de6df0"
+      ],
+      "architecture": "amd64"
+    },
+    {
+      "original": "tazamaorg/event-director:4.0.0",
+      "alias": "avenra/monitor-event-director:4",
+      "image_id": "sha256:7ffaa24179884ae6a73315306379b1221ca72a591d75f37cf7207bc32c454607",
+      "digests": [
+        "avenra/monitor-event-director@sha256:7ffaa24179884ae6a73315306379b1221ca72a591d75f37cf7207bc32c454607",
+        "tazamaorg/event-director@sha256:7ffaa24179884ae6a73315306379b1221ca72a591d75f37cf7207bc32c454607"
+      ],
+      "architecture": "amd64"
+    },
+    {
+      "original": "tazamaorg/event-flow:4.0.0",
+      "alias": "avenra/monitor-event-flow:4",
+      "image_id": "sha256:2817b46d60ebf7d6187e5e2dc4d6e4fefa4ec1216c719b9fb2463f8df25fbd61",
+      "digests": [
+        "avenra/monitor-event-flow@sha256:2817b46d60ebf7d6187e5e2dc4d6e4fefa4ec1216c719b9fb2463f8df25fbd61",
+        "tazamaorg/event-flow@sha256:2817b46d60ebf7d6187e5e2dc4d6e4fefa4ec1216c719b9fb2463f8df25fbd61"
+      ],
+      "architecture": "amd64"
+    },
+    {
+      "original": "nats:2",
+      "alias": "avenra/monitor-nats:4",
+      "image_id": "sha256:76e4b7a718f0b9e1a07442fe62b12973678a93c1ec2d494355f470dd59402490",
+      "digests": [
+        "avenra/monitor-nats@sha256:76e4b7a718f0b9e1a07442fe62b12973678a93c1ec2d494355f470dd59402490",
+        "nats@sha256:76e4b7a718f0b9e1a07442fe62b12973678a93c1ec2d494355f470dd59402490"
+      ],
+      "architecture": "arm64"
+    },
+    {
+      "original": "tazamaorg/rule-901:4.0.0",
+      "alias": "avenra/monitor-rule-901:4",
+      "image_id": "sha256:eb448b7f7d4629c16a1571d1e30c0b208c9af69d94183a1b38af1c23c90877cd",
+      "digests": [
+        "avenra/monitor-rule-901@sha256:eb448b7f7d4629c16a1571d1e30c0b208c9af69d94183a1b38af1c23c90877cd",
+        "tazamaorg/rule-901@sha256:eb448b7f7d4629c16a1571d1e30c0b208c9af69d94183a1b38af1c23c90877cd"
+      ],
+      "architecture": "amd64"
+    },
+    {
+      "original": "tazamaorg/rule-902:4.0.0",
+      "alias": "avenra/monitor-rule-902:4",
+      "image_id": "sha256:9f1c0be0ab624dd6443f0a21ee8b47442c35caae009d782edafbbcfaa0f39bd5",
+      "digests": [
+        "avenra/monitor-rule-902@sha256:9f1c0be0ab624dd6443f0a21ee8b47442c35caae009d782edafbbcfaa0f39bd5",
+        "tazamaorg/rule-902@sha256:9f1c0be0ab624dd6443f0a21ee8b47442c35caae009d782edafbbcfaa0f39bd5"
+      ],
+      "architecture": "amd64"
+    },
+    {
+      "original": "tazamaorg/tms-service:4.0.0",
+      "alias": "avenra/monitor-tms-service:4",
+      "image_id": "sha256:0c17a1429e071c60f440f1a470e5b84ca1ad3c379b6a0e014b9a86710d8ad245",
+      "digests": [
+        "avenra/monitor-tms-service@sha256:0c17a1429e071c60f440f1a470e5b84ca1ad3c379b6a0e014b9a86710d8ad245",
+        "tazamaorg/tms-service@sha256:0c17a1429e071c60f440f1a470e5b84ca1ad3c379b6a0e014b9a86710d8ad245"
+      ],
+      "architecture": "amd64"
+    },
+    {
+      "original": "tazamaorg/typology-processor:4.0.0",
+      "alias": "avenra/monitor-typology-processor:4",
+      "image_id": "sha256:7ed31206975e3b6c94273ba4c576b515b99ee090fb82d247816c96172c07aea0",
+      "digests": [
+        "avenra/monitor-typology-processor@sha256:7ed31206975e3b6c94273ba4c576b515b99ee090fb82d247816c96172c07aea0",
+        "tazamaorg/typology-processor@sha256:7ed31206975e3b6c94273ba4c576b515b99ee090fb82d247816c96172c07aea0"
+      ],
+      "architecture": "amd64"
+    },
+    {
+      "original": "valkey/valkey:7.2.5",
+      "alias": "avenra/monitor-valkey:4",
+      "image_id": "sha256:57361de39073ea1ef5e7bcfd8068871b21c0a197f01d460e15511f27070fc49b",
+      "digests": [
+        "avenra/monitor-valkey@sha256:57361de39073ea1ef5e7bcfd8068871b21c0a197f01d460e15511f27070fc49b",
+        "valkey/valkey@sha256:57361de39073ea1ef5e7bcfd8068871b21c0a197f01d460e15511f27070fc49b"
+      ],
+      "architecture": "arm64"
+    },
+    {
+      "original": "nginx:stable-alpine",
+      "alias": "avenra/monitor-ingress:4",
+      "image_id": "sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5",
+      "digests": [
+        "avenra/monitor-ingress@sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5",
+        "nginx@sha256:970364228b1e4f932abc22d321932816782cca8a20b85a77552a7cfe9acfb3b5"
+      ],
+      "architecture": "arm64"
+    }
+  ]
+}

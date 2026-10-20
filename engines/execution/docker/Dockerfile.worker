@@ -1,0 +1,151 @@
+# Runnable Avenra worker image for Kubernetes DaemonSet deployment.
+#
+# Contains node-manager, sandbox-manager, template-manager, and all host-side services
+# plus the system tools they shell out to (ip, tc, nft, mount, btrfs, etc.).
+#
+# Application files live under /opt/avenra/ so they aren't shadowed by the
+# host mount on /avenra/ (which provides runtime state: run, cache, vendor).
+#
+# Build:
+#   docker build -f docker/Dockerfile.rust-build-common --target build-artifacts-worker -t avenra-rust-build-worker:local .
+#   docker build -f docker/Dockerfile.worker -t avenra-worker:latest .
+
+ARG AVENRA_RUST_BUILD_IMAGE=avenra-rust-build-worker:local
+ARG AWS_CLI_IMAGE=public.ecr.aws/aws-cli/aws-cli:2.27.41
+FROM ${AVENRA_RUST_BUILD_IMAGE} AS rust-build
+FROM ${AWS_CLI_IMAGE} AS aws-cli
+
+FROM public.ecr.aws/ubuntu/ubuntu:24.04 AS avenra-e2fsprogs
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      gcc make libc6-dev curl ca-certificates xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl --fail --show-error --location --retry 5 \
+      https://mirrors.edge.kernel.org/pub/linux/kernel/people/tytso/e2fsprogs/v1.47.4/e2fsprogs-1.47.4.tar.xz \
+      -o /tmp/e2fsprogs.tar.xz \
+    && echo 'fd5bf388cbdbe006a3d3b318d983b2948382440acc85a87f1e7d108653e8db0b  /tmp/e2fsprogs.tar.xz' | sha256sum -c - \
+    && tar -C /tmp -xJf /tmp/e2fsprogs.tar.xz \
+    && cd /tmp/e2fsprogs-1.47.4 \
+    && ./configure --prefix=/opt/avenra/e2fsprogs --disable-elf-shlibs --disable-uuidd \
+    && make -j"$(nproc)" \
+    && make install
+
+# The image up to its Avenra binaries: the dependency layers the Kind build cache
+# keeps (infra/avenra/kind/scripts/runtime-image-cache.sh).
+FROM public.ecr.aws/ubuntu/ubuntu:24.04 AS runtime-deps
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# Avenra groups — must match the host GIDs from the AMI's 07-sysctl.sh.
+# Node-manager needs these for socket permissions (getgrnam). Volume-manager
+# has its own UID and credential-socket group; runtime launchers select it.
+COPY infra/avenra/identity/node-identities.sh /opt/avenra/etc/node-identities.sh
+RUN . /opt/avenra/etc/node-identities.sh && \
+    for spec in $AVENRA_GROUP_SPECS; do \
+      group="${spec%%:*}"; gid="${spec##*:}"; groupadd -g "$gid" "$group"; \
+    done && \
+    printf '%s\n' "$AVENRA_USER_SPECS" | while IFS=: read -r _ user uid group; do \
+      test -n "$user" || continue; \
+      useradd --system --no-create-home --uid "$uid" --gid "$group" --shell /usr/sbin/nologin "$user"; \
+      test "$(id -u "$user")" = "$uid"; \
+      test "$(id -g "$user")" = "$(avenra_expected_gid_for_group "$group")"; \
+    done && \
+    test "$(getent group avenra-buildclients | cut -d: -f3)" = "$(avenra_expected_gid_for_group avenra-buildclients)" && \
+    test "$(getent group avenra-sidecarclients | cut -d: -f3)" = "$(avenra_expected_gid_for_group avenra-sidecarclients)"
+
+# System tools required by node-manager at runtime:
+#   iproute2  - ip, tc (namespace, veth, tap, routes, arp, TC mirred)
+#   nftables  - nft (firewall rules)
+#   btrfs-progs - btrfs (CoW rootfs clones, snapshots)
+#   util-linux - mount, umount, losetup (rootfs template injection)
+#   procps    - sysctl (proxy_arp, ip_forward)
+#   cryptsetup-bin, dmsetup - BYOK encrypted-rootfs (LUKS2 + dm-snapshot) in
+#               node-mgr (which hosts the encrypted-volume delegation RPCs;
+#               vol-mgr keeps a transitional copy until its privileged
+#               deployment shape is retired). Inert unless BYOK is enabled.
+#   kmod      - modprobe for the dm_crypt/dm_snapshot kernel modules; worker
+#               kernels don't load them at boot, so the kernel-support
+#               preflight loads them (needs the host /lib/modules mount the
+#               BYOK-gated chart shape provides). Inert unless BYOK is enabled.
+# Rootfs/snapshot page-cache reclamation is handled in node services with
+# per-file fadvise hints; image-level vm.* sysctls are not applied by pods.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      containerd \
+      e2fsprogs \
+      iproute2 \
+      nftables \
+      btrfs-progs \
+      openssh-client \
+      sudo \
+      util-linux \
+      cryptsetup-bin \
+      dmsetup \
+      kmod \
+      procps \
+      ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Link the filesystem libraries into these tools; retain the distro libraries
+# used by unrelated tools such as mount, findmnt and btrfs.
+COPY --from=avenra-e2fsprogs \
+    /opt/avenra/e2fsprogs/sbin/e2fsck \
+    /opt/avenra/e2fsprogs/sbin/resize2fs \
+    /opt/avenra/e2fsprogs/sbin/dumpe2fs \
+    /opt/avenra/e2fsprogs/sbin/tune2fs \
+    /usr/local/sbin/
+RUN test "$(command -v e2fsck)" = /usr/local/sbin/e2fsck && e2fsck -V
+
+# node-manager init can stage an immutable, digest-pinned guest kernel from the
+# cluster bootstrap bucket. Copy the authenticated AWS CLI from its pinned
+# upstream image instead of relying on expiring presigned URLs.
+COPY --from=aws-cli /usr/local/aws-cli /usr/local/aws-cli
+RUN ln -s /usr/local/aws-cli/v2/current/bin/aws /usr/local/bin/aws
+
+FROM runtime-deps
+
+LABEL org.opencontainers.image.title="avenra-worker"
+LABEL org.opencontainers.image.description="Avenra worker node services (node-manager + sandbox-manager)"
+
+# Avenra binaries
+# Guest avenrad artifacts are packaged for seed image injection only; they are
+# not host-facing executables and intentionally live outside /opt/avenra/bin.
+COPY --from=rust-build /artifacts/bin/avenrad               /opt/avenra/data/avenrad/avenrad
+COPY --from=rust-build /artifacts/bin/avenrad-svc           /opt/avenra/data/avenrad/avenrad-svc
+COPY --from=rust-build /artifacts/bin/avenra-runtime-supervisor-svc /opt/avenra/bin/avenra-runtime-supervisor-svc
+COPY --from=rust-build /artifacts/etc/avenra-runtime-supervisor-compatibility /opt/avenra/etc/avenra-runtime-supervisor-compatibility
+COPY --from=rust-build /artifacts/bin/avenra-rtmgr-svc        /opt/avenra/bin/avenra-rtmgr-svc
+COPY --from=rust-build /artifacts/bin/avenra-rtmgr            /opt/avenra/bin/avenra-rtmgr
+COPY --from=rust-build /artifacts/bin/avenra-nodemgr-svc      /opt/avenra/bin/avenra-nodemgr-svc
+COPY --from=rust-build /artifacts/bin/avenra-sbxmgr          /opt/avenra/bin/avenra-sbxmgr
+COPY --from=rust-build /artifacts/bin/avenra-nodectl         /opt/avenra/bin/avenra-nodectl
+COPY --from=rust-build /artifacts/bin/avenra-sbxmgr-svc       /opt/avenra/bin/avenra-sbxmgr-svc
+COPY --from=rust-build /artifacts/bin/avenra-avenrad-host-svc  /opt/avenra/bin/avenra-avenrad-host-svc
+COPY --from=rust-build /artifacts/bin/avenra-netgtw-svc       /opt/avenra/bin/avenra-netgtw-svc
+COPY --from=rust-build /artifacts/bin/avenra-tmplmgr-svc      /opt/avenra/bin/avenra-tmplmgr-svc
+COPY --from=rust-build /artifacts/bin/avenra-volmgr           /opt/avenra/bin/avenra-volmgr
+COPY --from=rust-build /artifacts/bin/avenra-credmgr-svc      /opt/avenra/bin/avenra-credmgr-svc
+COPY --from=rust-build /artifacts/bin/avenra-volmgr-svc       /opt/avenra/bin/avenra-volmgr-svc
+COPY --from=rust-build /artifacts/bin/avenra-nodectl-svc      /opt/avenra/bin/avenra-nodectl-svc
+COPY --from=rust-build /artifacts/bin/avenra-node-api-svc     /opt/avenra/bin/avenra-node-api-svc
+COPY --from=rust-build /artifacts/bin/avenra-internal-api-svc  /opt/avenra/bin/avenra-internal-api-svc
+COPY --from=rust-build /artifacts/bin/avenra-buildmgr         /opt/avenra/bin/avenra-buildmgr
+COPY --from=rust-build /artifacts/bin/avenra-buildmgr-svc     /opt/avenra/bin/avenra-buildmgr-svc
+COPY --from=rust-build /artifacts/bin/avenra-tmplmgr          /opt/avenra/bin/avenra-tmplmgr
+COPY --from=rust-build /artifacts/bin/avenra-db-migrator     /opt/avenra/bin/avenra-db-migrator
+COPY --from=rust-build /artifacts/bin/grpc_health_probe      /opt/avenra/bin/grpc_health_probe
+
+# DB migrations + scripts
+COPY --chmod=0755 scripts/avenra-sbx-db-migrate.sh /opt/avenra/bin/avenra-sbx-db-migrate.sh
+COPY --chmod=0755 scripts/k8s/node-manager-init.sh /opt/avenra/bin/node-manager-init.sh
+COPY --chmod=0755 scripts/k8s/node-manager-runtime-supervisor.sh /opt/avenra/bin/node-manager-runtime-supervisor.sh
+COPY --chmod=0755 scripts/k8s/stage-guest-kernel.sh /opt/avenra/bin/stage-guest-kernel.sh
+COPY --chmod=0755 scripts/k8s/sandbox-manager-start.sh /opt/avenra/bin/sandbox-manager-start.sh
+COPY docker/avenra/nftables /etc/avenra/nftables
+COPY templates/firecracker/recipes /opt/avenra/templates/firecracker/recipes
+
+ARG AVENRA_GIT_SHA=unknown
+LABEL org.opencontainers.image.revision="${AVENRA_GIT_SHA}"
+RUN mkdir -p /etc/space && printf '%s\n' "${AVENRA_GIT_SHA}" > /etc/avenra/build-git-sha
+
+ENV PATH="/opt/avenra/bin:${PATH}"

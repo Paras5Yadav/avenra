@@ -1,0 +1,17 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+syntax = "proto3";
+package space.avenrad.guest.v1;
+
+import "avenrad/activity/v1/activity.proto";
+
+// In-guest metadata/control API exposed by avenrad-guest-svc on /run/avenrad.sock.
+service Meta {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc SetActivityState(space.avenrad.activity.v1.SetActivityStateRequest) returns (space.avenrad.activity.v1.SetActivityStateResponse);
+  rpc RequestActiveFor(space.avenrad.activity.v1.RequestActiveForRequest) returns (space.avenrad.activity.v1.RequestActiveForResponse);
+  rpc RequestShutdown(space.avenrad.activity.v1.RequestShutdownRequest) returns (space.avenrad.activity.v1.RequestShutdownResponse);
+}
+
+message PingRequest {}
+
+message PingResponse {}

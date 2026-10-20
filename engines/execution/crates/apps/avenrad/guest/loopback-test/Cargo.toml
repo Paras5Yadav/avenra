@@ -1,0 +1,28 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-avenrad-loopback-test"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "avenrad-loopback-test"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+nix = { workspace = true, features = ["net"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "time", "io-util", "net", "sync"] }
+tokio-util = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+
+# internal
+avenra-runtime-avenrad-common = { workspace = true }
+avenra-runtime-avenrad-guest-server = { workspace = true, features = ["test-support"] }

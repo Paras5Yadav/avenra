@@ -1,0 +1,88 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+{{- if .Values.migrate.enabled }}
+# The control-plane migrations, run once per rollout before the API pods
+# start, as a deployment's provisioning Job runs them ahead of the application
+# releases. They do not run in each API replica: the migrator's own guidance is
+# that deployments serialize migration runs per database, because a competing
+# runner can turn a retried lock race into a failed run
+# (crates/libs/db/migrator/src/migration_retry.rs). Tilt makes avenra-api wait
+# for this Job, and bootstrap.sh waits for it before applying the API.
+#
+# It fails fast, as a deployment's migration Job does: one attempt, no pod
+# restarts, inside a deadline the migrator sizes its lock-retry window against
+# (--job-deadline-seconds, crates/libs/db/migrator/src/lib.rs). A failed run
+# stays Failed for an operator to read rather than being retried into a
+# different state; bootstrap.sh and Tilt replace the Job to run it again.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-db-migrate
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: avenra-db-migrate
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: {{ .Values.migrate.jobDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: avenra-db-migrate
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: Never
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      priorityClassName: {{ .Values.migrate.priorityClassName }}
+      automountServiceAccountToken: false
+      initContainers:
+        # bootstrap-roles is convergent and brackets the migrations: the
+        # pre-run creates the managed logins (avenra_user, avenra_creds, …)
+        # the services connect as, and the post-run grants them on any
+        # tables the migrations just created. The kind Postgres connection
+        # string authenticates as the master user, which, as on a managed
+        # database, is not a superuser but can create roles (avenra-postgres
+        # chart, configmap.yaml).
+        - name: bootstrap-roles
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /avenra/bin/avenra-db-migrator
+            - bootstrap-roles
+            - --database-url
+            - $(POSTGRES_CONNECTION_STRING)
+          env:
+{{ include "avenra-api-local.bootstrapRolesEnv" . | indent 12 }}
+        - name: migrate
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /avenra/bin/avenra-db-migrator
+            - control-plane
+            - --database-url
+            - $(POSTGRES_CONNECTION_STRING)
+            - up
+          env:
+            - name: POSTGRES_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.secretName | default "avenra-postgres" }}
+                  key: POSTGRES_CONNECTION_STRING
+            # Kubernetes does not expose activeDeadlineSeconds to the
+            # container, so the Job passes its own.
+            - name: AVENRA_DB_MIGRATE_JOB_DEADLINE_SECONDS
+              value: {{ .Values.migrate.jobDeadlineSeconds | quote }}
+      containers:
+        - name: bootstrap-roles-grants
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /avenra/bin/avenra-db-migrator
+            - bootstrap-roles
+            - --database-url
+            - $(POSTGRES_CONNECTION_STRING)
+          env:
+{{ include "avenra-api-local.bootstrapRolesEnv" . | indent 12 }}
+{{- end }}

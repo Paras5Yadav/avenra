@@ -1,0 +1,11 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-traces
+description: Opt-in private Avenra OTLP trace canary (Collector and Tempo)
+type: application
+version: 0.2.0
+appVersion: "3.0.3"
+dependencies:
+  - name: common
+    version: 0.1.0
+    repository: "file://../common"

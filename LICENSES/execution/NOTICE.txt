@@ -1,0 +1,6 @@
+Avenra includes adapted source from https://github.com/perplexityai/space at b9fc395e06189460262c261b8bf34dfa5a305745.
+Original terms and notices are retained in original/. Modified files and original hashes are recorded in adaptations.json.
+These modifications do not imply endorsement by the original authors.
+
+Original workspace authors metadata: Perplexity AI.
+The Avenra author label identifies the adaptation, not sole authorship of the imported work.

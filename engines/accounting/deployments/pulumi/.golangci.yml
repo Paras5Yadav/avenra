@@ -1,0 +1,9 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+version: "2"
+linters:
+  settings:
+    staticcheck:
+      dot-import-whitelist:
+        - avenra.local/accounting/deployments/pulumi/pkg/common
+        - avenra.local/accounting/deployments/pulumi/pkg/utils
+        - github.com/formancehq/go-libs/v3/collectionutils

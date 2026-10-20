@@ -1,0 +1,31 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-node-mgr-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+prost = { workspace = true }
+thiserror = { workspace = true }
+tonic = { workspace = true }
+tonic-prost = { workspace = true }
+
+# internal
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-execution-common = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+avenra-runtime-common-proto-build = { workspace = true }
+tonic-prost-build = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-common-svc = { workspace = true }

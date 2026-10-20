@@ -1,0 +1,189 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+syntax = "proto3";
+
+package space.execution.v1;
+
+option go_package = "github.com/avenra/Avenra/shim/proto/execution/v1;executionv1";
+
+enum RuntimeKind {
+  RUNTIME_KIND_UNSPECIFIED = 0;
+  RUNTIME_KIND_FIRECRACKER = 1;
+  RUNTIME_KIND_CLOUD_HYPERVISOR = 2;
+  RUNTIME_KIND_GVISOR = 3;
+}
+
+enum GuestOperatingSystem {
+  GUEST_OPERATING_SYSTEM_UNSPECIFIED = 0;
+  GUEST_OPERATING_SYSTEM_LINUX = 1;
+  GUEST_OPERATING_SYSTEM_WINDOWS = 2;
+  GUEST_OPERATING_SYSTEM_MACOS = 3;
+}
+
+enum CpuArchitecture {
+  CPU_ARCHITECTURE_UNSPECIFIED = 0;
+  CPU_ARCHITECTURE_X86_64 = 1;
+  CPU_ARCHITECTURE_AARCH64 = 2;
+}
+
+enum ArtifactComponentKind {
+  ARTIFACT_COMPONENT_KIND_UNSPECIFIED = 0;
+  ARTIFACT_COMPONENT_KIND_KERNEL = 1;
+  ARTIFACT_COMPONENT_KIND_INITRD = 2;
+  ARTIFACT_COMPONENT_KIND_FIRMWARE = 3;
+  ARTIFACT_COMPONENT_KIND_ROOTFS = 4;
+  ARTIFACT_COMPONENT_KIND_BOOT_DISK = 5;
+  ARTIFACT_COMPONENT_KIND_GUEST_TOOLS = 6;
+}
+
+enum ExecutionSelectionMode {
+  EXECUTION_SELECTION_MODE_UNSPECIFIED = 0;
+  EXECUTION_SELECTION_MODE_NEW_COLD_BOOT = 1;
+  EXECUTION_SELECTION_MODE_EXISTING_COLD_BOOT = 2;
+  EXECUTION_SELECTION_MODE_PERSISTED_STATE_RESTORE = 3;
+}
+
+message RuntimeIdentity {
+  RuntimeKind kind = 1;
+  string version = 2;
+}
+
+message GuestPlatform {
+  GuestOperatingSystem os = 1;
+  CpuArchitecture architecture = 2;
+}
+
+message StateFormatIdentity {
+  string format = 1;
+  string version = 2;
+}
+
+message ArtifactComponent {
+  ArtifactComponentKind kind = 1;
+  optional string role = 2;
+  optional string version = 3;
+  optional string digest = 4;
+  optional string format = 5;
+}
+
+message ExecutionMetadata {
+  RuntimeIdentity runtime = 1;
+  GuestPlatform guest = 2;
+  optional StateFormatIdentity state_format = 3;
+  repeated ArtifactComponent components = 4;
+  // Complete immutable binding, when explicitly verified by an environment-aware
+  // resolver. Absence must not be interpreted as E0 or as peer support.
+  optional string environment = 5;
+}
+
+message StateFormatCapability {
+  StateFormatIdentity identity = 1;
+  bool can_create = 2;
+  bool can_load = 3;
+}
+
+message RuntimeInstallation {
+  RuntimeIdentity runtime = 1;
+  repeated GuestPlatform supported_guests = 2;
+  repeated StateFormatCapability state_formats = 3;
+}
+
+message ArtifactComponentInstallation {
+  ArtifactComponent component = 1;
+  bool default_for_new = 2;
+  bool legacy_default = 3;
+}
+
+message NodeExecutionInventory {
+  repeated RuntimeInstallation runtimes = 1;
+  repeated ArtifactComponentInstallation components = 2;
+}
+
+// Environment definitions are additive data contracts. Sending one to a peer
+// requires explicit support for its schema and reference; legacy inventory and
+// ExecutionMetadata do not imply that support. New required semantics must bump
+// schema_version, including semantics added through new fields or oneof members.
+enum HostOperatingSystem {
+  HOST_OPERATING_SYSTEM_UNSPECIFIED = 0;
+  HOST_OPERATING_SYSTEM_LINUX = 1;
+  HOST_OPERATING_SYSTEM_WINDOWS = 2;
+  HOST_OPERATING_SYSTEM_MACOS = 3;
+}
+
+message HostPlatform {
+  HostOperatingSystem os = 1;
+  CpuArchitecture architecture = 2;
+}
+
+enum HypervisorBackend {
+  HYPERVISOR_BACKEND_UNSPECIFIED = 0;
+  HYPERVISOR_BACKEND_KVM = 1;
+}
+
+enum IsolationClass {
+  ISOLATION_CLASS_UNSPECIFIED = 0;
+  // A separate hardware VM boundary for each sandbox; not an ordered strength.
+  ISOLATION_CLASS_HARDWARE_VM = 1;
+}
+
+enum RuntimePayloadLayout {
+  RUNTIME_PAYLOAD_LAYOUT_UNSPECIFIED = 0;
+  RUNTIME_PAYLOAD_LAYOUT_FIRECRACKER_RELEASE_V1 = 1;
+}
+
+message ManagedRuntimeRelease {
+  RuntimeIdentity runtime = 1;
+  // Digest over pinned binaries, never the source archive checksum.
+  string digest = 2;
+  HostPlatform target = 3;
+  RuntimePayloadLayout layout = 4;
+}
+
+message RuntimeBinding {
+  oneof provider {
+    ManagedRuntimeRelease managed_release = 1;
+  }
+}
+
+message LinuxDirectBootV1 {
+  // All identity fields are required. Target is EnvironmentDescriptor.guest.
+  EnvironmentComponent kernel = 1;
+}
+
+message EnvironmentComponent {
+  ArtifactComponentKind kind = 1;
+  string version = 2;
+  string digest = 3;
+}
+
+message BootProfile {
+  oneof profile {
+    LinuxDirectBootV1 linux_direct_v1 = 1;
+  }
+}
+
+message FirecrackerSnapshotCompatibilityV1 {
+  StateFormatIdentity state_format = 1;
+}
+
+message ExecutionCompatibilityProfile {
+  oneof profile {
+    FirecrackerSnapshotCompatibilityV1 firecracker_snapshot_v1 = 1;
+  }
+}
+
+message EnvironmentDescriptor {
+  HostPlatform host = 1;
+  GuestPlatform guest = 2;
+  RuntimeBinding runtime = 3;
+  HypervisorBackend backend = 4;
+  BootProfile boot = 5;
+  IsolationClass isolation = 6;
+  ExecutionCompatibilityProfile compatibility = 7;
+}
+
+message EnvironmentDefinition {
+  uint32 schema_version = 1;
+  // SHA-256 over versioned canonical semantic fields, not protobuf wire bytes.
+  string reference = 2;
+  EnvironmentDescriptor descriptor = 3;
+}

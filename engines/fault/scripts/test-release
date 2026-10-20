@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -ueo pipefail
+
+VERSION_FULL="$(git describe --abbrev=0 --tags)"
+VERSION=${VERSION_FULL:1}
+ARCH=$(uname -m)
+if [ "${ARCH}" == "x86_64" ]; then
+  ARCH="amd64"
+fi
+
+goreleaser release --rm-dist --skip-publish --skip-validate
+
+docker run -v "$(PWD)"/dist:/dist --pull always --rm -it ubuntu bash -c \
+  "set -xe;
+  dpkg -i /dist/avenrafault_*_linux_${ARCH}.deb;
+  ls -1 /usr/bin/avenrafault-*;
+  /usr/bin/avenrafault-server --version;
+  /usr/bin/avenrafault-server --version \
+    | grep -o -e 'avenrafault-server version ${VERSION}';
+  /usr/bin/avenrafault-cli --version;
+  /usr/bin/avenrafault-cli --version \
+    | grep -o -e 'avenrafault-cli version ${VERSION}'"
+
+docker run -v "$(PWD)"/dist:/dist --pull always --rm -it fedora bash -c \
+  "set -xe;
+  yum localinstall -y /dist/avenrafault_*_linux_${ARCH}.rpm;
+  ls -1 /usr/bin/avenrafault-*;
+  /usr/bin/avenrafault-server --version;
+  /usr/bin/avenrafault-server --version \
+    | grep -o -e 'avenrafault-server version ${VERSION}';
+  /usr/bin/avenrafault-cli --version;
+  /usr/bin/avenrafault-cli --version \
+    | grep -o -e 'avenrafault-cli version ${VERSION}'"
+
+docker run -v "$(PWD)"/dist:/dist --pull always --rm -it alpine sh -c \
+  "set -xe;
+  apk add --allow-untrusted --no-cache /dist/avenrafault_*_linux_${ARCH}.apk;
+  ls -1 /usr/bin/avenrafault-*;
+  /usr/bin/avenrafault-server --version;
+  /usr/bin/avenrafault-server --version \
+    | grep -o -e 'avenrafault-server version ${VERSION}';
+  /usr/bin/avenrafault-cli --version;
+  /usr/bin/avenrafault-cli --version \
+    | grep -o -e 'avenrafault-cli version ${VERSION}'"
+
+tar -ztvf dist/avenrafault_*_linux_amd64.tar.gz | grep -o -e avenrafault-server
+tar -ztvf dist/avenrafault_*_linux_amd64.tar.gz | grep -o -e avenrafault-cli
+
+goreleaser build --rm-dist --single-target --skip-validate --id server
+bineries=(./dist/avenrafault-server-*)
+server="${bineries[0]}"
+$server --help 2>&1 | grep -o -e "Usage of ./dist/avenrafault-server"
+$server --version | grep -o -e "avenrafault-server version ${VERSION}"
+
+goreleaser build --rm-dist --single-target --skip-validate --id client
+bineries=(./dist/avenrafault-cli-*)
+cli="${bineries[0]}"
+$cli --help 2>&1 |
+  grep -o -e "avenrafault-cli - Simulate network and system conditions"
+$cli --version | grep -o -e "avenrafault-cli version ${VERSION}"

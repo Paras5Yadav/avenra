@@ -1,0 +1,228 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+syntax = "proto3";
+
+package build.manager.v1;
+
+// Recipe is the source-of-truth schema for building a template image.
+// CLI, TOML, REST APIs, and any future surface all serialize into this.
+message Recipe {
+  Metadata metadata = 1;
+  BuildConfig build_config = 2;
+  Origin origin = 3;
+  repeated Step steps = 4;
+
+  message Metadata {
+    // Optional human-readable recipe description. The built artifact identity
+    // is StartBuildRequest.template_id.
+    optional string description = 1;
+  }
+
+  message BuildConfig {
+    // Build VM CPU count. Server applies a default if unset.
+    optional uint32 vcpu = 1;
+    // Build VM memory in bytes.
+    optional uint64 memory_bytes = 2;
+    // Guest rootfs capacity in bytes.
+    optional uint64 disk_bytes = 3;
+    // Opt-in Firecracker balloon device recorded in the built template's
+    // metadata. Sandboxes get it only when they cold-boot from the build,
+    // including when its base snapshot is created; restores keep the device
+    // their snapshot captured. Unset: no balloon device.
+    Balloon balloon = 4;
+  }
+
+  // Exactly one mode must be set.
+  message Balloon {
+    oneof mode {
+      Inflate inflate = 1;
+      FreePageReporting free_page_reporting = 2;
+      FreePageHinting free_page_hinting = 3;
+    }
+    // Seconds between guest statistics updates; 0 disables statistics.
+    // At most 65535.
+    uint32 stats_polling_interval_s = 4;
+
+    // A fixed-size inflation balloon.
+    message Inflate {
+      // Required. Positive and below the sandbox's guest memory.
+      uint32 amount_mib = 1;
+      // Whether the guest may deflate the balloon to avoid OOM.
+      bool deflate_on_oom = 2;
+    }
+    // The guest continuously reports freed pages to the host.
+    message FreePageReporting {}
+    // The host asks the guest to hint free pages before each suspend
+    // snapshot when the node enables it.
+    message FreePageHinting {}
+  }
+
+  // Origin selects a template base, a scratch image, or an OCI filesystem
+  // overlaid on a template base. Exactly one variant must be set.
+  message Origin {
+    oneof kind {
+      FromTemplate from_template = 1;
+      FromScratch from_scratch = 2;
+      FromOciImage from_oci_image = 3;
+      // A distinct wire variant makes pinned builds fail closed through an
+      // older protobuf proxy: the proxy drops this unknown oneof arm, and the
+      // build manager rejects the now-missing origin instead of building with
+      // the node's default kernel.
+      PinnedFromScratch pinned_from_scratch = 4;
+    }
+
+    message FromTemplate {
+      // Required. Base template reference, e.g., "seed", "seed:latest",
+      // or "seed@sha256:...".
+      string base = 1;
+    }
+
+    message FromScratch {
+      // Required. Source rootfs to bootstrap from.
+      Source source = 1;
+    }
+
+    message PinnedFromScratch {
+      // Required. Source rootfs to bootstrap from.
+      Source source = 1;
+      // Required exact guest kernel to record in the built template's
+      // execution metadata. Version and digest are validated as a pair.
+      GuestKernel guest_kernel = 2;
+    }
+
+    message GuestKernel {
+      // Exact staged artifact version, e.g. "vmlinux-6.1.155-bpf-modsig".
+      string version = 1;
+      // Full canonical digest, e.g. "sha256:<64 lowercase hex chars>".
+      string digest = 2;
+    }
+
+    // Boots a clone of a Avenra template, then copies a flattened public OCI
+    // filesystem over it before recipe steps run. The builder preserves Avenra
+    // account and SSH-control paths; OCI files win other collisions. Broader
+    // compatibility is checked only by recipe execution and the final boot.
+    message FromOciImage {
+      // Required. Avenra base template, currently "seed" for E2B builds.
+      string base = 1;
+      // Required. e.g. "docker.io/library/ubuntu:24.04".
+      string reference = 2;
+    }
+  }
+
+  // Source materializes a scratch root filesystem. Each variant carries
+  // only the fields meaningful to it; no shared stringly-typed fields.
+  message Source {
+    oneof kind {
+      UbuntuMinimalCloudSquashfs ubuntu_minimal_cloud_squashfs = 1;
+    }
+
+    message UbuntuMinimalCloudSquashfs {
+      // e.g., "resolute"
+      string release = 1;
+      // e.g., "26.04"
+      string version = 2;
+      // ISO date or the literal "release".
+      string date = 3;
+    }
+  }
+
+  message Step {
+    // UI-only label shown in build logs. Not interpreted by the daemon.
+    optional string display_name = 1;
+    // Guest environment names, matching [A-Za-z_][A-Za-z0-9_]*. The daemon
+    // resolves NAME only from operator-configured AVENRA_BUILD_EXPORT_NAME;
+    // missing exports fail the build. Values are scoped to this step.
+    repeated string env_refs = 2;
+
+    oneof body {
+      PackageInstall package_install = 3;
+      Run run = 4;
+      Env env = 5;
+      Copy copy = 6;
+      PlaywrightInstall playwright_install = 7;
+      // Required oneof arms fail closed through older builders/proxies.
+      SetRuntime set_runtime = 8;
+      ClearRuntime clear_runtime = 9;
+    }
+  }
+
+  // Template-only boot configuration; sandbox env is not applied to this app.
+  message SetRuntime {
+    uint32 schema_version = 1;
+    repeated RuntimeApp apps = 2;
+  }
+  message RuntimeApp {
+    string name = 1;
+    repeated string command = 2;
+    string user = 3;
+    string working_directory = 4;
+    map<string, string> env = 5;
+    oneof readiness {
+      LaunchReady launch = 6;
+      ExecReady exec = 7;
+    }
+    uint64 startup_timeout_secs = 8;
+    // Whether this app is required for the template.
+    // Currently enforced only during base-snapshot preparation.
+    StartupPolicy startup_policy = 9;
+    enum StartupPolicy {
+      BEST_EFFORT = 0;
+      REQUIRED = 1;
+    }
+    message LaunchReady {}
+    message ExecReady { repeated string command = 1; }
+  }
+  message ClearRuntime {}
+
+  message PackageInstall {
+    PackageManager manager = 1;
+    repeated string packages = 2;
+    // Verbatim extra args appended after `packages`.
+    repeated string extra_args = 3;
+  }
+
+  enum PackageManager {
+    PACKAGE_MANAGER_UNSPECIFIED = 0;
+    PACKAGE_MANAGER_APT = 1;
+    PACKAGE_MANAGER_PIP = 2;
+    PACKAGE_MANAGER_NPM = 3;
+    PACKAGE_MANAGER_NPM_GLOBAL = 4;
+  }
+
+  message Run {
+    string command = 1;
+    // Unix user to execute as. Server applies a default if unset.
+    optional string user = 2;
+  }
+
+  message Env {
+    // Literal key/value pairs written into the guest environment.
+    // Callers MUST resolve any host-side placeholders (e.g., $VAR)
+    // before sending; the daemon copies values verbatim.
+    map<string, string> vars = 1;
+  }
+
+  // Copy materializes a payload at `dest` inside the guest rootfs.
+  // Daemon-local file paths are NEVER on the wire; callers either inline
+  // small payloads or pre-upload to the daemon's blob store (see UploadBlob
+  // RPC) and reference by SHA-256. Inline bytes are copied as one raw file;
+  // uploaded blobs are tar archives that the daemon extracts before copying.
+  message Copy {
+    oneof payload {
+      // Raw file bytes; recommended only for payloads < 1 MiB.
+      bytes inline_bytes = 1;
+      // SHA-256 (hex) of a tar archive previously uploaded via UploadBlob.
+      string blob_sha256 = 2;
+    }
+    // Required. Absolute path inside the guest rootfs.
+    string dest = 3;
+    // Optional path inside an uploaded tar archive to copy to `dest`.
+    // When unset, the daemon copies the archive's single top-level entry.
+    optional string source_path = 4;
+  }
+
+  message PlaywrightInstall {
+    // Browsers to install. Empty means "no browsers"; clients that want
+    // a default (e.g., ["chromium"]) MUST populate it themselves.
+    repeated string browsers = 1;
+  }
+}

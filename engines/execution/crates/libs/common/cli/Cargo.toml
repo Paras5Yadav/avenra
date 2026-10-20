@@ -1,0 +1,18 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-common-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+
+# internal
+avenra-runtime-observability = { workspace = true }

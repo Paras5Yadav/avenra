@@ -1,0 +1,161 @@
+/* Shared documentation primitives; each renderer opts into their use. */
+@font-face {
+  font-family: "Inter";
+  src: url("InterVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("InterVariable-Italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  --docs-font-body: "Inter", system-ui, sans-serif;
+  --docs-font-code: ui-monospace, SFMono-Regular, Consolas, monospace;
+  --docs-color-background: #fbfbfb;
+  --docs-color-surface: var(--docs-color-background);
+  --docs-color-raised: #ffffff;
+  --docs-color-text: #0b2833;
+  --docs-color-muted: rgba(11, 40, 51, .75);
+  --docs-color-accent: #016a71;
+  --docs-color-border: rgba(11, 40, 51, .15);
+  --docs-color-soft: rgba(1, 106, 113, .09);
+  --docs-color-inline-code: #eef1f1;
+  --docs-color-nested: #f4f6f6;
+  --docs-color-reading-code-background: #f2f4f4;
+  --docs-color-quote: rgba(11, 40, 51, .035);
+  --docs-color-success: #016b1d;
+  --docs-color-error: #a23544;
+  --docs-color-warning: #97431a;
+  --docs-color-info: var(--docs-color-accent);
+  --docs-color-code-background: #19353d;
+  --docs-color-code-text: #ffffff;
+  --docs-color-method-text: #ffffff;
+  --docs-color-response-success-text: #addec0;
+  --docs-color-response-error-text: #f3b5bd;
+
+  --docs-dark-background: #161616;
+  --docs-dark-raised: #1d1d1d;
+  --docs-dark-text: #dedede;
+  --docs-dark-muted: rgba(222, 222, 222, .65);
+  --docs-dark-accent: #4e99a3;
+  --docs-dark-border: rgba(222, 222, 222, .14);
+  --docs-dark-soft: rgba(78, 153, 163, .09);
+  --docs-dark-quote: rgba(222, 222, 222, .07);
+  --docs-dark-success: #539e55;
+  --docs-dark-error: #dc6973;
+  --docs-dark-warning: #d57141;
+  --docs-header-height: 64px;
+  --docs-utility-height: 48px;
+  --docs-sidebar-width: 248px;
+  --docs-content-padding: 32px;
+  --docs-heading-weight: 600;
+  --docs-heading-tracking: -.035em;
+}
+
+/* One header keeps section switching aligned across both renderers. */
+.docs-header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 300;
+  height: var(--docs-header-height);
+  display: grid;
+  grid-template-columns: var(--docs-sidebar-width) 1fr;
+  align-items: center;
+  box-sizing: border-box;
+  background: var(--docs-color-surface);
+  border-bottom: 1px solid var(--docs-color-border);
+}
+.docs-header a { color: var(--docs-color-muted); text-decoration: none; }
+.docs-branding { display: flex; align-items: center; }
+.docs-menu-toggle { display: none; padding: 0; border: 0; background: none; color: var(--docs-color-muted); cursor: pointer; }
+.docs-menu-toggle svg { width: 20px; height: 20px; }
+.docs-menu-toggle:hover { color: var(--docs-color-accent); }
+.docs-menu-toggle:focus-visible { outline: 2px solid var(--docs-color-accent); outline-offset: -2px; }
+[data-docs-native-menu] { display: none !important; }
+.docs-brand { padding-inline-start: 24px; font-size: 16px; white-space: nowrap; }
+.docs-brand strong { color: var(--docs-color-text); font-weight: 700; }
+.docs-sections { display: flex; align-self: stretch; gap: 28px; padding-inline: var(--docs-content-padding); }
+.docs-sections a {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  padding-top: 2px;
+}
+.docs-github { margin-inline-start: auto; }
+.docs-sections [aria-current] { color: var(--docs-color-accent); border-color: currentColor; }
+.docs-header a:hover { color: var(--docs-color-accent); }
+.docs-header a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+@media screen and (max-width: 800px) {
+  .docs-header { display: flex; gap: 12px; padding-inline: 12px; }
+  .docs-sections .docs-github { display: none; }
+  .docs-branding { flex-shrink: 0; gap: 4px; }
+  .docs-menu-toggle:not([hidden]) { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; }
+  .docs-brand { padding-inline-start: 0; }
+  .docs-sections { margin-inline-start: auto; gap: 20px; padding-inline: 0; }
+}
+
+@media screen and (max-width: 360px) {
+  .docs-header { gap: 4px; padding-inline: 8px; }
+  .docs-sections { gap: 12px; }
+}
+
+:root[data-docs-theme="dark"] {
+  color-scheme: dark;
+  --docs-color-background: var(--docs-dark-background);
+  --docs-color-raised: var(--docs-dark-raised);
+  --docs-color-text: var(--docs-dark-text);
+  --docs-color-muted: var(--docs-dark-muted);
+  --docs-color-accent: var(--docs-dark-accent);
+  --docs-color-border: var(--docs-dark-border);
+  --docs-color-soft: var(--docs-dark-soft);
+  --docs-color-inline-code: var(--docs-dark-raised);
+  --docs-color-nested: var(--docs-dark-raised);
+  --docs-color-reading-code-background: var(--docs-dark-raised);
+  --docs-color-quote: var(--docs-dark-quote);
+  --docs-color-success: var(--docs-dark-success);
+  --docs-color-error: var(--docs-dark-error);
+  --docs-color-warning: var(--docs-dark-warning);
+  --docs-color-code-background: var(--docs-dark-background);
+  --docs-color-code-text: var(--docs-dark-text);
+  --docs-color-method-text: var(--docs-dark-background);
+  --docs-color-response-success-text: var(--docs-dark-success);
+  --docs-color-response-error-text: var(--docs-dark-error);
+}
+
+/* Honor the system preference before scripts run and when scripts are disabled. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-docs-theme]) {
+    color-scheme: dark;
+    --docs-color-background: var(--docs-dark-background);
+    --docs-color-raised: var(--docs-dark-raised);
+    --docs-color-text: var(--docs-dark-text);
+    --docs-color-muted: var(--docs-dark-muted);
+    --docs-color-accent: var(--docs-dark-accent);
+    --docs-color-border: var(--docs-dark-border);
+    --docs-color-soft: var(--docs-dark-soft);
+    --docs-color-inline-code: var(--docs-dark-raised);
+    --docs-color-nested: var(--docs-dark-raised);
+    --docs-color-reading-code-background: var(--docs-dark-raised);
+    --docs-color-quote: var(--docs-dark-quote);
+    --docs-color-success: var(--docs-dark-success);
+    --docs-color-error: var(--docs-dark-error);
+    --docs-color-warning: var(--docs-dark-warning);
+    --docs-color-code-background: var(--docs-dark-background);
+    --docs-color-code-text: var(--docs-dark-text);
+    --docs-color-method-text: var(--docs-dark-background);
+    --docs-color-response-success-text: var(--docs-dark-success);
+    --docs-color-response-error-text: var(--docs-dark-error);
+  }
+}

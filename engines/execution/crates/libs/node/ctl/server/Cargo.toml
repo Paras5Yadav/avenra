@@ -1,0 +1,70 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-node-ctl-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+otel = [
+    "avenra-runtime-common-svc/otel",
+    "avenra-runtime-template-mgr-client/otel",
+]
+datadog = [
+    "otel",
+    "avenra-runtime-common-svc/datadog",
+    "avenra-runtime-template-mgr-client/datadog",
+]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+kubernetes = [
+    "dep:k8s-openapi",
+    "dep:kube",
+    "avenra-runtime-common-core/kubernetes",
+    "avenra-runtime-common-svc/k8s",
+]
+
+[dependencies]
+dashmap = { workspace = true }
+futures-util = { workspace = true }
+k8s-openapi = { workspace = true, features = ["v1_32"], optional = true }
+kube = { workspace = true, default-features = false, features = ["aws-lc-rs", "client", "config", "rustls-tls"], optional = true }
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-common-grpc = { workspace = true, features = ["internal-tls"] }
+avenra-runtime-common-svc = { workspace = true, features = ["sqlite"] }
+avenra-runtime-execution-common = { workspace = true }
+avenra-runtime-net-common = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-node-api-client = { workspace = true }
+avenra-runtime-node-mgr-client = { workspace = true }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+avenra-runtime-template-mgr-client = { workspace = true }
+prost-types = { workspace = true }
+rand = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sqlx = { workspace = true, features = ["macros", "migrate"] }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "net", "signal", "sync", "time"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true }
+toml = { workspace = true }
+tonic = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+insta = { workspace = true }
+avenra-runtime-sbx-mgr-client = { workspace = true, features = ["test-support"] }
+tempfile = { workspace = true }
+# `test-util` enables `#[tokio::test(start_paused = true)]` so the facet
+# stall-watchdog tests run on virtual time.
+tokio = { workspace = true, features = ["test-util"] }

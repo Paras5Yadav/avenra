@@ -1,0 +1,36 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+# Redis for Kind's cluster activation and per-client concurrency limiters.
+# avenra-api, avenra-admin-api and avenra-cluster-controller reach it through
+# AVENRA_REDIS_URL (their charts' `redis.url`), as deployed services reach
+# theirs, so every Kind run exercises both limiters against a real store.
+#
+# Single-node, in-memory only (no RDB/AOF persistence): the limiter state is a
+# guardrail, not a source of truth, and a wiped store just refills the buckets.
+
+image:
+  repository: redis
+  tag: "7-alpine"
+  pullPolicy: IfNotPresent
+
+datadogTeam: team-space
+
+service:
+  # DNS name in the API and cluster-controller charts' `redis.url`.
+  name: avenra-redis
+  port: 6379
+
+# Scheduling priority (infra/avenra/kind/manifests/priorityclasses.yaml).
+priorityClassName: avenra-control-plane
+
+# Pinned to the infra node alongside Postgres/object store so a sandbox-worker
+# drain never disturbs the limiter store.
+nodeSelector:
+  space.pplx.net/infra: "true"
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi

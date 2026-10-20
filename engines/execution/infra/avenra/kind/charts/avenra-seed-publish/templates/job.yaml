@@ -1,0 +1,84 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-template-publish
+  namespace: {{ .Release.Namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-seed-publish
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: avenra-seed-publish
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    team: {{ .Values.datadogTeam | quote }}
+spec:
+  backoffLimit: 10
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: avenra-seed-publish
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-template-publish
+      restartPolicy: OnFailure
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      containers:
+        - name: seed-publish
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            # Authenticated internal RPC TLS (docs/internal-rpc-tls.md): the
+            # cluster's internal RPC CA, which verifies internal-api.
+            - name: AVENRA_INTERNAL_RPC_TLS_CA
+              value: /etc/avenra-rpc-ca/ca.crt
+            - name: AVENRA_CLUSTER_API_TOKEN_PATH
+              value: "/var/run/avenra-publication/cluster-api.token"
+            - name: AVENRA_INTERNAL_API_GRPC_ADDR
+              value: {{ .Values.internalApi.grpcAddr | quote }}
+            - name: AVENRA_OBJECT_STORE_ENDPOINT
+              value: {{ .Values.s3.endpoint | quote }}
+            - name: AVENRA_OBJECT_STORE_REGION
+              value: {{ .Values.s3.region | quote }}
+            - name: AVENRA_OBJECT_STORE_BUCKET
+              value: {{ .Values.s3.bucket | quote }}
+            - name: AVENRA_OBJECT_STORE_STATIC_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.credentialsSecretName }}
+                  key: AVENRA_OBJECT_STORE_STATIC_ACCESS_KEY_ID
+            - name: AVENRA_OBJECT_STORE_STATIC_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.credentialsSecretName }}
+                  key: AVENRA_OBJECT_STORE_STATIC_SECRET_ACCESS_KEY
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: rpc-ca
+              mountPath: /etc/avenra-rpc-ca
+              readOnly: true
+            - name: publication-token
+              mountPath: /var/run/avenra-publication
+              readOnly: true
+      volumes:
+        - name: rpc-ca
+          secret:
+            secretName: avenra-internal-rpc-ca
+            defaultMode: 0444
+        - name: publication-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: cluster-api.token
+                  audience: avenra-cluster-api
+                  expirationSeconds: 3600

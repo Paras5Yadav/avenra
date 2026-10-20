@@ -1,0 +1,43 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-cluster-controller"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "avenra-cluster-controller"
+path = "src/main.rs"
+required-features = ["kubernetes"]
+
+[features]
+default = ["kubernetes"]
+otel = [
+    "avenra-runtime-common-svc/otel",
+    "avenra-runtime-cluster-controller-server/otel",
+]
+datadog = [
+    "otel",
+    "avenra-runtime-common-svc/datadog",
+    "avenra-runtime-cluster-controller-server/datadog",
+]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+# The deployed binary always enables this feature; the gate exists so
+# direct-substrate builds can compile without the kube dependency tree.
+kubernetes = ["avenra-runtime-cluster-controller-server/kubernetes"]
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive", "env"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+# internal
+avenra-runtime-cluster-controller-server = { workspace = true }
+avenra-runtime-common-svc = { workspace = true }

@@ -1,0 +1,33 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-execution-common"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+serde = ["dep:serde", "dep:serde_json", "avenra-runtime-common-core/serde"]
+
+[dependencies]
+aws-lc-rs = { workspace = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+prost = { workspace = true }
+avenra-runtime-common-core = { workspace = true }
+thiserror = { workspace = true }
+tonic = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+avenra-runtime-common-proto-build = { workspace = true }
+tonic-prost-build = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-common-core = { workspace = true, features = ["serde"] }

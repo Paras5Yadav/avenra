@@ -1,0 +1,82 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-common-svc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+otel = ["avenra-runtime-observability/otel"]
+datadog = ["otel", "avenra-runtime-observability/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+k8s = ["dep:k8s-openapi", "dep:kube"]
+sqlite = ["dep:rusqlite", "dep:toml", "sqlx/migrate", "sqlx/runtime-tokio", "sqlx/sqlite-bundled", "sqlx/tls-rustls-aws-lc-rs"]
+# Exposes shared route and authentication test helpers to other crates.
+# Unit tests get them under `cfg(test)`; external test suites opt in through
+# a dev-dependency. Mirrors `avenra-runtime-metrics`'s `test-capture`.
+test-support = []
+# Enables the test-only environment overrides (see `avenra_runtime_common_core::env::test_hook`).
+test-hooks = ["avenra-runtime-common-core/test-hooks"]
+
+[dependencies]
+aws-lc-rs = { workspace = true }
+axum = { workspace = true }
+base64 = { workspace = true }
+bytes = { workspace = true }
+hmac = { workspace = true }
+hex = { workspace = true }
+http = { workspace = true }
+http-body = { workspace = true }
+jiff = { workspace = true }
+k8s-openapi = { workspace = true, features = ["v1_32"], optional = true }
+kube = { workspace = true, default-features = false, features = ["client", "config", "runtime", "rustls-tls"], optional = true }
+libc = { workspace = true }
+log = { workspace = true }
+nix = { workspace = true, features = ["fs", "user"] }
+pin-project-lite = { workspace = true }
+redis = { workspace = true }
+rand = { workspace = true }
+rusqlite = { workspace = true, optional = true }
+rustls = { workspace = true, default-features = false, features = ["aws_lc_rs", "std", "tls12"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true, features = ["derive", "postgres", "runtime-tokio", "time", "tls-rustls-aws-lc-rs", "uuid"] }
+subtle = { workspace = true }
+thiserror = { workspace = true }
+time = { workspace = true }
+tokio = { workspace = true, features = ["macros", "net", "rt", "rt-multi-thread", "signal", "time"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true }
+toml = { workspace = true, optional = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+tower = { workspace = true, features = ["util"] }
+tower-http = { workspace = true, features = ["trace"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v5", "v7"] }
+
+# internal
+avenra-runtime-common-core = { workspace = true, features = ["serde", "sqlx"] }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-observability = { workspace = true }
+
+[dev-dependencies]
+insta = { workspace = true }
+avenra-runtime-common-core = { workspace = true, features = ["test-hooks"] }
+nix = { workspace = true, features = ["signal"] }
+tonic-prost = { workspace = true }
+tempfile = { workspace = true }
+tracing-subscriber = { workspace = true }
+avenra-runtime-db-test-fixtures = { workspace = true }
+avenra-runtime-observability = { workspace = true, features = ["test-capture"] }
+avenra-runtime-test-env = { workspace = true }

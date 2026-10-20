@@ -1,0 +1,120 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-api"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+federated-identity = []
+test-hooks = ["avenra-runtime-common-core/test-hooks"]
+kubernetes = [
+    "dep:kube",
+    "dep:k8s-openapi",
+    "dep:avenra-runtime-common-work-coalescer",
+    "avenra-runtime-common-core/kubernetes",
+    "avenra-runtime-common-svc/k8s",
+]
+otel = ["avenra-runtime-observability/otel"]
+datadog = ["otel", "avenra-runtime-observability/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+
+[dependencies]
+axum = { workspace = true }
+base64 = { workspace = true }
+bcrypt = { workspace = true }
+deadpool-redis = { workspace = true }
+flate2 = { workspace = true }
+futures-core = { workspace = true }
+futures-util = { workspace = true }
+hex = { workspace = true }
+hmac = { workspace = true }
+jiff = { workspace = true }
+oci-spec = { workspace = true }
+hyper = { workspace = true, features = ["client", "http1"] }
+hyper-util = { workspace = true, features = ["client-legacy", "http1", "tokio"] }
+http-body-util = { workspace = true }
+k8s-openapi = { workspace = true, features = ["v1_32"], optional = true }
+kube = { workspace = true, default-features = false, features = ["aws-lc-rs", "client", "config", "rustls-tls", "runtime"], optional = true }
+log = { workspace = true }
+rand = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+redis = { workspace = true }
+regex = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+subtle = { workspace = true }
+sqlx = { workspace = true, features = ["derive", "json", "migrate", "postgres", "runtime-tokio", "tls-rustls-aws-lc-rs", "uuid", "time"] }
+thiserror = { workspace = true }
+time = { workspace = true, features = ["serde-human-readable"] }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+tokio-stream = { workspace = true, features = ["net", "time"] }
+tokio-util = { workspace = true, features = ["io", "io-util"] }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+toml = { workspace = true }
+tower = { workspace = true, features = ["util"] }
+tower-http = { workspace = true, features = ["cors", "trace"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v5", "v7", "serde"] }
+
+# internal
+# build-manager is reached indirectly via avenra-node-api-svc (BuilderApi).
+# The recipe adapter keeps system builds on the same TOML contract as the builder CLI.
+avenra-runtime-build-mgr = { workspace = true }
+avenra-runtime-build-mgr-client = { workspace = true }
+avenra-runtime-credmgr-client = { workspace = true }
+avenra-runtime-credential-injection-core = { workspace = true }
+avenra-runtime-credential-injection-store = { workspace = true }
+avenra-runtime-feature-flags = { workspace = true }
+avenra-runtime-node-api-client = { workspace = true }
+avenra-runtime-node-mgr-client = { workspace = true }
+avenra-runtime-cluster-trigger-queue = { workspace = true }
+avenra-runtime-events = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-observability = { workspace = true, default-features = false }
+avenra-runtime-public-api = { workspace = true, features = ["schema", "serde"] }
+avenra-runtime-common-core = { workspace = true, features = ["serde", "sqlx"] }
+avenra-runtime-common-grpc = { workspace = true, features = ["internal-tls"] }
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-common-work-coalescer = { workspace = true, optional = true }
+avenra-runtime-cluster-pool = { workspace = true }
+avenra-runtime-net-common = { workspace = true, features = ["serde"] }
+avenra-runtime-sandbox-portability = { workspace = true }
+avenra-runtime-sandbox-store = { workspace = true }
+avenra-runtime-sandbox-teardown = { workspace = true }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+avenra-runtime-template-mgr-client = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-internal-api-server = { workspace = true }
+avenra-runtime-common-core = { workspace = true, features = ["serde", "sqlx", "test-hooks"] }
+insta = { workspace = true, features = ["json", "yaml", "redactions"] }
+jsonschema = { workspace = true }
+avenra-runtime-common-svc = { workspace = true, features = ["test-support"] }
+avenra-runtime-common-grpc = { workspace = true, features = ["internal-tls", "test-support"] }
+avenra-runtime-db-test-fixtures = { workspace = true }
+avenra-runtime-metrics = { workspace = true, features = ["test-capture"] }
+avenra-runtime-observability = { workspace = true, features = ["test-capture"] }
+avenra-runtime-node-api-sim = { workspace = true }
+avenra-runtime-test-env = { workspace = true }
+rcgen = { workspace = true, features = ["aws_lc_rs", "pem"] }
+rstest = { workspace = true }
+tempfile = { workspace = true }
+testcontainers = { workspace = true }
+testcontainers-modules = { workspace = true, features = ["redis"] }
+# `test-util` enables `#[tokio::test(start_paused = true)]` so follower-join
+# backoff tests auto-advance virtual time instead of sleeping in real time.
+tokio = { workspace = true, features = ["test-util"] }
+tracing-subscriber = { workspace = true }

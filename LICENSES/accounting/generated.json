@@ -1,0 +1,19 @@
+{
+  "reason": "Regenerate length-delimited descriptors after changing the local Go module path.",
+  "protocol_sha256": "2546875b19297839c30e0f7f4eae09ac1cffc0eab54f88e6a854c41ec7fa208f",
+  "compiler": "libprotoc 36.2",
+  "plugins": {
+    "protoc-gen-go": "google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.10",
+    "protoc-gen-go-grpc": "google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1"
+  },
+  "files": [
+    {
+      "path": "engines/accounting/internal/replication/grpc/replication_service.pb.go",
+      "sha256": "e3d6eecbef93342abee01efc22048d3263b9617cefc2072a1ebdbec12c211a79"
+    },
+    {
+      "path": "engines/accounting/internal/replication/grpc/replication_service_grpc.pb.go",
+      "sha256": "c664283a964256b9ad4d581d6322b42a995e60fec83373dad340fbc92b598210"
+    }
+  ]
+}

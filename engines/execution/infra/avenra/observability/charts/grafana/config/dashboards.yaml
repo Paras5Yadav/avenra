@@ -1,0 +1,9 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: 1
+providers:
+  - name: avenra-oss
+    folder: Avenra
+    type: file
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards

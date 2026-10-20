@@ -1,0 +1,226 @@
+{
+  "format": 1,
+  "components": [
+    {
+      "role": "execution",
+      "repository": "https://github.com/perplexityai/space",
+      "revision": "b9fc395e06189460262c261b8bf34dfa5a305745",
+      "archive": "https://codeload.github.com/perplexityai/space/tar.gz/b9fc395e06189460262c261b8bf34dfa5a305745",
+      "license": "Apache-2.0",
+      "replacements": [
+        [
+          "github.com/perplexityai/space",
+          "avenra.invalid/execution"
+        ],
+        [
+          "perplexityai/space",
+          "avenra/execution"
+        ],
+        [
+          "Perplexity AI",
+          "Avenra contributors"
+        ],
+        [
+          "Perplexity",
+          "Avenra"
+        ],
+        [
+          "perplexityai",
+          "avenra"
+        ],
+        [
+          "pplx-space",
+          "avenra-runtime"
+        ],
+        [
+          "pplx_space",
+          "avenra_runtime"
+        ],
+        [
+          "spaced",
+          "avenrad"
+        ],
+        [
+          "SPACE_",
+          "AVENRA_"
+        ],
+        [
+          "space-",
+          "avenra-"
+        ],
+        [
+          "space_",
+          "avenra_"
+        ],
+        [
+          "SPACE",
+          "Avenra"
+        ]
+      ],
+      "path_replacements": [
+        [
+          "spaced",
+          "avenrad"
+        ],
+        [
+          "space-",
+          "avenra-"
+        ],
+        [
+          "space_",
+          "avenra_"
+        ],
+        [
+          "space",
+          "avenra"
+        ],
+        [
+          "SPACE",
+          "Avenra"
+        ]
+      ],
+      "boundary_tokens": [
+        "space-",
+        "space_",
+        "spaced",
+        "SPACE_",
+        "SPACE"
+      ],
+      "extra_replacements": [
+        [
+          "space/",
+          "avenra/"
+        ],
+        [
+          ".space",
+          ".avenra"
+        ],
+        [
+          "\"space\"",
+          "\"avenra\""
+        ],
+        [
+          "'space'",
+          "'avenra'"
+        ]
+      ]
+    },
+    {
+      "role": "accounting",
+      "repository": "https://github.com/formancehq/ledger",
+      "revision": "0b32e71066e49f22d09c18dcccff1ef1d4c255b9",
+      "archive": "https://codeload.github.com/formancehq/ledger/tar.gz/0b32e71066e49f22d09c18dcccff1ef1d4c255b9",
+      "license": "MIT",
+      "replacements": [
+        [
+          "github.com/formancehq/ledger",
+          "avenra.local/accounting"
+        ],
+        [
+          "Formance Ledger",
+          "Avenra Accounting"
+        ],
+        [
+          "Formance",
+          "Avenra"
+        ],
+        [
+          "formance-ledger",
+          "avenra-accounting"
+        ]
+      ],
+      "path_replacements": []
+    },
+    {
+      "role": "fault",
+      "repository": "https://github.com/Shopify/toxiproxy",
+      "revision": "ff428b0e2c46af894c55711c2a3e427fce6b1ef2",
+      "archive": "https://codeload.github.com/Shopify/toxiproxy/tar.gz/ff428b0e2c46af894c55711c2a3e427fce6b1ef2",
+      "license": "MIT",
+      "replacements": [
+        [
+          "TOXIPROXY",
+          "AVENRA_FAULT"
+        ],
+        [
+          "github.com/Shopify/toxiproxy/v2",
+          "avenra.local/fault/v2"
+        ],
+        [
+          "github.com/Shopify/toxiproxy",
+          "avenra.local/fault"
+        ],
+        [
+          "Toxiproxy",
+          "Avenrafault"
+        ],
+        [
+          "toxiproxy",
+          "avenrafault"
+        ]
+      ],
+      "path_replacements": [
+        [
+          "toxiproxy",
+          "avenrafault"
+        ]
+      ]
+    },
+    {
+      "role": "contracts",
+      "repository": "https://github.com/mojaloop/ml-testing-toolkit",
+      "revision": "bd1bc7e90e4c9cc84b606b868a04dfd744f6338b",
+      "archive": "https://codeload.github.com/mojaloop/ml-testing-toolkit/tar.gz/bd1bc7e90e4c9cc84b606b868a04dfd744f6338b",
+      "license": "Apache-2.0",
+      "replacements": [],
+      "path_replacements": [],
+      "git_exceptions": [
+        "!.dockerignore",
+        "!.gitignore",
+        "!.npmignore"
+      ]
+    },
+    {
+      "role": "banking_core",
+      "repository": "https://github.com/apache/fineract",
+      "revision": "d5636847ac556c30b437254c353f05526d172b97",
+      "archive": "https://codeload.github.com/apache/fineract/tar.gz/d5636847ac556c30b437254c353f05526d172b97",
+      "license": "Apache-2.0",
+      "replacements": [],
+      "path_replacements": [],
+      "git_exceptions": [
+        "!gradle/wrapper/gradle-wrapper.jar",
+        "!fineract-doc/src/docs/",
+        "!fineract-doc/src/docs/**",
+        "!fineract-provider/src/main/resources/keystore.jks"
+      ]
+    },
+    {
+      "role": "api_contracts",
+      "repository": "https://github.com/microcks/microcks",
+      "revision": "fa743c82c9ceca01c7b295b048cc405c7e1b04cc",
+      "archive": "https://codeload.github.com/microcks/microcks/tar.gz/fa743c82c9ceca01c7b295b048cc405c7e1b04cc",
+      "license": "Apache-2.0",
+      "replacements": [],
+      "path_replacements": []
+    },
+    {
+      "role": "risk_studio",
+      "repository": "https://github.com/tazama-lf/rule-studio",
+      "revision": "26a5caccf793388c8571aa525b0f843b7ebedd6f",
+      "archive": "https://codeload.github.com/tazama-lf/rule-studio/tar.gz/26a5caccf793388c8571aa525b0f843b7ebedd6f",
+      "license": "Apache-2.0",
+      "replacements": [],
+      "path_replacements": []
+    },
+    {
+      "role": "monitoring",
+      "repository": "https://github.com/tazama-lf/tms-service",
+      "revision": "299f62ff9592b6c36ddd7e6c0d1c213641b66524",
+      "archive": "https://codeload.github.com/tazama-lf/tms-service/tar.gz/299f62ff9592b6c36ddd7e6c0d1c213641b66524",
+      "license": "Apache-2.0 (declared in package.json)",
+      "replacements": [],
+      "path_replacements": []
+    }
+  ]
+}

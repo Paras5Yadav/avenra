@@ -1,0 +1,23 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+# KubernetesSubstrate pins per-sandbox pods to runtimeClassName: space.
+# The Avenra Kind node image registers the `space` CRI runtime handler with
+# containerd (infra/avenra/kind/node/containerd/avenra-runtime.toml), pointing at
+# the Avenra containerd shim (`io.containerd.avenra.v2`), and
+# `infra/avenra/kind/scripts/install-shim.sh` installs the shim binary on each
+# kind sandbox worker. The shim hijacks the per-sandbox pod's pause container,
+# reads the Avenra annotations (sandbox-id, vcpu, memory, template, …), and
+# calls into the local sandbox-manager UDS to create a real sandbox via
+# node-manager, which launches Firecracker through the node's
+# runtime-supervisor, as in production.
+#
+# If the shim binary isn't installed (e.g. on a fresh cluster before
+# bootstrap.sh has run install-shim.sh), containerd cannot start the pod's
+# sandbox and kubelet reports FailedCreatePodSandBox. Run install-shim.sh and
+# recreate the affected pods; containerd is not restarted. A node whose image
+# predates the registration has no `space` handler at all; recreate the cluster
+# (scripts/check-kind-node-image.sh).
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: space
+handler: space

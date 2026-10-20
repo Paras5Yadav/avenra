@@ -1,0 +1,45 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-avenrad-common"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+rand = { workspace = true }
+hyper-util = { workspace = true, features = ["tokio"] }
+http = { workspace = true }
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-credential-injection-core = { workspace = true }
+avenra-runtime-net-common = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+semver = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["net", "time", "io-util"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true }
+tokio-vsock = { workspace = true, features = ["tonic014"] }
+tonic = { workspace = true }
+tonic-prost = { workspace = true }
+tower = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v7"] }
+zeroize = { workspace = true, features = ["derive"] }
+
+
+[build-dependencies]
+avenra-runtime-avenrad-build = { workspace = true }
+anyhow = { workspace = true }
+avenra-runtime-common-proto-build = { workspace = true }
+tonic-prost-build = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time", "test-util"] }

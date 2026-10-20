@@ -1,0 +1,24 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+# credential-manager on every Avenra Kind node. One release per role: `space`
+# and `avenra-builder` (`--set node.role=builder`).
+
+image:
+  repository: avenra-worker
+  tag: local
+  pullPolicy: IfNotPresent
+
+datadogEnvironment: kind-local
+clusterId: kind-local
+telemetry: {}
+node: {}
+
+# The agent drains for the shared 25 s lifecycle default, then releases its
+# service mutex (crates/libs/credential/mgr/server/src/run.rs,
+# crates/libs/common/svc/src/lifecycle.rs).
+terminationGracePeriodSeconds: 60
+
+# Kind sizing: requests only (see avenra-node-manager-local/values.yaml).
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi

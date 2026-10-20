@@ -1,0 +1,31 @@
+ARG AVENRA_RUST_BUILD_IMAGE=avenra-rust-build-cluster-controller:local
+FROM ${AVENRA_RUST_BUILD_IMAGE} AS rust-build
+
+# Everything before the image's own files, which the Kind build cache keeps
+# (infra/avenra/kind/scripts/runtime-image-cache.sh).
+FROM public.ecr.aws/docker/library/debian:bookworm-slim AS runtime-deps
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      bash \
+      ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd --system --gid 953 avenra-cluster-controller \
+    && useradd --system --uid 953 --gid 953 --create-home --home-dir /space avenra-cluster-controller
+
+WORKDIR /space
+
+FROM runtime-deps
+
+LABEL org.opencontainers.image.title="avenra-cluster-controller"
+LABEL org.opencontainers.image.description="Deployable Avenra cluster-controller image hosting cluster-singleton reconciler loops."
+
+COPY --from=rust-build /artifacts/bin/avenra-cluster-controller /avenra/bin/avenra-cluster-controller
+
+RUN chown -R avenra-cluster-controller:avenra-cluster-controller /space
+
+ARG AVENRA_GIT_SHA=unknown
+LABEL org.opencontainers.image.revision="${AVENRA_GIT_SHA}"
+RUN mkdir -p /etc/space && printf '%s\n' "${AVENRA_GIT_SHA}" > /etc/avenra/build-git-sha
+
+USER avenra-cluster-controller

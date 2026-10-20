@@ -1,0 +1,39 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-avenrad-host-svc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "avenra-avenrad-host-svc"
+path = "src/main.rs"
+
+[features]
+default = []
+otel = [
+    "avenra-runtime-common-svc/otel",
+    "avenra-runtime-avenrad-host-server/otel",
+]
+datadog = [
+    "otel",
+    "avenra-runtime-common-svc/datadog",
+    "avenra-runtime-avenrad-host-server/datadog",
+]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+
+[dependencies]
+clap = { workspace = true, features = ["derive"] }
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
+
+# internal
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-avenrad-host-server = { workspace = true }

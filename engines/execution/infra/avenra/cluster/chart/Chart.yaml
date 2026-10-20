@@ -1,0 +1,75 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-cluster
+description: >-
+  Installs the existing Avenra Kind charts on a caller-provided Kubernetes
+  cluster, one release per node role. Metadata and values only; every resource
+  template is the subchart's own.
+type: application
+version: 0.1.0
+appVersion: "0.8.0"
+# ValidatingAdmissionPolicy (admissionregistration.k8s.io/v1) is GA in 1.30.
+kubeVersion: ">=1.30.0-0"
+# charts/<name> are symlinks to these directories, so no `helm dependency
+# build` is needed (the Kind charts load their libraries the same way).
+dependencies:
+  - name: avenra-api-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-api-local"
+    condition: controlPlane.enabled
+  - name: avenra-internal-api-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-internal-api-local"
+    condition: controlPlane.enabled
+  - name: avenra-credmgr-authority-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-credmgr-authority-local"
+    condition: controlPlane.enabled
+  - name: avenra-data-plane-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-data-plane-local"
+    condition: controlPlane.enabled
+  - name: avenra-cluster-controller-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-cluster-controller-local"
+    condition: controlPlane.enabled
+  - name: avenra-sandbox-network-policy
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-sandbox-network-policy"
+    condition: controlPlane.enabled
+  - name: avenra-node-manager-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-node-manager-local"
+    condition: nodeServices.enabled
+  - name: avenra-runtime-manager-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-runtime-manager-local"
+    condition: nodeServices.enabled
+  - name: avenra-volume-manager-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-volume-manager-local"
+    condition: nodeServices.enabled
+  - name: avenra-credential-manager-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-credential-manager-local"
+    condition: nodeServices.enabled
+  - name: avenra-template-manager-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-template-manager-local"
+    condition: nodeServices.enabled
+  - name: avenra-sandbox-manager-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-sandbox-manager-local"
+    condition: nodeServices.enabled
+  - name: avenra-node-ctl-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-node-ctl-local"
+    condition: nodeServices.enabled
+  - name: avenra-node-api-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-node-api-local"
+    condition: nodeServices.enabled
+  - name: avenra-build-manager-local
+    version: 0.1.0
+    repository: "file://../../kind/charts/avenra-build-manager-local"
+    condition: buildManager.enabled

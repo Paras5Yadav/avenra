@@ -1,0 +1,101 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package toxics
+
+import (
+	"errors"
+	"math/rand"
+	"time"
+
+	"avenra.local/fault/v2/stream"
+)
+
+// The SlicerToxic slices data into multiple smaller packets
+// to simulate real-world TCP behavior.
+type SlicerToxic struct {
+	// Average number of bytes to slice at
+	AverageSize int `json:"average_size"`
+	// +/- bytes to vary sliced amounts. Must be less than
+	// the average size
+	SizeVariation int `json:"size_variation"`
+	// Microseconds to delay each packet. May be useful since there's
+	// usually some kind of buffering of network data
+	Delay int `json:"delay"`
+}
+
+// Returns a list of chunk offsets to slice up a packet of the
+// given total size. For example, for a size of 100, output might be:
+//
+// |    []int{0, 18, 18, 43, 43, 67, 67, 77, 77, 100}
+// |          ^---^  ^----^  ^----^  ^----^  ^-----^
+//
+// This tries to get fairly evenly-varying chunks (no tendency
+// to have a small/large chunk at the start/end).
+func (t *SlicerToxic) chunk(start int, end int) []int {
+	// Base case:
+	// If the size is within the random varation, _or already
+	// less than the average size_, just return it.
+	// Otherwise split the chunk in about two, and recurse.
+	if (end-start)-t.AverageSize <= t.SizeVariation {
+		return []int{start, end}
+	}
+
+	mid := start + (end-start)/2
+
+	if t.SizeVariation > 0 {
+		mid += rand.Intn(t.SizeVariation*2) - t.SizeVariation // #nosec G404 -- was ignored before too
+	}
+
+	if mid <= start || mid >= end {
+		return []int{start, end}
+	}
+	left := t.chunk(start, mid)
+	right := t.chunk(mid, end)
+
+	return append(left, right...)
+}
+
+func (t *SlicerToxic) Validate() error {
+	if t.AverageSize <= 0 {
+		return errors.New("average_size must be greater than 0")
+	}
+	if t.SizeVariation < 0 || t.SizeVariation > t.AverageSize {
+		return errors.New("size_variation must be at least 0 and at most average_size")
+	}
+	return nil
+}
+
+func (t *SlicerToxic) Pipe(stub *ToxicStub) {
+	for {
+		select {
+		case <-stub.Interrupt:
+			return
+		case c := <-stub.Input:
+			if c == nil {
+				stub.Close()
+				return
+			}
+
+			chunks := t.chunk(0, len(c.Data))
+			for i := 1; i < len(chunks); i += 2 {
+				_ = stub.WriteOutput(&stream.StreamChunk{
+					Data:      c.Data[chunks[i-1]:chunks[i]],
+					Timestamp: c.Timestamp,
+				}, 0)
+
+				select {
+				case <-stub.Interrupt:
+					_ = stub.WriteOutput(&stream.StreamChunk{
+						Data:      c.Data[chunks[i]:],
+						Timestamp: c.Timestamp,
+					}, 0)
+					return
+				case <-time.After(time.Duration(t.Delay) * time.Microsecond):
+				}
+			}
+		}
+	}
+}
+
+func init() {
+	Register("slicer", new(SlicerToxic))
+}

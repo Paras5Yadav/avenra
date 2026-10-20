@@ -1,0 +1,54 @@
+body { margin: 0; color: var(--docs-color-text); background: var(--docs-color-surface); font-family: var(--docs-font-body); }
+a { color: var(--docs-color-accent); }
+.docs-utility a:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.docs-utility {
+  position: fixed;
+  top: var(--docs-header-height);
+  inset-inline: 0;
+  z-index: 300;
+  height: var(--docs-utility-height);
+  display: flex;
+  align-items: center;
+  padding-inline: 24px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--docs-color-border);
+  background: var(--docs-color-background);
+  font-size: 13px;
+}
+.docs-utility a { text-decoration: none; }
+.docs-utility a:hover { text-decoration: underline; }
+#reference { padding-top: calc(var(--docs-header-height) + var(--docs-utility-height)); }
+#reference h1 { margin-top: 0; font-size: 30px; line-height: 1.25; }
+#reference :is(h1, h2, h3, h4) { font-weight: var(--docs-heading-weight); letter-spacing: var(--docs-heading-tracking); }
+#reference .menu-content { border-right: 1px solid var(--docs-color-border); font-size: 14px; }
+/* Group labels need full opacity for contrast with the muted sidebar palette. */
+#reference .menu-content [data-item-id^="group/"] > label { opacity: 1; }
+#reference .api-content { min-width: 0; }
+/* The release version lives in the shared header; retain any other API metadata. */
+#reference .api-info > h1 { display: none; }
+#reference .api-info,
+#reference .api-content > div:has(> div > .api-info) { padding-block: 0; }
+/* Keep wide field tables accessible inside the native content column. */
+#reference .api-content table { display: block; max-width: 100%; overflow-x: auto; }
+footer { padding: 24px 32px; font-size: 13px; }
+/* Native code tokens and tabs need foregrounds for their respective surfaces. */
+#reference [role="tabpanel"] { color: var(--docs-color-code-text); }
+#reference :is(pre, .redoc-json) .token.boolean, #reference :is(pre, .redoc-json) .token.null, #reference :is(pre, .redoc-json) .token.keyword { color: var(--docs-color-response-error-text); }
+#reference :is(pre, .redoc-json) .token.property, #reference :is(pre, .redoc-json) .token.number, #reference :is(pre, .redoc-json) .token.function { color: var(--docs-color-code-text); }
+#reference [role="tab"][aria-selected="true"] { background-color: var(--docs-color-raised); border-color: var(--docs-color-muted); }
+#reference .http-verb, #reference .operation-type { color: var(--docs-color-method-text); }
+#reference h3 { color: var(--docs-color-text); }
+/* Native section labels and uncolored arrows need the shared foreground too. */
+#reference h5 { color: var(--docs-color-muted); border-color: var(--docs-color-border); }
+#reference h5 span { color: var(--docs-color-muted); }
+#reference svg, #reference svg polygon { fill: currentColor; }
+.schema-context { max-width: 65ch; line-height: 1.6; }
+.schema-context p { margin: .5rem 0; }
+.schema-context code { font-size: .9em; }
+.schema-example > summary { color: var(--docs-color-text); cursor: pointer; padding: .25rem 0; }
+.schema-example > summary:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+@media screen and (max-width: 620px) {
+  .docs-utility { padding-inline: 20px; font-size: 12px; }
+  #reference h1 { font-size: 26px; }
+}

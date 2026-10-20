@@ -1,0 +1,5 @@
+{
+  "AVENRA_KIND_TELEMETRY_MODE": "datadog",
+  "AVENRA_KIND_DATADOG_MODE": "off",
+  "AVENRA_KIND_OBSERVABILITY": "auto"
+}

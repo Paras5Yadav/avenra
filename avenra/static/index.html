@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avenra — Financial lab</title><link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css"><script src="/simulation.js" defer></script><script src="/upi.js" defer></script><script src="/banking.js" defer></script><script src="/app.js" defer></script><script src="/fidelity.js" defer></script><script src="/production.js" defer></script><script src="/aa.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="Avenra home"><img src="/favicon.svg" alt="" width="30" height="30"><span>avenra<span class="brand-dot">.</span></span></a>
+      <div class="workspace"><span class="workspace-avatar">A</span><label>WORKSPACE<select id="tenant-select" aria-label="Workspace"></select></label></div>
+      <div class="nav-label">FINANCIAL LAB</div>
+      <nav id="navigation" aria-label="Main navigation"></nav>
+      <div class="sidebar-bottom"><div class="local-indicator"><span class="dot"></span>Local installation</div><p>Synthetic funds.<br>Real failure testing.</p><span class="version">AVENRA / 0.1</span></div>
+    </aside>
+    <div class="body-column">
+      <header class="topbar"><div class="breadcrumbs">Financial lab<span>/</span><strong id="page-label">Overview</strong></div><div class="top-actions"><span class="mode"><span class="dot"></span>SIMULATION</span><button class="icon-button" id="refresh" aria-label="Refresh environment">↻</button><span class="operator" title="Local operator">AK</span></div></header>
+      <main id="main" tabindex="-1"><div class="loading"><span class="spinner"></span>Connecting to your local lab…</div></main>
+      <footer><span>Avenra financial lab</span><span>Local simulation · No live payment connectivity</span></footer>
+    </div>
+  </div>
+  <dialog id="dialog"><div id="dialog-content"></div></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body></html>

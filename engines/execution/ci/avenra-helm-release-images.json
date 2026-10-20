@@ -1,0 +1,7 @@
+{
+  "api": "avenra/api",
+  "cluster-controller": "avenra/cluster-controller",
+  "data-plane": "avenra/data-plane",
+  "ui": "avenra/ui",
+  "worker": "avenra/worker"
+}

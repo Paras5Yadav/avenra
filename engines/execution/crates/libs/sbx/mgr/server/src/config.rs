@@ -1,0 +1,111 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+use std::num::NonZeroU32;
+use std::path::{Path, PathBuf};
+
+use serde::Deserialize;
+
+const CONFIG_PATH: &str = "/avenra/etc/sandbox.toml";
+
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct SandboxConfig {
+    /// Optional guest RAM cap in MiB for any single VM.
+    pub max_memory_mib: Option<u32>,
+    /// Use hugepage-backed memory for VMs. Requires hugetlbfs at /dev/hugepages.
+    /// Default: false. Set true on bare metal (AWS) for better TLB performance.
+    #[serde(default)]
+    pub hugepages: bool,
+    /// Seconds of their sustained rates a sandbox's rootfs operations and
+    /// bandwidth buckets hold. Default:
+    /// [`DEFAULT_DISK_IO_BURST_SECS`](avenra_runtime_common_core::types::DEFAULT_DISK_IO_BURST_SECS).
+    pub disk_io_burst_secs: Option<NonZeroU32>,
+    /// Milliseconds a suspend may spend on free-page hinting before it pauses
+    /// a VM whose template enabled the hinting balloon (template
+    /// `metadata.json` `balloon.mode = "hint"`). The node manager first reads
+    /// the VM's balloon device and then hints only when the device has
+    /// hinting; timeouts and errors are logged and the snapshot proceeds.
+    /// At most [`MAX_BALLOON_HINT_TIMEOUT_MS`]. Default: unset, which makes
+    /// no balloon calls at suspend.
+    pub balloon_hint_timeout_ms: Option<NonZeroU32>,
+}
+
+/// Upper bound on `balloon_hint_timeout_ms`: a suspend holds the sandbox's
+/// lifecycle lock while it hints.
+pub const MAX_BALLOON_HINT_TIMEOUT_MS: u32 = 30_000;
+
+impl SandboxConfig {
+    pub fn disk_io_burst_secs(&self) -> NonZeroU32 {
+        self.disk_io_burst_secs
+            .unwrap_or(avenra_runtime_common_core::types::DEFAULT_DISK_IO_BURST_SECS)
+    }
+
+    pub fn validate_snapshot_restore(&self) -> Result<(), &'static str> {
+        if self.hugepages {
+            Err("snapshot restore requires file-backed memory; set hugepages = false")
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ConfigLoadError {
+    #[error("cannot read sandbox configuration {path}: {source}")]
+    Read {
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    #[error("invalid sandbox configuration {path}: {source}")]
+    Parse {
+        path: PathBuf,
+        source: toml::de::Error,
+    },
+    #[error("invalid sandbox configuration {path}: max_memory_mib must be positive")]
+    InvalidMemoryCap { path: PathBuf },
+    #[error(
+        "invalid sandbox configuration {path}: balloon_hint_timeout_ms must be at most {MAX_BALLOON_HINT_TIMEOUT_MS}"
+    )]
+    InvalidBalloonHintTimeout { path: PathBuf },
+}
+
+pub fn load() -> Result<SandboxConfig, ConfigLoadError> {
+    load_from(Path::new(CONFIG_PATH))
+}
+
+fn load_from(path: &Path) -> Result<SandboxConfig, ConfigLoadError> {
+    let content = match std::fs::read_to_string(path) {
+        Ok(s) => s,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            return Ok(SandboxConfig::default());
+        }
+        Err(source) => {
+            return Err(ConfigLoadError::Read {
+                path: path.to_owned(),
+                source,
+            });
+        }
+    };
+    let config: SandboxConfig =
+        toml::from_str(&content).map_err(|source| ConfigLoadError::Parse {
+            path: path.to_owned(),
+            source,
+        })?;
+    if config.max_memory_mib == Some(0) {
+        return Err(ConfigLoadError::InvalidMemoryCap {
+            path: path.to_owned(),
+        });
+    }
+    if config
+        .balloon_hint_timeout_ms
+        .is_some_and(|timeout| timeout.get() > MAX_BALLOON_HINT_TIMEOUT_MS)
+    {
+        return Err(ConfigLoadError::InvalidBalloonHintTimeout {
+            path: path.to_owned(),
+        });
+    }
+    // Restore capability is checked by restore operations, not at startup:
+    // hugepage-backed cold starts remain valid with the file backend.
+    Ok(config)
+}
+
+#[cfg(test)]
+mod tests;

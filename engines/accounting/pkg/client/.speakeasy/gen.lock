@@ -1,0 +1,1155 @@
+lockVersion: 2.0.0
+id: a9ac79e1-e429-4ee3-96c4-ec973f19bec3
+management:
+  docChecksum: f410e9cd8949f29c7999f9cc7b679ef8
+  docVersion: v2
+  speakeasyVersion: 1.563.0
+  generationVersion: 2.629.1
+  releaseVersion: 0.10.2
+  configChecksum: 35cbf6139f56bdfe432013ffe7cea5be
+features:
+  go:
+    additionalDependencies: 0.1.0
+    bigint: 0.0.2
+    core: 3.8.1
+    defaultEnabledRetries: 0.2.0
+    deprecations: 2.81.3
+    devContainers: 2.90.0
+    downloadStreams: 0.1.2
+    envVarSecurityUsage: 0.3.2
+    errors: 2.83.0
+    getRequestBodies: 2.81.1
+    globalSecurity: 2.82.11
+    globalSecurityCallbacks: 0.1.0
+    globalServerURLs: 2.82.3
+    ignores: 2.81.1
+    intellisenseMarkdownSupport: 0.1.0
+    nameOverrides: 2.81.2
+    nullables: 0.1.1
+    oauth2ClientCredentials: 0.3.1
+    responseFormat: 0.1.2
+    retries: 2.83.3
+    sdkHooks: 0.2.0
+    unions: 2.85.11
+    uploadStreams: 0.1.0
+generatedFiles:
+  - .devcontainer/README.md
+  - .devcontainer/devcontainer.json
+  - .devcontainer/setup.sh
+  - .gitattributes
+  - /models/components/account.go
+  - /models/components/accountresponse.go
+  - /models/components/accountscursorresponse.go
+  - /models/components/accountwithvolumesandbalances.go
+  - /models/components/aggregatebalancesresponse.go
+  - /models/components/balancescursorresponse.go
+  - /models/components/config.go
+  - /models/components/configinfo.go
+  - /models/components/configinforesponse.go
+  - /models/components/contract.go
+  - /models/components/errorresponse.go
+  - /models/components/errorsenum.go
+  - /models/components/httpmetadata.go
+  - /models/components/ledgerinfo.go
+  - /models/components/ledgerinforesponse.go
+  - /models/components/ledgerstorage.go
+  - /models/components/log.go
+  - /models/components/logscursorresponse.go
+  - /models/components/mapping.go
+  - /models/components/mappingresponse.go
+  - /models/components/migrationinfo.go
+  - /models/components/posting.go
+  - /models/components/posttransaction.go
+  - /models/components/script.go
+  - /models/components/scriptresponse.go
+  - /models/components/security.go
+  - /models/components/stats.go
+  - /models/components/statsresponse.go
+  - /models/components/transaction.go
+  - /models/components/transactiondata.go
+  - /models/components/transactionresponse.go
+  - /models/components/transactions.go
+  - /models/components/transactionscursorresponse.go
+  - /models/components/transactionsresponse.go
+  - /models/components/v2account.go
+  - /models/components/v2accountresponse.go
+  - /models/components/v2accountscursorresponse.go
+  - /models/components/v2aggregatebalancesresponse.go
+  - /models/components/v2bulkelement.go
+  - /models/components/v2bulkelementaddmetadata.go
+  - /models/components/v2bulkelementcreatetransaction.go
+  - /models/components/v2bulkelementdeletemetadata.go
+  - /models/components/v2bulkelementresult.go
+  - /models/components/v2bulkelementreverttransaction.go
+  - /models/components/v2bulkresponse.go
+  - /models/components/v2configinforesponse.go
+  - /models/components/v2createexporterresponse.go
+  - /models/components/v2createledgerrequest.go
+  - /models/components/v2createpipelinerequest.go
+  - /models/components/v2createpipelineresponse.go
+  - /models/components/v2createtransactionresponse.go
+  - /models/components/v2errorresponse.go
+  - /models/components/v2errorsenum.go
+  - /models/components/v2exporter.go
+  - /models/components/v2exporterconfiguration.go
+  - /models/components/v2getexporterstateresponse.go
+  - /models/components/v2getledgerresponse.go
+  - /models/components/v2getpipelinestateresponse.go
+  - /models/components/v2gettransactionresponse.go
+  - /models/components/v2ledger.go
+  - /models/components/v2ledgerinfo.go
+  - /models/components/v2ledgerinforesponse.go
+  - /models/components/v2ledgerlistresponse.go
+  - /models/components/v2listexportersresponse.go
+  - /models/components/v2listpipelinesresponse.go
+  - /models/components/v2log.go
+  - /models/components/v2logscursorresponse.go
+  - /models/components/v2migrationinfo.go
+  - /models/components/v2pipeline.go
+  - /models/components/v2posting.go
+  - /models/components/v2posttransaction.go
+  - /models/components/v2reverttransactionrequest.go
+  - /models/components/v2stats.go
+  - /models/components/v2statsresponse.go
+  - /models/components/v2targetid.go
+  - /models/components/v2targettype.go
+  - /models/components/v2transaction.go
+  - /models/components/v2transactionscursorresponse.go
+  - /models/components/v2volume.go
+  - /models/components/v2volumeswithbalance.go
+  - /models/components/v2volumeswithbalancecursorresponse.go
+  - /models/components/volume.go
+  - /models/operations/addmetadataontransaction.go
+  - /models/operations/addmetadatatoaccount.go
+  - /models/operations/countaccounts.go
+  - /models/operations/counttransactions.go
+  - /models/operations/createtransaction.go
+  - /models/operations/createtransactions.go
+  - /models/operations/getaccount.go
+  - /models/operations/getbalances.go
+  - /models/operations/getbalancesaggregated.go
+  - /models/operations/getinfo.go
+  - /models/operations/getledgerinfo.go
+  - /models/operations/getmapping.go
+  - /models/operations/getmetrics.go
+  - /models/operations/gettransaction.go
+  - /models/operations/listaccounts.go
+  - /models/operations/listlogs.go
+  - /models/operations/listtransactions.go
+  - /models/operations/readstats.go
+  - /models/operations/reverttransaction.go
+  - /models/operations/runscript.go
+  - /models/operations/updatemapping.go
+  - /models/operations/v2addmetadataontransaction.go
+  - /models/operations/v2addmetadatatoaccount.go
+  - /models/operations/v2countaccounts.go
+  - /models/operations/v2counttransactions.go
+  - /models/operations/v2createbulk.go
+  - /models/operations/v2createexporter.go
+  - /models/operations/v2createledger.go
+  - /models/operations/v2createpipeline.go
+  - /models/operations/v2createtransaction.go
+  - /models/operations/v2deleteaccountmetadata.go
+  - /models/operations/v2deleteexporter.go
+  - /models/operations/v2deleteledgermetadata.go
+  - /models/operations/v2deletepipeline.go
+  - /models/operations/v2deletetransactionmetadata.go
+  - /models/operations/v2exportlogs.go
+  - /models/operations/v2getaccount.go
+  - /models/operations/v2getbalancesaggregated.go
+  - /models/operations/v2getexporterstate.go
+  - /models/operations/v2getinfo.go
+  - /models/operations/v2getledger.go
+  - /models/operations/v2getledgerinfo.go
+  - /models/operations/v2getpipelinestate.go
+  - /models/operations/v2gettransaction.go
+  - /models/operations/v2getvolumeswithbalances.go
+  - /models/operations/v2importlogs.go
+  - /models/operations/v2listaccounts.go
+  - /models/operations/v2listexporters.go
+  - /models/operations/v2listledgers.go
+  - /models/operations/v2listlogs.go
+  - /models/operations/v2listpipelines.go
+  - /models/operations/v2listtransactions.go
+  - /models/operations/v2readstats.go
+  - /models/operations/v2resetpipeline.go
+  - /models/operations/v2reverttransaction.go
+  - /models/operations/v2startpipeline.go
+  - /models/operations/v2stoppipeline.go
+  - /models/operations/v2updateexporter.go
+  - /models/operations/v2updateledgermetadata.go
+  - /models/sdkerrors/errorresponse.go
+  - /models/sdkerrors/v2errorresponse.go
+  - USAGE.md
+  - docs/models/components/account.md
+  - docs/models/components/accountresponse.md
+  - docs/models/components/accountscursorresponse.md
+  - docs/models/components/accountwithvolumesandbalances.md
+  - docs/models/components/aggregatebalancesresponse.md
+  - docs/models/components/balancescursorresponse.md
+  - docs/models/components/balancescursorresponsecursor.md
+  - docs/models/components/config.md
+  - docs/models/components/configinfo.md
+  - docs/models/components/configinforesponse.md
+  - docs/models/components/contract.md
+  - docs/models/components/cursor.md
+  - docs/models/components/data.md
+  - docs/models/components/errorresponse.md
+  - docs/models/components/errorsenum.md
+  - docs/models/components/expr.md
+  - docs/models/components/httpmetadata.md
+  - docs/models/components/ledgerinfo.md
+  - docs/models/components/ledgerinforesponse.md
+  - docs/models/components/ledgerstorage.md
+  - docs/models/components/log.md
+  - docs/models/components/logscursorresponse.md
+  - docs/models/components/logscursorresponsecursor.md
+  - docs/models/components/mapping.md
+  - docs/models/components/mappingresponse.md
+  - docs/models/components/migrationinfo.md
+  - docs/models/components/posting.md
+  - docs/models/components/posttransaction.md
+  - docs/models/components/posttransactionscript.md
+  - docs/models/components/runtime.md
+  - docs/models/components/script.md
+  - docs/models/components/scriptresponse.md
+  - docs/models/components/security.md
+  - docs/models/components/state.md
+  - docs/models/components/stats.md
+  - docs/models/components/statsresponse.md
+  - docs/models/components/storage.md
+  - docs/models/components/transaction.md
+  - docs/models/components/transactiondata.md
+  - docs/models/components/transactionresponse.md
+  - docs/models/components/transactions.md
+  - docs/models/components/transactionscursorresponse.md
+  - docs/models/components/transactionscursorresponsecursor.md
+  - docs/models/components/transactionsresponse.md
+  - docs/models/components/type.md
+  - docs/models/components/v2account.md
+  - docs/models/components/v2accountresponse.md
+  - docs/models/components/v2accountscursorresponse.md
+  - docs/models/components/v2accountscursorresponsecursor.md
+  - docs/models/components/v2aggregatebalancesresponse.md
+  - docs/models/components/v2bulkelement.md
+  - docs/models/components/v2bulkelementaddmetadata.md
+  - docs/models/components/v2bulkelementcreatetransaction.md
+  - docs/models/components/v2bulkelementdeletemetadata.md
+  - docs/models/components/v2bulkelementdeletemetadatadata.md
+  - docs/models/components/v2bulkelementresult.md
+  - docs/models/components/v2bulkelementresultaddmetadata.md
+  - docs/models/components/v2bulkelementresultcreatetransaction.md
+  - docs/models/components/v2bulkelementresultdeletemetadata.md
+  - docs/models/components/v2bulkelementresulterror.md
+  - docs/models/components/v2bulkelementresultreverttransaction.md
+  - docs/models/components/v2bulkelementreverttransaction.md
+  - docs/models/components/v2bulkelementreverttransactiondata.md
+  - docs/models/components/v2bulkresponse.md
+  - docs/models/components/v2configinforesponse.md
+  - docs/models/components/v2createexporterresponse.md
+  - docs/models/components/v2createledgerrequest.md
+  - docs/models/components/v2createpipelinerequest.md
+  - docs/models/components/v2createpipelineresponse.md
+  - docs/models/components/v2createtransactionresponse.md
+  - docs/models/components/v2errorresponse.md
+  - docs/models/components/v2errorsenum.md
+  - docs/models/components/v2exporter.md
+  - docs/models/components/v2exporterconfiguration.md
+  - docs/models/components/v2getexporterstateresponse.md
+  - docs/models/components/v2getledgerresponse.md
+  - docs/models/components/v2getpipelinestateresponse.md
+  - docs/models/components/v2gettransactionresponse.md
+  - docs/models/components/v2ledger.md
+  - docs/models/components/v2ledgerinfo.md
+  - docs/models/components/v2ledgerinforesponse.md
+  - docs/models/components/v2ledgerinfostorage.md
+  - docs/models/components/v2ledgerlistresponse.md
+  - docs/models/components/v2ledgerlistresponsecursor.md
+  - docs/models/components/v2listexportersresponse.md
+  - docs/models/components/v2listexportersresponsecursor.md
+  - docs/models/components/v2listexportersresponsecursorcursor.md
+  - docs/models/components/v2listpipelinesresponse.md
+  - docs/models/components/v2listpipelinesresponsecursor.md
+  - docs/models/components/v2listpipelinesresponsecursorcursor.md
+  - docs/models/components/v2log.md
+  - docs/models/components/v2logscursorresponse.md
+  - docs/models/components/v2logscursorresponsecursor.md
+  - docs/models/components/v2logtype.md
+  - docs/models/components/v2migrationinfo.md
+  - docs/models/components/v2migrationinfostate.md
+  - docs/models/components/v2pipeline.md
+  - docs/models/components/v2posting.md
+  - docs/models/components/v2posttransaction.md
+  - docs/models/components/v2posttransactionscript.md
+  - docs/models/components/v2reverttransactionrequest.md
+  - docs/models/components/v2stats.md
+  - docs/models/components/v2statsresponse.md
+  - docs/models/components/v2targetid.md
+  - docs/models/components/v2targettype.md
+  - docs/models/components/v2transaction.md
+  - docs/models/components/v2transactionscursorresponse.md
+  - docs/models/components/v2transactionscursorresponsecursor.md
+  - docs/models/components/v2volume.md
+  - docs/models/components/v2volumeswithbalance.md
+  - docs/models/components/v2volumeswithbalancecursorresponse.md
+  - docs/models/components/v2volumeswithbalancecursorresponsecursor.md
+  - docs/models/components/volume.md
+  - docs/models/operations/addmetadataontransactionrequest.md
+  - docs/models/operations/addmetadataontransactionresponse.md
+  - docs/models/operations/addmetadatatoaccountrequest.md
+  - docs/models/operations/addmetadatatoaccountresponse.md
+  - docs/models/operations/countaccountsrequest.md
+  - docs/models/operations/countaccountsresponse.md
+  - docs/models/operations/counttransactionsrequest.md
+  - docs/models/operations/counttransactionsresponse.md
+  - docs/models/operations/createtransactionrequest.md
+  - docs/models/operations/createtransactionresponse.md
+  - docs/models/operations/createtransactionsrequest.md
+  - docs/models/operations/createtransactionsresponse.md
+  - docs/models/operations/getaccountrequest.md
+  - docs/models/operations/getaccountresponse.md
+  - docs/models/operations/getbalancesaggregatedrequest.md
+  - docs/models/operations/getbalancesaggregatedresponse.md
+  - docs/models/operations/getbalancesrequest.md
+  - docs/models/operations/getbalancesresponse.md
+  - docs/models/operations/getinforesponse.md
+  - docs/models/operations/getledgerinforequest.md
+  - docs/models/operations/getledgerinforesponse.md
+  - docs/models/operations/getmappingrequest.md
+  - docs/models/operations/getmappingresponse.md
+  - docs/models/operations/getmetricsresponse.md
+  - docs/models/operations/gettransactionrequest.md
+  - docs/models/operations/gettransactionresponse.md
+  - docs/models/operations/listaccountsrequest.md
+  - docs/models/operations/listaccountsresponse.md
+  - docs/models/operations/listlogsrequest.md
+  - docs/models/operations/listlogsresponse.md
+  - docs/models/operations/listtransactionsrequest.md
+  - docs/models/operations/listtransactionsresponse.md
+  - docs/models/operations/metadata.md
+  - docs/models/operations/option.md
+  - docs/models/operations/order.md
+  - docs/models/operations/readstatsrequest.md
+  - docs/models/operations/readstatsresponse.md
+  - docs/models/operations/reverttransactionrequest.md
+  - docs/models/operations/reverttransactionresponse.md
+  - docs/models/operations/runscriptrequest.md
+  - docs/models/operations/runscriptresponse.md
+  - docs/models/operations/updatemappingrequest.md
+  - docs/models/operations/updatemappingresponse.md
+  - docs/models/operations/v2addmetadataontransactionrequest.md
+  - docs/models/operations/v2addmetadataontransactionresponse.md
+  - docs/models/operations/v2addmetadatatoaccountrequest.md
+  - docs/models/operations/v2addmetadatatoaccountresponse.md
+  - docs/models/operations/v2countaccountsrequest.md
+  - docs/models/operations/v2countaccountsresponse.md
+  - docs/models/operations/v2counttransactionsrequest.md
+  - docs/models/operations/v2counttransactionsresponse.md
+  - docs/models/operations/v2createbulkrequest.md
+  - docs/models/operations/v2createbulkresponse.md
+  - docs/models/operations/v2createexporterresponse.md
+  - docs/models/operations/v2createledgerrequest.md
+  - docs/models/operations/v2createledgerresponse.md
+  - docs/models/operations/v2createpipelinerequest.md
+  - docs/models/operations/v2createpipelineresponse.md
+  - docs/models/operations/v2createtransactionrequest.md
+  - docs/models/operations/v2createtransactionresponse.md
+  - docs/models/operations/v2deleteaccountmetadatarequest.md
+  - docs/models/operations/v2deleteaccountmetadataresponse.md
+  - docs/models/operations/v2deleteexporterrequest.md
+  - docs/models/operations/v2deleteexporterresponse.md
+  - docs/models/operations/v2deleteledgermetadatarequest.md
+  - docs/models/operations/v2deleteledgermetadataresponse.md
+  - docs/models/operations/v2deletepipelinerequest.md
+  - docs/models/operations/v2deletepipelineresponse.md
+  - docs/models/operations/v2deletetransactionmetadatarequest.md
+  - docs/models/operations/v2deletetransactionmetadataresponse.md
+  - docs/models/operations/v2exportlogsrequest.md
+  - docs/models/operations/v2exportlogsresponse.md
+  - docs/models/operations/v2getaccountrequest.md
+  - docs/models/operations/v2getaccountresponse.md
+  - docs/models/operations/v2getbalancesaggregatedrequest.md
+  - docs/models/operations/v2getbalancesaggregatedresponse.md
+  - docs/models/operations/v2getexporterstaterequest.md
+  - docs/models/operations/v2getexporterstateresponse.md
+  - docs/models/operations/v2getinforesponse.md
+  - docs/models/operations/v2getledgerinforequest.md
+  - docs/models/operations/v2getledgerinforesponse.md
+  - docs/models/operations/v2getledgerrequest.md
+  - docs/models/operations/v2getledgerresponse.md
+  - docs/models/operations/v2getpipelinestaterequest.md
+  - docs/models/operations/v2getpipelinestateresponse.md
+  - docs/models/operations/v2gettransactionrequest.md
+  - docs/models/operations/v2gettransactionresponse.md
+  - docs/models/operations/v2getvolumeswithbalancesrequest.md
+  - docs/models/operations/v2getvolumeswithbalancesresponse.md
+  - docs/models/operations/v2importlogsrequest.md
+  - docs/models/operations/v2importlogsresponse.md
+  - docs/models/operations/v2listaccountsrequest.md
+  - docs/models/operations/v2listaccountsresponse.md
+  - docs/models/operations/v2listexportersresponse.md
+  - docs/models/operations/v2listledgersrequest.md
+  - docs/models/operations/v2listledgersresponse.md
+  - docs/models/operations/v2listlogsrequest.md
+  - docs/models/operations/v2listlogsresponse.md
+  - docs/models/operations/v2listpipelinesrequest.md
+  - docs/models/operations/v2listpipelinesresponse.md
+  - docs/models/operations/v2listtransactionsrequest.md
+  - docs/models/operations/v2listtransactionsresponse.md
+  - docs/models/operations/v2readstatsrequest.md
+  - docs/models/operations/v2readstatsresponse.md
+  - docs/models/operations/v2resetpipelinerequest.md
+  - docs/models/operations/v2resetpipelineresponse.md
+  - docs/models/operations/v2reverttransactionrequest.md
+  - docs/models/operations/v2reverttransactionresponse.md
+  - docs/models/operations/v2startpipelinerequest.md
+  - docs/models/operations/v2startpipelineresponse.md
+  - docs/models/operations/v2stoppipelinerequest.md
+  - docs/models/operations/v2stoppipelineresponse.md
+  - docs/models/operations/v2updateexporterrequest.md
+  - docs/models/operations/v2updateexporterresponse.md
+  - docs/models/operations/v2updateledgermetadatarequest.md
+  - docs/models/operations/v2updateledgermetadataresponse.md
+  - docs/models/sdkerrors/errorresponse.md
+  - docs/models/sdkerrors/v2errorresponse.md
+  - docs/sdks/formance/README.md
+  - docs/sdks/ledger/README.md
+  - docs/sdks/v1/README.md
+  - docs/sdks/v2/README.md
+  - formance.go
+  - go.mod
+  - internal/config/sdkconfiguration.go
+  - internal/hooks/clientcredentials.go
+  - internal/hooks/hooks.go
+  - internal/utils/contenttype.go
+  - internal/utils/env.go
+  - internal/utils/form.go
+  - internal/utils/headers.go
+  - internal/utils/json.go
+  - internal/utils/oauth2_credentials.go
+  - internal/utils/oauth2_sessions.go
+  - internal/utils/pathparams.go
+  - internal/utils/queryparams.go
+  - internal/utils/requestbody.go
+  - internal/utils/retries.go
+  - internal/utils/security.go
+  - internal/utils/utils.go
+  - ledger.go
+  - models/operations/options.go
+  - models/sdkerrors/sdkerror.go
+  - retry/config.go
+  - types/bigint.go
+  - types/date.go
+  - types/datetime.go
+  - types/decimal.go
+  - types/pointers.go
+  - v1.go
+  - v2.go
+examples:
+  v2GetInfo:
+    speakeasy-default-v2-get-info:
+      responses:
+        "200":
+          application/json: {"server": "<value>", "version": "<value>"}
+        5XX:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  getMetrics:
+    speakeasy-default-get-metrics:
+      responses:
+        "200":
+          application/json: {"key": "<value>", "key1": "<value>"}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  getInfo:
+    speakeasy-default-get-info:
+      responses:
+        "200":
+          application/json: {"data": {"config": {"storage": {"driver": "<value>", "ledgers": ["<value 1>"]}}, "server": "<value>", "version": "<value>"}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  getLedgerInfo:
+    speakeasy-default-get-ledger-info:
+      parameters:
+        path:
+          ledger: "ledger001"
+      responses:
+        "200":
+          application/json: {"data": {"name": "ledger001", "storage": {"migrations": [{"version": "11", "name": "migrations:001"}]}}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  countAccounts:
+    speakeasy-default-count-accounts:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          address: "users:.+"
+          metadata: {"key": "<value>", "key1": "<value>", "key2": "<value>"}
+      responses:
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  listAccounts:
+    speakeasy-default-list-accounts:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          pageSize: 100
+          after: "users:003"
+          address: "users:.+"
+          metadata: {"key": "<value>"}
+          balance: 2400
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": []}}
+        "404":
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  getAccount:
+    speakeasy-default-get-account:
+      parameters:
+        path:
+          ledger: "ledger001"
+          address: "users:001"
+      responses:
+        "200":
+          application/json: {"data": {"address": "users:001", "type": "virtual", "metadata": {"admin": true, "a": {"nested": {"key": "value"}}}, "volumes": {"USD": {"input": 100, "output": 10, "balance": 90}, "EUR": {"input": 100, "output": 10, "balance": 90}}, "balances": {"COIN": 100}}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  addMetadataToAccount:
+    speakeasy-default-add-metadata-to-account:
+      parameters:
+        path:
+          ledger: "ledger001"
+          address: "users:001"
+      requestBody:
+        application/json: {"key": "<value>", "key1": "<value>", "key2": "<value>"}
+      responses:
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  getMapping:
+    speakeasy-default-get-mapping:
+      parameters:
+        path:
+          ledger: "ledger001"
+      responses:
+        "200":
+          application/json: {"data": {"contracts": []}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  updateMapping:
+    speakeasy-default-update-mapping:
+      parameters:
+        path:
+          ledger: "ledger001"
+      requestBody:
+        application/json: null
+      responses:
+        "200":
+          application/json: {"data": {"contracts": []}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  runScript:
+    speakeasy-default-run-script:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          preview: true
+      requestBody:
+        application/json: {"plain": "vars {\naccount $user\n}\nsend [COIN 10] (\n\tsource = @world\n\tdestination = $user\n)\n", "vars": {"user": "users:042"}, "reference": "order_1234"}
+      responses:
+        "200":
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9", "transaction": {"timestamp": "2023-02-27T15:28:00.705Z", "postings": [{"amount": 100, "asset": "COIN", "destination": "users:002", "source": "users:001"}], "reference": "ref:001", "txid": 831969, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}}
+  readStats:
+    speakeasy-default-read-stats:
+      parameters:
+        path:
+          ledger: "ledger001"
+      responses:
+        "200":
+          application/json: {"data": {"accounts": 205778, "transactions": 637809}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  countTransactions:
+    speakeasy-default-count-transactions:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          reference: "ref:001"
+          account: "users:001"
+          source: "users:001"
+          destination: "users:001"
+          metadata: {}
+      responses:
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  listTransactions:
+    speakeasy-default-list-transactions:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          pageSize: 100
+          after: "1234"
+          reference: "ref:001"
+          account: "users:001"
+          source: "users:001"
+          destination: "users:001"
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": [{"timestamp": "2023-04-30T06:28:04.101Z", "postings": [{"amount": 100, "asset": "COIN", "destination": "users:002", "source": "users:001"}], "reference": "ref:001", "txid": 981936, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}]}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  createTransaction:
+    speakeasy-default-create-transaction:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          preview: true
+      requestBody:
+        application/json: {"postings": [{"amount": 100, "asset": "COIN", "destination": "users:002", "source": "users:001"}], "script": {"plain": "vars {\naccount $user\n}\nsend [COIN 10] (\n\tsource = @world\n\tdestination = $user\n)\n", "vars": {"user": "users:042"}}, "reference": "ref:001"}
+      responses:
+        "200":
+          application/json: {"data": [{"timestamp": "2024-01-31T20:48:20.900Z", "postings": [], "reference": "ref:001", "txid": 156492, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}]}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  getTransaction:
+    speakeasy-default-get-transaction:
+      parameters:
+        path:
+          ledger: "ledger001"
+          txid: 1234
+      responses:
+        "200":
+          application/json: {"data": {"timestamp": "2024-12-11T10:19:36.265Z", "postings": [{"amount": 100, "asset": "COIN", "destination": "users:002", "source": "users:001"}], "reference": "ref:001", "txid": 806070, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  addMetadataOnTransaction:
+    speakeasy-default-add-metadata-on-transaction:
+      parameters:
+        path:
+          ledger: "ledger001"
+          txid: 1234
+      requestBody:
+        application/json: {}
+      responses:
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  revertTransaction:
+    speakeasy-default-revert-transaction:
+      parameters:
+        path:
+          ledger: "ledger001"
+          txid: 1234
+      responses:
+        "201":
+          application/json: {"data": {"timestamp": "2023-04-23T19:03:33.554Z", "postings": [{"amount": 100, "asset": "COIN", "destination": "users:002", "source": "users:001"}], "reference": "ref:001", "txid": 376007, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  CreateTransactions:
+    speakeasy-default-create-transactions:
+      parameters:
+        path:
+          ledger: "ledger001"
+      requestBody:
+        application/json: {"transactions": [{"postings": [{"amount": 100, "asset": "COIN", "destination": "users:002", "source": "users:001"}], "reference": "ref:001"}]}
+      responses:
+        "200":
+          application/json: {"data": []}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  getBalances:
+    speakeasy-default-get-balances:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          address: "users:001"
+          after: "users:003"
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": [{"account1": {"USD": 100, "EUR": 23}, "account2": {"CAD": 20, "JPY": 21}}]}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  getBalancesAggregated:
+    speakeasy-default-get-balances-aggregated:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          address: "users:001"
+      responses:
+        "200":
+          application/json: {"data": {"USD": 100, "EUR": 12}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  listLogs:
+    speakeasy-default-list-logs:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          pageSize: 100
+          after: "1234"
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": [{"id": 1234, "type": "SET_METADATA", "data": {}, "hash": "9ee060170400f556b7e1575cb13f9db004f150a08355c7431c62bc639166431e", "date": "2024-10-19T04:36:46.022Z"}]}}
+        default:
+          application/json: {"errorCode": "INSUFFICIENT_FUND", "errorMessage": "[INSUFFICIENT_FUND] account had insufficient funds", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ListLedgers:
+    speakeasy-default-v2-list-ledgers:
+      parameters:
+        query:
+          pageSize: 100
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+          sort: "id:desc"
+      requestBody:
+        application/json: {"key": "<value>", "key1": "<value>", "key2": "<value>"}
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": []}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetLedger:
+    speakeasy-default-v2-get-ledger:
+      parameters:
+        path:
+          ledger: "ledger001"
+      responses:
+        "200":
+          application/json: {"data": {"name": "<value>", "addedAt": "2024-01-05T18:51:35.346Z", "bucket": "<value>", "metadata": {"admin": "true"}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2CreateLedger:
+    speakeasy-default-v2-create-ledger:
+      parameters:
+        path:
+          ledger: "ledger001"
+      requestBody:
+        application/json: {"metadata": {"admin": "true"}}
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2UpdateLedgerMetadata:
+    speakeasy-default-v2-update-ledger-metadata:
+      parameters:
+        path:
+          ledger: "ledger001"
+      requestBody:
+        application/json: {"admin": "true"}
+      responses:
+        5XX:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2DeleteLedgerMetadata:
+    speakeasy-default-v2-delete-ledger-metadata:
+      parameters:
+        path:
+          ledger: "ledger001"
+          key: "foo"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetLedgerInfo:
+    speakeasy-default-v2-get-ledger-info:
+      parameters:
+        path:
+          ledger: "ledger001"
+      responses:
+        "200":
+          application/json: {"data": {"name": "ledger001", "storage": {"migrations": [{"version": "11", "name": "migrations:001"}]}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2CreateBulk:
+    speakeasy-default-v2-create-bulk:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          continueOnFailure: true
+          atomic: true
+          parallel: true
+      requestBody:
+        application/json: [{"action": "DELETE_METADATA"}]
+      responses:
+        "200":
+          application/json: {"data": [{"responseType": "ADD_METADATA", "logID": 820113}], "errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param"}
+        "400":
+          application/json: {"data": [{"responseType": "ADD_METADATA", "logID": 820113}], "errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param"}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2CountAccounts:
+    speakeasy-default-v2-count-accounts:
+      parameters:
+        path:
+          ledger: "ledger001"
+      requestBody:
+        application/json: {"key": "<value>", "key1": "<value>"}
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ListAccounts:
+    speakeasy-default-v2-list-accounts:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          pageSize: 100
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+          sort: "id:desc"
+      requestBody:
+        application/json: {}
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": [{"address": "users:001", "metadata": {"admin": "true"}, "volumes": {"USD": {"input": 100, "output": 10, "balance": 90}, "EUR": {"input": 100, "output": 10, "balance": 90}}, "effectiveVolumes": {"USD": {"input": 100, "output": 10, "balance": 90}, "EUR": {"input": 100, "output": 10, "balance": 90}}}]}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetAccount:
+    speakeasy-default-v2-get-account:
+      parameters:
+        path:
+          ledger: "ledger001"
+          address: "users:001"
+      responses:
+        "200":
+          application/json: {"data": {"address": "users:001", "metadata": {"admin": "true"}, "insertionDate": "2023-01-01T00:00:00Z", "updatedAt": "2023-01-01T00:00:00Z", "firstUsage": "2023-01-01T00:00:00Z", "volumes": {"USD": {"input": 100, "output": 10, "balance": 90}, "EUR": {"input": 100, "output": 10, "balance": 90}}, "effectiveVolumes": {"USD": {"input": 100, "output": 10, "balance": 90}, "EUR": {"input": 100, "output": 10, "balance": 90}}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2AddMetadataToAccount:
+    speakeasy-default-v2-add-metadata-to-account:
+      parameters:
+        path:
+          ledger: "ledger001"
+          address: "users:001"
+        query:
+          dryRun: true
+      requestBody:
+        application/json: {"admin": "true"}
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2DeleteAccountMetadata:
+    speakeasy-default-v2-delete-account-metadata:
+      parameters:
+        path:
+          ledger: "ledger001"
+          address: "6753 S Washington Street"
+          key: "foo"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ReadStats:
+    speakeasy-default-v2-read-stats:
+      parameters:
+        path:
+          ledger: "ledger001"
+      responses:
+        "200":
+          application/json: {"data": {"accounts": 441939, "transactions": 686873}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2CountTransactions:
+    speakeasy-default-v2-count-transactions:
+      parameters:
+        path:
+          ledger: "ledger001"
+      requestBody:
+        application/json: {"key": "<value>"}
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ListTransactions:
+    speakeasy-default-v2-list-transactions:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          pageSize: 100
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+          sort: "id:desc"
+      requestBody:
+        application/json: {}
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": [{"timestamp": "2024-10-10T19:56:12.497Z", "postings": [], "reference": "ref:001", "metadata": {"admin": "true"}, "id": 177096, "reverted": true, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "preCommitEffectiveVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitEffectiveVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}]}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2CreateTransaction:
+    speakeasy-default-v2-create-transaction:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          dryRun: true
+      requestBody:
+        application/json: {"postings": [{"amount": 100, "asset": "COIN", "destination": "users:002", "source": "users:001"}], "script": {"plain": "vars {\naccount $user\n}\nsend [COIN 10] (\n\tsource = @world\n\tdestination = $user\n)\n", "vars": {"user": "users:042"}}, "reference": "ref:001", "metadata": {"admin": "true"}, "accountMetadata": {"key": {"admin": "true"}, "key1": {"admin": "true"}, "key2": {"admin": "true"}}}
+      responses:
+        "200":
+          application/json: {"data": {"timestamp": "2024-06-10T07:40:23.819Z", "postings": [{"amount": 100, "asset": "COIN", "destination": "users:002", "source": "users:001"}], "reference": "ref:001", "metadata": {"admin": "true"}, "id": 339560, "reverted": true, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "preCommitEffectiveVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitEffectiveVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetTransaction:
+    speakeasy-default-v2-get-transaction:
+      parameters:
+        path:
+          ledger: "ledger001"
+          id: 1234
+      responses:
+        "200":
+          application/json: {"data": {"timestamp": "2024-10-06T11:21:14.840Z", "postings": [], "reference": "ref:001", "metadata": {"admin": "true"}, "id": 232775, "reverted": false, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "preCommitEffectiveVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitEffectiveVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2AddMetadataOnTransaction:
+    speakeasy-default-v2-add-metadata-on-transaction:
+      parameters:
+        path:
+          ledger: "ledger001"
+          id: 1234
+        query:
+          dryRun: true
+      requestBody:
+        application/json: {"admin": "true"}
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2DeleteTransactionMetadata:
+    speakeasy-default-v2-delete-transaction-metadata:
+      parameters:
+        path:
+          ledger: "ledger001"
+          id: 1234
+          key: "foo"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2RevertTransaction:
+    speakeasy-default-v2-revert-transaction:
+      parameters:
+        path:
+          ledger: "ledger001"
+          id: 1234
+        query:
+          dryRun: true
+      responses:
+        "201":
+          application/json: {"data": {"timestamp": "2025-01-07T04:49:40.482Z", "postings": [], "reference": "ref:001", "metadata": {"admin": "true"}, "id": 670435, "reverted": true, "preCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "preCommitEffectiveVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}, "postCommitEffectiveVolumes": {"orders:1": {"USD": {"input": 100, "output": 10, "balance": 90}}, "orders:2": {"USD": {"input": 100, "output": 10, "balance": 90}}}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetBalancesAggregated:
+    speakeasy-default-v2-get-balances-aggregated:
+      parameters:
+        path:
+          ledger: "ledger001"
+      requestBody:
+        application/json: {"key": "<value>", "key1": "<value>", "key2": "<value>"}
+      responses:
+        "200":
+          application/json: {"data": {"USD": 100, "EUR": 12}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetVolumesWithBalances:
+    speakeasy-default-v2-get-volumes-with-balances:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          pageSize: 100
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+          groupBy: 3
+          sort: "id:desc"
+      requestBody:
+        application/json: {"key": "<value>"}
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": []}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ListLogs:
+    speakeasy-default-v2-list-logs:
+      parameters:
+        path:
+          ledger: "ledger001"
+        query:
+          pageSize: 100
+          cursor: "aHR0cHM6Ly9nLnBhZ2UvTmVrby1SYW1lbj9zaGFyZQ=="
+          sort: "id:desc"
+      requestBody:
+        application/json: {}
+      responses:
+        "200":
+          application/json: {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": [{"id": 1234, "type": "NEW_TRANSACTION", "data": {}, "hash": "9ee060170400f556b7e1575cb13f9db004f150a08355c7431c62bc639166431e", "date": "2023-07-05T17:46:45.404Z"}]}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ImportLogs:
+    speakeasy-default-v2-import-logs:
+      parameters:
+        path:
+          ledger: "ledger001"
+      requestBody:
+        application/octet-stream: "x-file: example.file"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ExportLogs:
+    speakeasy-default-v2-export-logs:
+      parameters:
+        path:
+          ledger: "ledger001"
+  v2ListConnectors:
+    speakeasy-default-v2-list-connectors:
+      responses:
+        "200":
+          application/json: {"cursor": {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": []}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2CreateConnector:
+    speakeasy-default-v2-create-connector:
+      requestBody:
+        application/json: {"driver": "<value>", "config": {"key": "<value>"}}
+      responses:
+        "201":
+          application/json: {"data": {"driver": "<value>", "config": {"key": "<value>"}, "id": "<id>", "createdAt": "2024-12-18T11:04:15.792Z"}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetConnectorState:
+    speakeasy-default-v2-get-connector-state:
+      parameters:
+        path:
+          connectorID: "<id>"
+      responses:
+        "200":
+          application/json: {"data": {"driver": "<value>", "config": {"key": "<value>", "key1": "<value>", "key2": "<value>"}, "id": "<id>", "createdAt": "2024-09-05T17:17:53.664Z"}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2DeleteConnector:
+    speakeasy-default-v2-delete-connector:
+      parameters:
+        path:
+          connectorID: "<id>"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ListPipelines:
+    speakeasy-default-v2-list-pipelines:
+      parameters:
+        path:
+          ledger: "ledger001"
+      responses:
+        "200":
+          application/json: {"cursor": {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": [{"ledger": "<value>", "exporterID": "<id>", "id": "<id>", "createdAt": "2023-07-10T16:30:37.234Z"}]}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2CreatePipeline:
+    speakeasy-default-v2-create-pipeline:
+      parameters:
+        path:
+          ledger: "ledger001"
+      responses:
+        "201":
+          application/json: {"data": {"ledger": "<value>", "exporterID": "<id>", "id": "<id>", "createdAt": "2023-10-13T04:07:21.184Z"}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetPipelineState:
+    speakeasy-default-v2-get-pipeline-state:
+      parameters:
+        path:
+          ledger: "ledger001"
+          pipelineID: "<id>"
+      responses:
+        "200":
+          application/json: {"data": {"ledger": "<value>", "exporterID": "<id>", "id": "<id>", "createdAt": "2024-06-04T21:05:32.605Z"}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2DeletePipeline:
+    speakeasy-default-v2-delete-pipeline:
+      parameters:
+        path:
+          ledger: "ledger001"
+          pipelineID: "<id>"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ResetPipeline:
+    speakeasy-default-v2-reset-pipeline:
+      parameters:
+        path:
+          ledger: "ledger001"
+          pipelineID: "<id>"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2StartPipeline:
+    speakeasy-default-v2-start-pipeline:
+      parameters:
+        path:
+          ledger: "ledger001"
+          pipelineID: "<id>"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2StopPipeline:
+    speakeasy-default-v2-stop-pipeline:
+      parameters:
+        path:
+          ledger: "ledger001"
+          pipelineID: "<id>"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2ListExporters:
+    speakeasy-default-v2-list-exporters:
+      responses:
+        "200":
+          application/json: {"cursor": {"cursor": {"pageSize": 15, "hasMore": false, "previous": "YXVsdCBhbmQgYSBtYXhpbXVtIG1heF9yZXN1bHRzLol=", "next": "", "data": []}}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2CreateExporter:
+    speakeasy-default-v2-create-exporter:
+      requestBody:
+        application/json: {"driver": "<value>", "config": {"key": "<value>"}}
+      responses:
+        "201":
+          application/json: {"data": {"driver": "<value>", "config": {"key": "<value>", "key1": "<value>", "key2": "<value>"}, "id": "<id>", "createdAt": "2023-09-20T22:58:09.492Z"}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2GetExporterState:
+    speakeasy-default-v2-get-exporter-state:
+      parameters:
+        path:
+          exporterID: "<id>"
+      responses:
+        "200":
+          application/json: {"data": {"driver": "<value>", "config": {"key": "<value>", "key1": "<value>", "key2": "<value>"}, "id": "<id>", "createdAt": "2025-12-16T02:14:09.876Z"}}
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2DeleteExporter:
+    speakeasy-default-v2-delete-exporter:
+      parameters:
+        path:
+          exporterID: "<id>"
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+  v2UpdateExporter:
+    speakeasy-default-v2-update-exporter:
+      parameters:
+        path:
+          exporterID: "<id>"
+      requestBody:
+        application/json: {"driver": "<value>", "config": {"key": "<value>", "key1": "<value>", "key2": "<value>"}}
+      responses:
+        default:
+          application/json: {"errorCode": "VALIDATION", "errorMessage": "[VALIDATION] invalid 'cursor' query param", "details": "https://play.numscript.org/?payload=eyJlcnJvciI6ImFjY291bnQgaGFkIGluc3VmZmljaWVudCBmdW5kcyJ9"}
+examplesVersion: 1.0.2
+generatedTests: {}

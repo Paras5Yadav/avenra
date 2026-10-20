@@ -1,0 +1,39 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+image:
+  repository: avenra-seed-publish
+  tag: local
+  pullPolicy: IfNotPresent
+
+datadogTeam: team-space
+
+# Cluster API (avenra-internal-api) the publish registers releases against.
+internalApi:
+  grpcAddr: avenra-internal-api:9800
+
+internal:
+  secretName: avenra-internal
+
+# Object store the seed artifacts are uploaded to. Same object store the
+# workers' volume-manager pulls from; the storage URI registered with the
+# release carries the endpoint + path-style so the pull path needs no extra
+# config.
+s3:
+  endpoint: http://object-store:8333
+  region: us-east-1
+  bucket: templates
+  credentialsSecretName: avenra-object-store
+
+# A one-shot, idempotent publish Job: replaceable
+# (infra/avenra/kind/manifests/priorityclasses.yaml).
+priorityClassName: avenra-replaceable
+
+nodeSelector:
+  space.pplx.net/infra: "true"
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

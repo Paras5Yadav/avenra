@@ -1,0 +1,222 @@
+/*****
+ License
+ --------------
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
+ Names of the original copyright holders (individuals or organizations)
+ should be listed with a '*' in the first column. People who have
+ contributed from an organization can be listed under the organization
+ that actually holds the copyright for their contributions (see the
+ Mojaloop Foundation for an example). Those individuals should have
+ their names indented and be marked with a '-'. Email address can be added
+ optionally within square brackets <email>.
+
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
+
+ * ModusBox
+ * Georgi Logodazhki <georgi.logodazhki@modusbox.com> (Original Author)
+ --------------
+ ******/
+
+'use strict'
+
+const mongoDBWrapper = require('../models/mongoDBWrapper')
+const { ConnectionString } = require('connection-string')
+const Logger = require('@mojaloop/central-services-logger')
+
+let conn
+const getConnection = async () => {
+  if (!conn) {
+    const Config = require('../../config')
+    const systemConfig = Config.getSystemConfig()
+    let params = systemConfig.DB.PARAMS || {}
+    if (typeof params === 'string') {
+      try {
+        params = JSON.parse(params)
+      } catch (e) {
+        params = {}
+      }
+    }
+
+    // TLS/SSL support
+    const mongoOptions = {}
+
+    if (systemConfig.DB.SSL_ENABLED) {
+      mongoOptions.tls = true
+      if (typeof systemConfig.DB.SSL_VERIFY !== 'undefined') {
+        console.log(`SSL_VERIFY is set to ${systemConfig.DB.SSL_VERIFY} (type: ${typeof systemConfig.DB.SSL_VERIFY})`)
+        mongoOptions.tlsAllowInvalidCertificates = !systemConfig.DB.SSL_VERIFY
+      }
+      if (systemConfig.DB.SSL_CA_FILE_PATH) {
+        mongoOptions.tlsCAFile = systemConfig.DB.SSL_CA_FILE_PATH
+      }
+      if (systemConfig.DB.SSL_CLIENT_CERT_FILE_PATH) {
+        mongoOptions.tlsCertificateKeyFile = systemConfig.DB.SSL_CLIENT_CERT_FILE_PATH
+      }
+    }
+
+    const csMongoDBObj = new ConnectionString()
+    csMongoDBObj.setDefaults({
+      protocol: 'mongodb',
+      hosts: [{ name: systemConfig.DB.HOST, port: systemConfig.DB.PORT }],
+      user: systemConfig.DB.USER,
+      password: systemConfig.DB.PASSWORD,
+      path: [systemConfig.DB.DATABASE],
+      params
+    })
+    const connectionString = systemConfig.DB.CONNECTION_STRING || csMongoDBObj.toString()
+    const safeConnectionString = connectionString.replace(/(\/\/)(.*):(.*)@/, '$1****:****@')
+    Logger.info(`Connecting to MongoDB with connection string: ${safeConnectionString}`)
+
+    conn = await mongoDBWrapper.connect(connectionString, mongoOptions)
+  }
+  return conn
+}
+
+const read = async (id, user, additionalData) => {
+  const conn = await getConnection()
+  let documents
+  if (id === 'logs') {
+    const MyModel = conn.model(`${user.dfspId}_${id}`, mongoDBWrapper.models.logs)
+    // by default is taking the logs from the last hour
+    const query = {
+      logTime: {
+        $gte: additionalData && additionalData.query && additionalData.query.gte ? new Date(additionalData.query.gte) : new Date(Date.now() - (60 * 60 * 1000)),
+        $lt: additionalData && additionalData.query && additionalData.query.lt ? new Date(additionalData.query.lt) : new Date()
+      }
+    }
+    documents = await MyModel.find(query).select('-_id -__v').sort('logTime')
+  } else if (id === 'reports') {
+    const MyModel = conn.model(`${user.dfspId}_${id}`, mongoDBWrapper.models.reports)
+    // by default is taking the reports from the last 30 days
+    const query = {
+      'runtimeInformation.completedTimeISO': {
+        $gte: additionalData && additionalData.query && additionalData.query.gte ? new Date(additionalData.query.gte) : new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)),
+        $lt: additionalData && additionalData.query && additionalData.query.lt ? new Date(additionalData.query.lt) : new Date()
+      }
+    }
+    documents = await MyModel.find(query).select('-_id -__v').sort('-runtimeInformation.completedTimeISO')
+  } else {
+    const MyModel = conn.model(user.dfspId, mongoDBWrapper.models.common)
+    documents = await MyModel.findById(id)
+    if (!documents) {
+      documents = await MyModel.create({
+        _id: id,
+        data: {}
+      })
+    }
+  }
+  return documents
+}
+
+const find = async (id, user) => {
+  const conn = await getConnection()
+  const MyModel = conn.model(user.dfspId, mongoDBWrapper.models.commonModel)
+  const documents = await MyModel.find({ _id: { $regex: `${id}`, $options: 'i' } }).select('_id')
+  documents.forEach((item, i) => { documents[i] = item._id })
+  return documents
+}
+
+const upsert = async (id, data, user) => {
+  const conn = await getConnection()
+  if (id === 'logs') {
+    const collectionId = `${user.dfspId}_${id}`
+    const MyModel = conn.model(collectionId, mongoDBWrapper.models.logs)
+    data._id = new mongoDBWrapper.Types.ObjectId()
+    await MyModel.create(data)
+  } else if (id === 'reports') {
+    const collectionId = `${user.dfspId}_${id}`
+    const MyModel = conn.model(collectionId, mongoDBWrapper.models.reports)
+    data._id = `${data.name}_${data.runtimeInformation.completedTimeISO}`
+    await MyModel.create(data)
+  } else {
+    const MyModel = conn.model(user.dfspId, mongoDBWrapper.models.common)
+    const document = await MyModel.findOneAndUpdate({ _id: id }, { $set: { data } }, { new: true, upsert: true })
+    return document
+  }
+}
+
+const remove = async (id, user) => {
+  const conn = await getConnection()
+  const MyModel = conn.model(user.dfspId, mongoDBWrapper.models.common)
+  await MyModel.findOneAndRemove({ _id: id })
+}
+
+// The following are the functions added for saving test reports in non HOSTED mode
+const upsertReport = async (reportData) => {
+  const conn = await getConnection()
+  const MyModel = conn.model('reports', mongoDBWrapper.models.reports)
+  reportData._id = `${reportData.runtimeInformation.testReportId}`
+  await MyModel.create(reportData)
+}
+
+const listReports = async (queryParams) => {
+  const conn = await getConnection()
+  const MyModel = conn.model('reports', mongoDBWrapper.models.reports)
+  const query = {}
+  if (queryParams?.filterDateRangeStart || queryParams?.filterDateRangeEnd) {
+    query['runtimeInformation.completedTime'] = {}
+    if (queryParams?.filterDateRangeStart) {
+      query['runtimeInformation.completedTime'].$gte = new Date(queryParams?.filterDateRangeStart)
+    }
+    if (queryParams?.filterDateRangeEnd) {
+      query['runtimeInformation.completedTime'].$lte = new Date(queryParams?.filterDateRangeEnd)
+    }
+  }
+
+  if (queryParams?.filterStatus === 'passed') {
+    query['runtimeInformation.isPassed'] = true
+  } else if (queryParams?.filterStatus === 'failed') {
+    query['runtimeInformation.isPassed'] = false
+  }
+
+  // General Query Options like skip and limit
+  const generalQueryOptions = {}
+  if (queryParams?.skip) {
+    generalQueryOptions.skip = queryParams.skip
+  }
+  if (queryParams?.limit) {
+    generalQueryOptions.limit = queryParams.limit
+  }
+
+  const documents = await MyModel.find(query, {}, generalQueryOptions).sort('-runtimeInformation.completedTime').select('_id name runtimeInformation')
+  const count = await MyModel.countDocuments(query)
+
+  return {
+    count,
+    documents
+  }
+}
+
+const getReport = async (reportId) => {
+  const conn = await getConnection()
+  const MyModel = conn.model('reports', mongoDBWrapper.models.reports)
+  return await MyModel.findById(reportId)
+}
+
+const _deleteConn = async () => {
+  if (conn) {
+    await conn.disconnect()
+    conn = undefined
+  }
+}
+
+module.exports = {
+  read,
+  find,
+  upsert,
+  remove,
+  upsertReport,
+  listReports,
+  getReport,
+  _deleteConn
+}

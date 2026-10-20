@@ -1,0 +1,114 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-sbx-mgr"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+otel = [
+    "avenra-runtime-observability/otel",
+    "avenra-runtime-template-mgr-client/otel",
+]
+datadog = [
+    "otel",
+    "avenra-runtime-observability/datadog",
+    "avenra-runtime-template-mgr-client/datadog",
+]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+# Compiles in the test-only environment hooks; never enabled for release builds.
+test-hooks = ["avenra-runtime-common-core/test-hooks"]
+
+[dependencies]
+rustix = { workspace = true, features = ["fs"] }
+nix = { workspace = true, features = ["dir", "fs", "user"] }
+arc-swap = { workspace = true }
+async-trait = { workspace = true }
+bytes = { workspace = true }
+dashmap = { workspace = true }
+futures-util = { workspace = true }
+hex = { workspace = true }
+http = { workspace = true }
+http-body = { workspace = true }
+jiff = { workspace = true }
+libc = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true, features = ["macros", "migrate"] }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["fs", "io-util", "macros", "net", "process", "rt", "sync", "time"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true, features = ["join-map"] }
+toml = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+tower = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v5", "v7"] }
+
+# internal
+avenra-runtime-common-core = { workspace = true, features = ["serde"] }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-common-jobs = { workspace = true }
+avenra-runtime-common-lru-reaper = { workspace = true }
+avenra-runtime-common-svc = { workspace = true, features = ["sqlite"] }
+avenra-runtime-credential-injection-core = { workspace = true }
+avenra-runtime-credmgr-client = { workspace = true }
+avenra-runtime-events = { workspace = true }
+avenra-runtime-execution-common = { workspace = true }
+avenra-runtime-feature-flags = { workspace = true }
+avenra-runtime-volmgr-client = { workspace = true }
+avenra-runtime-net-common = { workspace = true, features = ["serde"] }
+avenra-runtime-net-gateway-client = { workspace = true }
+avenra-runtime-node-api-client = { workspace = true }
+avenra-runtime-node-mgr-client = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-node-runtime-core = { workspace = true }
+avenra-runtime-avenrad-common = { workspace = true }
+avenra-runtime-avenrad-host-client = { workspace = true }
+avenra-runtime-observability = { workspace = true, default-features = false }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+avenra-runtime-sbxmgr-migrations = { workspace = true }
+avenra-runtime-template-mgr-client = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-common-core = { workspace = true, features = ["serde", "test-hooks"] }
+# `serialize` exposes `sqlite3_serialize`, which the test-schema helpers use to
+# migrate once per test process and stamp the resulting image into each fixture
+# database instead of replaying every migration per connection.
+rusqlite = { workspace = true, features = ["serialize"] }
+avenra-runtime-net-gateway = { workspace = true, features = ["test-support"] }
+opentelemetry-proto = { workspace = true, features = ["gen-tonic", "metrics"] }
+avenra-runtime-credmgr = { workspace = true }
+rcgen = { workspace = true, features = ["aws_lc_rs", "x509-parser"] }
+rustls = { workspace = true, features = ["aws_lc_rs", "std", "tls12"] }
+avenra-runtime-sbxmgr-migrations = { workspace = true }
+# `test-util` enables `#[tokio::test(start_paused = true)]` so retry-backoff
+# loops auto-advance virtual time instead of sleeping in real time.
+# `rt-multi-thread` lets lock-ordering regression tests run waiters in real
+# parallelism, matching the production runtime.
+aws-lc-rs = { workspace = true }
+anyhow = { workspace = true }
+insta = { workspace = true }
+base64 = { workspace = true }
+tonic-prost = { workspace = true }
+avenra-runtime-observability = { workspace = true, features = ["test-capture"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "test-util"] }
+tracing-subscriber = { workspace = true }
+avenra-runtime-common-svc = { workspace = true, features = ["test-support"] }
+avenra-runtime-metrics = { workspace = true, features = ["test-capture"] }
+avenra-runtime-sbx-mgr-client = { workspace = true, features = ["test-support"] }
+avenra-runtime-test-env = { workspace = true }

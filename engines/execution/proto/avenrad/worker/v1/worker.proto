@@ -1,0 +1,80 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+syntax = "proto3";
+package space.avenrad.worker.v1;
+
+import "avenrad/operations/v1/operations.proto";
+
+// Private inherited-socket protocol. The connection fixes Unix identity.
+// A worker has no public idempotency namespace and never retries a dispatch.
+service WorkerFilesystem {
+  rpc Ready(ReadyRequest) returns (ReadyResponse);
+  rpc Stat(space.avenrad.operations.v1.StatRequest) returns (space.avenrad.operations.v1.StatResponse);
+  rpc List(space.avenrad.operations.v1.ListRequest) returns (stream space.avenrad.operations.v1.FileInfo);
+  rpc Read(space.avenrad.operations.v1.ReadRequest) returns (stream space.avenrad.operations.v1.FileChunk);
+  // Opens the file as this worker's user and answers with its descriptor
+  // number, kept open until the caller ends the stream, so a privileged
+  // caller can duplicate it (pidfd_getfd) and read the file itself.
+  rpc OpenRead(space.avenrad.operations.v1.ReadRequest) returns (stream OpenedFile);
+  rpc Write(stream WriteFrame) returns (MutationResult);
+  rpc WriteBatch(BatchCommand) returns (MutationResult);
+  rpc Mkdir(space.avenrad.operations.v1.MkdirRequest) returns (space.avenrad.operations.v1.MkdirResponse);
+  rpc Remove(space.avenrad.operations.v1.RemoveRequest) returns (space.avenrad.operations.v1.RemoveResponse);
+  rpc Rename(RenameCommand) returns (MutationResult);
+  rpc NormalizeWatchRoot(space.avenrad.operations.v1.NormalizeWatchRootRequest) returns (space.avenrad.operations.v1.NormalizeWatchRootResponse);
+  rpc Watch(space.avenrad.operations.v1.WatchRequest) returns (stream space.avenrad.operations.v1.FileEvent);
+  rpc CreateWatcher(space.avenrad.operations.v1.CreateWatcherRequest) returns (space.avenrad.operations.v1.CreateWatcherResponse);
+  rpc GetWatcherEvents(space.avenrad.operations.v1.GetWatcherEventsRequest) returns (space.avenrad.operations.v1.GetWatcherEventsResponse);
+  rpc RemoveWatcher(space.avenrad.operations.v1.RemoveWatcherRequest) returns (space.avenrad.operations.v1.RemoveWatcherResponse);
+  rpc EnableFileChanges(space.avenrad.operations.v1.EnableFileChangesRequest) returns (space.avenrad.operations.v1.EnableFileChangesResponse);
+  rpc DisableFileChanges(space.avenrad.operations.v1.DisableFileChangesRequest) returns (space.avenrad.operations.v1.DisableFileChangesResponse);
+  rpc GetModifiedFiles(space.avenrad.operations.v1.GetModifiedFilesRequest) returns (space.avenrad.operations.v1.GetModifiedFilesResponse);
+}
+
+message ReadyRequest {}
+message ReadyResponse { uint32 protocol_version = 1; }
+// A descriptor number in the worker process, valid while the OpenRead stream
+// that carried it stays open.
+message OpenedFile { int32 fd = 1; }
+message WriteFrame {
+  oneof frame {
+    WriteStart open = 1;
+    bytes data = 2;
+    Finish finish = 3;
+    Abort abort = 4;
+  }
+}
+message WriteStart {
+  string execution_id = 1;
+  string path = 2;
+  bool append = 3;
+}
+message Finish {}
+message Abort {}
+message BatchCommand {
+  string execution_id = 1;
+  repeated space.avenrad.operations.v1.WriteBatchEntry entries = 2;
+}
+message RenameCommand {
+  string execution_id = 1;
+  string old_path = 2;
+  string new_path = 3;
+}
+message MutationResult {
+  oneof outcome {
+    space.avenrad.operations.v1.WriteResponse write = 1;
+    space.avenrad.operations.v1.WriteBatchResponse batch = 2;
+    space.avenrad.operations.v1.RenameResponse rename = 3;
+    OperationFailure failure = 4;
+    Abort interrupted = 5;
+    // Authoritative refusal before the executor polls any effectful work.
+    // Unlike failure, this permits releasing the router's retry reservation.
+    OperationFailure rejected_before_execution = 6;
+  }
+}
+// Operation errors are terminal replies, never confused with transport errors.
+message OperationFailure {
+  int32 code = 1;
+  string message = 2;
+  // The status's `avenra-error-reason` metadata, if it had one. Empty if not.
+  string reason = 3;
+}

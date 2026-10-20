@@ -1,0 +1,184 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+{{- $ctx := dict "ctx" . "component" "node-api" -}}
+{{- $role := include "avenra-node-service.role" . -}}
+{{- if and (eq $role "builder") (not .Values.buildManagerEndpoint) -}}
+{{- fail "buildManagerEndpoint is required for the builder role" -}}
+{{- end -}}
+{{- include "avenra-node-service.serviceAccount" $ctx }}
+---
+# node-api reviews every caller's projected ServiceAccount token
+# (K8sTokenReviewer, crates/libs/common/svc/src/auth/k8s.rs; and, on builders,
+# the BuildTemplate reviewer in auth/build/k8s.rs).
+{{ include "avenra-node-service.tokenReviewRbac" $ctx }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "avenra-node-service.name" $ctx }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "avenra-node-service.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "avenra-node-service.selectorLabels" $ctx | nindent 6 }}
+  # Delete first. node-api has no service mutex and its listener sets
+  # SO_REUSEPORT (crates/libs/node/api/server/src/run.rs), but the port it
+  # declares on the host network is a host port, and the scheduler will not
+  # place a second pod with the same host port on the node. The port must stay
+  # declared: the API's pod reflector reads the container port named `grpc`
+  # (crates/libs/api/src/controllers/substrate/kubernetes/caches.rs).
+  {{- include "avenra-node-service.updateStrategy" (dict "strategy" "deleteFirst") | nindent 2 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "avenra-node-service.podAnnotations" $ctx | nindent 8 }}
+      labels:
+        {{- include "avenra-node-service.labels" $ctx | nindent 8 }}
+    spec:
+      {{- include "avenra-node-service.nodeSelector" $ctx | nindent 6 }}
+      {{- include "avenra-node-service.priorityClass" $ctx | nindent 6 }}
+      serviceAccountName: {{ include "avenra-node-service.name" $ctx }}
+      # TokenReview needs the pod's own API credentials, found by the kube
+      # client's in-cluster config (traced_kube_client_from_env,
+      # crates/libs/common/svc/src/kube_client.rs), and the auth allowlists
+      # name accounts in the namespace read from the same mount
+      # (auth_namespace, crates/libs/common/svc/src/auth/k8s.rs). The
+      # account may only create TokenReviews (RBAC above).
+      automountServiceAccountToken: true
+      # Host network: the API dials each node's node-api at host_ip:9800.
+      # ClusterFirstWithHostNet keeps in-cluster DNS for ClusterApi and, on
+      # builders, build-manager's node-local Service.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | int }}
+      securityContext:
+        {{- if eq $role "builder" }}
+        {{- include "avenra-node-service.runAs" (dict "ctx" . "user" "AVENRA_NODEAPI" "groups" "AVENRA_NODEAPI_BUILDER_GROUPS") | nindent 8 }}
+        {{- else }}
+        {{- include "avenra-node-service.runAs" (dict "ctx" . "user" "AVENRA_NODEAPI" "groups" "AVENRA_NODEAPI_WORKER_GROUPS") | nindent 8 }}
+        {{- end }}
+        # avenra-nodeapi's own group owns the mounted TLS key, which is
+        # readable by that group only (volume.rpcIdentity).
+        fsGroup: {{ include "avenra-node-service.identityNumber" (dict "ctx" . "name" "AVENRA_NODEAPI_GID") }}
+      containers:
+        - name: node-api
+          {{- include "avenra-node-service.image" . | nindent 10 }}
+          command:
+            - /opt/avenra/bin/avenra-node-api-svc
+            - --role={{ $role }}
+            - --listen=0.0.0.0:9800
+            - --health-socket={{ include "avenra-node-service.healthSocket" $ctx }}
+          {{- include "avenra-node-service.restrictedContainer" . | nindent 10 }}
+          ports:
+            - name: grpc
+              containerPort: 9800
+          env:
+            {{- include "avenra-node-service.env.identity" . | nindent 12 }}
+            {{- include "avenra-node-service.env.clusterApi" . | nindent 12 }}
+            # The NodeApi listener's TLS identity, the leaf every node-api on
+            # the cluster shares (avenra-node-api, docs/internal-rpc-tls.md).
+            {{- include "avenra-node-service.env.rpcIdentity" . | nindent 12 }}
+            # The static bearer tokens node-api still requires at startup
+            # (run, run.rs; the worker role's WorkerApiInternal control
+            # token). With Kubernetes auth on and the fallback off, neither
+            # admits a caller (NodeApiAuthenticator::authenticate,
+            # crates/libs/common/svc/src/auth/mod.rs).
+            {{- include "avenra-node-service.env.internalToken" . | nindent 12 }}
+            {{- if eq $role "worker" }}
+            - name: AVENRA_INTERNAL_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.node.internalSecretName }}
+                  key: AVENRA_INTERNAL_CONTROL_TOKEN
+            {{- else }}
+            - name: AVENRA_BUILD_MANAGER_ENDPOINT
+              value: {{ .Values.buildManagerEndpoint | quote }}
+            # node-api's own build-manager credential (BearerAuthInterceptor,
+            # crates/libs/build/mgr/client/src/lib.rs); build-manager
+            # admits this account by TokenReview with no static fallback.
+            - name: AVENRA_BUILD_MANAGER_TOKEN_PATH
+              value: /var/run/avenra-auth/build-manager.token
+            {{- end }}
+            # node-api's own NodeApi credential, for the template transfers it
+            # pulls from a registered peer node-api of either role: it presents
+            # this token to the peer's NodeExportTemplate (connect_remote,
+            # crates/libs/node/api/server/src/transfer.rs).
+            - name: AVENRA_NODE_API_TOKEN_PATH
+              value: /var/run/avenra-auth/node-api.token
+            # Kubernetes TokenReview auth on both listeners, with no static
+            # fallback, as deployed (NodeApiAuthConfig, auth/mod.rs;
+            # K8sTokenAuthConfig::from_environment, auth/k8s.rs). The
+            # audiences are the code's own: avenra-node-api for WorkerApi,
+            # BuilderApi and NodeInfo, avenra-node-api-internal for
+            # WorkerApiInternal (DEFAULT_NODE_API_AUDIENCE,
+            # DEFAULT_NODE_API_INTERNAL_AUDIENCE and K8sTokenAuthConfig::policy,
+            # auth/k8s.rs).
+            - name: AVENRA_K8S_TOKEN_AUTH_ENABLED
+              value: "true"
+            - name: AVENRA_K8S_TOKEN_AUTH_STATIC_FALLBACK_ENABLED
+              value: "false"
+            {{- range $name, $accounts := .Values.auth }}
+            {{- if $accounts }}
+            - name: {{ $name }}
+              value: {{ join "," $accounts | quote }}
+            {{- end }}
+            {{- end }}
+          {{- if eq $role "builder" }}
+          # Leave the builder Service's endpoints before draining (values.yaml).
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.builderPreStopSleepSeconds | int }}
+          {{- end }}
+          {{- include "avenra-node-service.probes" $ctx | nindent 10 }}
+          volumeMounts:
+            {{- include "avenra-node-service.mount.run" . | nindent 12 }}
+            {{- include "avenra-node-service.mount.clusterApiToken" . | nindent 12 }}
+            {{- include "avenra-node-service.mount.rpcCa" . | nindent 12 }}
+            {{- include "avenra-node-service.mount.rpcIdentity" . | nindent 12 }}
+            {{- include "avenra-node-service.mount.private" . | nindent 12 }}
+            - name: avenra-auth
+              mountPath: /var/run/avenra-auth
+              readOnly: true
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- include "avenra-node-service.volume.run" . | nindent 8 }}
+        {{- include "avenra-node-service.volume.clusterApiToken" . | nindent 8 }}
+        {{- include "avenra-node-service.volume.rpcCa" . | nindent 8 }}
+        {{- include "avenra-node-service.volume.rpcIdentity" (dict "secret" "avenra-node-api-tls") | nindent 8 }}
+        {{- include "avenra-node-service.volume.private" . | nindent 8 }}
+        # Projected tokens node-api presents: to peer node-apis for
+        # transfers and, on builders, to build-manager.
+        - name: avenra-auth
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: node-api.token
+                  audience: avenra-node-api
+                  expirationSeconds: {{ .Values.nodeApiTokenExpirationSeconds | int }}
+              {{- if eq $role "builder" }}
+              - serviceAccountToken:
+                  path: build-manager.token
+                  audience: avenra-build-manager
+                  expirationSeconds: {{ .Values.buildManagerTokenExpirationSeconds | int }}
+              {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.serviceName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "avenra-node-service.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    {{- include "avenra-node-service.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: grpc
+      port: 9800
+      targetPort: 9800

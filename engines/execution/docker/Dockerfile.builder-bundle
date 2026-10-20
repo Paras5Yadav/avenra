@@ -1,0 +1,20 @@
+ARG AVENRA_RUST_BUILD_IMAGE=avenra-rust-build-builder:local
+FROM ${AVENRA_RUST_BUILD_IMAGE} AS rust-build
+
+FROM public.ecr.aws/docker/library/debian:bookworm-slim AS build-identity
+ARG AVENRA_GIT_SHA=unknown
+RUN mkdir -p /identity && printf '%s\n' "${AVENRA_GIT_SHA}" > /identity/build-git-sha
+
+FROM scratch
+
+LABEL org.opencontainers.image.title="avenra-buildmgr-bundle"
+LABEL org.opencontainers.image.description="Deployable Avenra build manager artifact bundle for packer and CI validation."
+
+COPY --from=rust-build /artifacts/bin/avenra-buildmgr /bundle/avenra/bin/avenra-buildmgr
+COPY --from=rust-build /artifacts/bin/avenra-tmplmgr /bundle/avenra/bin/avenra-tmplmgr
+COPY --from=rust-build /artifacts/bin/avenra-db-migrator /bundle/avenra/bin/avenra-db-migrator
+COPY templates/firecracker/recipes /bundle/avenra/templates/firecracker/recipes
+
+ARG AVENRA_GIT_SHA=unknown
+LABEL org.opencontainers.image.revision="${AVENRA_GIT_SHA}"
+COPY --from=build-identity /identity/build-git-sha /bundle/avenra/etc/build-git-sha

@@ -1,0 +1,118 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+syntax = "proto3";
+package space.avenrad.host.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "avenrad/operations/v1/operations.proto";
+
+// Host-side API exposed by avenrad-host-svc on a host-local UDS.
+service Meta {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc IsConnected(IsConnectedRequest) returns (IsConnectedResponse);
+  rpc PingGuest(PingGuestRequest) returns (PingGuestResponse);
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+  rpc WaitReady(WaitReadyRequest) returns (WaitReadyResponse);
+  rpc ConfigureProcessEnv(ConfigureProcessEnvRequest) returns (ConfigureProcessEnvResponse);
+  rpc NotifyResume(NotifyResumeRequest) returns (NotifyResumeResponse);
+  // Flush guest storage while keeping bridge connections available for a running VM.
+  // Use for disk-only snapshots. For any VM memory snapshot, use PrepareSuspend
+  // instead; it includes the final filesystem flush.
+  rpc FlushGuestFilesystems(FlushGuestFilesystemsRequest) returns (FlushGuestFilesystemsResponse);
+  // Prepare a running VM for a memory-bearing snapshot by flushing guest storage
+  // and invalidating cached host-to-guest bridge connections before returning.
+  // Callers must not also invoke FlushGuestFilesystems for the same snapshot.
+  rpc PrepareSuspend(PrepareSuspendRequest) returns (PrepareSuspendResponse);
+}
+
+service Process {
+  rpc Start(space.avenrad.operations.v1.StartRequest) returns (stream space.avenrad.operations.v1.ProcessEvent);
+  rpc ConnectProcess(space.avenrad.operations.v1.ConnectProcessRequest) returns (stream space.avenrad.operations.v1.ProcessEvent);
+  rpc ListProcesses(space.avenrad.operations.v1.ListProcessesRequest) returns (stream space.avenrad.operations.v1.ProcessInfo);
+  rpc SendSignal(space.avenrad.operations.v1.SendSignalRequest) returns (space.avenrad.operations.v1.SendSignalResponse);
+  rpc SendInput(space.avenrad.operations.v1.SendInputRequest) returns (space.avenrad.operations.v1.SendInputResponse);
+  rpc CloseStdin(space.avenrad.operations.v1.CloseStdinRequest) returns (space.avenrad.operations.v1.CloseStdinResponse);
+  rpc ResizePty(space.avenrad.operations.v1.ResizePtyRequest) returns (space.avenrad.operations.v1.ResizePtyResponse);
+  rpc Kill(space.avenrad.operations.v1.KillRequest) returns (space.avenrad.operations.v1.KillResponse);
+}
+
+// Loopback bridge management. Surfaces what avenrad-guest-svc's
+// `Networking` service can do, but on the host side. sbx-mgr (and through
+// it, worker-api / api) calls these RPCs after node-mgr's
+// expose_port + allow_port have installed the host firewall path; the
+// implementation forwards via vsock to the in-VM agent.
+service Networking {
+  rpc OpenLoopbackBridge(space.avenrad.operations.v1.OpenLoopbackBridgeRequest) returns (space.avenrad.operations.v1.OpenLoopbackBridgeResponse);
+  rpc CloseLoopbackBridge(space.avenrad.operations.v1.CloseLoopbackBridgeRequest) returns (space.avenrad.operations.v1.CloseLoopbackBridgeResponse);
+}
+
+service Filesystem {
+  rpc Stat(space.avenrad.operations.v1.StatRequest) returns (space.avenrad.operations.v1.StatResponse);
+  rpc List(space.avenrad.operations.v1.ListRequest) returns (stream space.avenrad.operations.v1.FileInfo);
+  rpc Read(space.avenrad.operations.v1.ReadRequest) returns (stream space.avenrad.operations.v1.FileChunk);
+  rpc Write(stream space.avenrad.operations.v1.WriteRequest) returns (space.avenrad.operations.v1.WriteResponse);
+  rpc WriteBatch(space.avenrad.operations.v1.WriteBatchRequest) returns (space.avenrad.operations.v1.WriteBatchResponse);
+  rpc Mkdir(space.avenrad.operations.v1.MkdirRequest) returns (space.avenrad.operations.v1.MkdirResponse);
+  rpc Remove(space.avenrad.operations.v1.RemoveRequest) returns (space.avenrad.operations.v1.RemoveResponse);
+  rpc Rename(space.avenrad.operations.v1.RenameRequest) returns (space.avenrad.operations.v1.RenameResponse);
+  rpc NormalizeWatchRoot(space.avenrad.operations.v1.NormalizeWatchRootRequest) returns (space.avenrad.operations.v1.NormalizeWatchRootResponse);
+  rpc Watch(space.avenrad.operations.v1.WatchRequest) returns (stream space.avenrad.operations.v1.FileEvent);
+  rpc CreateWatcher(space.avenrad.operations.v1.CreateWatcherRequest) returns (space.avenrad.operations.v1.CreateWatcherResponse);
+  rpc GetWatcherEvents(space.avenrad.operations.v1.GetWatcherEventsRequest) returns (space.avenrad.operations.v1.GetWatcherEventsResponse);
+  rpc RemoveWatcher(space.avenrad.operations.v1.RemoveWatcherRequest) returns (space.avenrad.operations.v1.RemoveWatcherResponse);
+  rpc EnableFileChanges(space.avenrad.operations.v1.EnableFileChangesRequest) returns (space.avenrad.operations.v1.EnableFileChangesResponse);
+  rpc DisableFileChanges(space.avenrad.operations.v1.DisableFileChangesRequest) returns (space.avenrad.operations.v1.DisableFileChangesResponse);
+  rpc GetModifiedFiles(space.avenrad.operations.v1.GetModifiedFilesRequest) returns (space.avenrad.operations.v1.GetModifiedFilesResponse);
+}
+
+message PingRequest {}
+message PingResponse {}
+
+message IsConnectedRequest {}
+message IsConnectedResponse { bool connected = 1; }
+
+message PingGuestRequest {}
+message PingGuestResponse {}
+
+message GetStatusRequest {}
+message GetStatusResponse {
+  bool ready = 1;
+  google.protobuf.Duration guest_uptime = 2;
+  VersionInfo host_version = 3;
+  VersionInfo guest_version = 4;
+}
+
+message VersionInfo {
+  string version = 1;
+  string compatibility_family = 2;
+}
+
+message WaitReadyRequest { google.protobuf.Duration timeout = 1; }
+message WaitReadyResponse {
+  google.protobuf.Duration guest_uptime = 1;
+  optional uint64 mem_total_bytes = 2;
+  optional uint32 vcpu_count = 3;
+  // Identity from the same guest observation that established readiness.
+  VersionInfo guest_version = 4;
+}
+
+message ConfigureProcessEnvRequest {
+  map<string, string> env = 1;
+}
+message ConfigureProcessEnvResponse {}
+
+
+message NotifyResumeRequest {
+  space.avenrad.operations.v1.ResumeReason reason = 1;
+  google.protobuf.Timestamp host_time = 2;
+}
+message NotifyResumeResponse {
+  space.avenrad.operations.v1.ClockSyncStatus clock_sync_status = 1;
+  bool ready = 2;
+}
+
+message FlushGuestFilesystemsRequest {}
+message FlushGuestFilesystemsResponse {}
+
+message PrepareSuspendRequest {}
+message PrepareSuspendResponse {}

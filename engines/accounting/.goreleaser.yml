@@ -1,0 +1,127 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
+version: 2
+project_name: ledger
+
+includes:
+  - from_url:
+      url: https://raw.githubusercontent.com/formancehq/earthly/refs/heads/main/.goreleaser.default.yaml
+
+builds:
+  - binary: ledger
+    id: ledger
+    ldflags:
+      - -X avenra.local/accounting/cmd.BuildDate={{ .Date }}
+      - -X avenra.local/accounting/cmd.Version=v{{ .Version }}
+      - -X avenra.local/accounting/cmd.Commit={{ .ShortCommit }}
+      - -extldflags "-static"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+  - binary: benchmarks
+    id: benchmarks
+    ldflags:
+      - -extldflags "-static"
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    command: test
+    dir: test/performance/pkg/write
+    no_main_check: true
+    tags:
+      - it
+
+release:
+  prerelease: auto
+  extra_files:
+    - glob: openapi.yaml
+  footer: |
+    ## What to do next?
+    - Read the [documentation](https://docs.formance.com/)
+    - Join our [GitHub Discussions](https://github.com/orgs/formancehq/discussions)
+
+archives:
+  - id: "{{.ProjectName}}"
+    builds:
+      - ledger
+      - benchmarks
+    format: tar.gz
+    name_template: "{{.ProjectName}}_{{.Os}}-{{.Arch}}"
+
+nfpms:
+  - id: ledger
+    package_name: ledger
+    file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    builds:
+      - ledger
+    homepage: https://formance.com
+    maintainer: Maxence Maireaux <maxence@formance.com>
+    formats:
+      - deb
+      - rpm
+  - id: benchmarks
+    package_name: ledger-benchmarks
+    file_name_template: "{{ .ProjectName }}_benchmarks_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    builds:
+      - benchmarks
+    homepage: https://formance.com
+    maintainer: Maxence Maireaux <maxence@formance.com>
+    formats:
+      - deb
+      - rpm
+
+publishers:
+  - name: fury.io
+    ids:
+      - ledger
+      - benchmarks
+    dir: "{{ dir .ArtifactPath }}"
+    cmd: curl --http1.1 -F package=@{{ .ArtifactName }} https://{{ .Env.FURY_TOKEN }}@push.fury.io/ledger/
+
+brews:
+  - name: ledger
+    alternative_names:
+      - ledger@{{ .Major }}
+    repository:
+      owner: formancehq
+      name: homebrew-tap
+      pull_request:
+        enabled: true
+        base:
+          owner: formancehq
+          name: homebrew-tap
+          branch: main
+    directory: Formula
+    homepage: https://formance.com
+    skip_upload: 'false'
+    test: |
+      system "#{bin}/ledger version"
+    install: |
+      bin.install "ledger"
+  - name: ledger-benchmarks
+    alternative_names:
+      - ledger-benchmarks@{{ .Major }}
+    repository:
+      owner: formancehq
+      name: homebrew-tap
+      pull_request:
+        enabled: true
+        base:
+          owner: formancehq
+          name: homebrew-tap
+          branch: main
+    directory: Formula
+    homepage: https://formance.com
+    skip_upload: 'false'
+    install: |
+      bin.install "ledger-benchmarks"

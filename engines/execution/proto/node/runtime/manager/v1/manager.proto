@@ -1,0 +1,386 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+syntax = "proto3";
+package space.node.runtime.manager.v1;
+
+import "execution/v1/execution.proto";
+
+// Node-local runtime and kernel manager.
+//
+// It reports the runtime releases and guest kernels on the node and installs
+// and removes them. It does not own selection, and launches do not depend on
+// it: an install makes a release or kernel present, never selected. Node-manager
+// binds new work and stock legacy fallback to compiled E0. Its verified managed
+// copies can supply execution; other installed candidates remain unselected.
+service RuntimeManager {
+  // Diagnostic listing of the configured vendor and cache layouts. Never
+  // downloads, repairs aliases, adopts ownership, writes descriptors, or runs
+  // an artifact.
+  rpc ListExecutionArtifacts(ListExecutionArtifactsRequest) returns (ListExecutionArtifactsResponse);
+
+  // Whether the paths the runtime manager relies on are protected from other
+  // local accounts. Reports provisioning; never repairs it.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+
+  // Catalog-authorized artifacts for this node. Does not affect execution.
+  rpc ListAvailableArtifacts(ListAvailableArtifactsRequest) returns (ListAvailableArtifactsResponse);
+  // Stage and verify bytes, then ask node-manager to publish them. Durable;
+  // disconnecting does not cancel the operation. Requires root/operator.
+  rpc InstallArtifact(InstallArtifactRequest) returns (InstallArtifactResponse);
+  // Delete this immutable identity from the managed store only. Node-manager
+  // refuses removal of compiled E0; external image files cannot be addressed.
+  // Requires root/operator.
+  rpc UninstallArtifact(UninstallArtifactRequest) returns (UninstallArtifactResponse);
+
+  rpc GetOperation(GetOperationRequest) returns (GetOperationResponse);
+
+  // Stop an operation still queued or downloading. A finished operation is
+  // returned unchanged; one already publishing or removing fails with
+  // FAILED_PRECONDITION. Requires root or the local operator role.
+  rpc CancelOperation(CancelOperationRequest) returns (CancelOperationResponse);
+}
+
+enum ExecutionArtifactKind {
+  EXECUTION_ARTIFACT_KIND_UNSPECIFIED = 0;
+  // A runtime release; runtime_kind says which runtime.
+  EXECUTION_ARTIFACT_KIND_RUNTIME = 1;
+  // An artifact component such as a guest kernel; component_kind says which.
+  EXECUTION_ARTIFACT_KIND_COMPONENT = 2;
+}
+
+// Which kind of storage an artifact was found on.
+enum ArtifactLocation {
+  ARTIFACT_LOCATION_UNSPECIFIED = 0;
+  // The image-provided vendor tree, which survives reboots.
+  ARTIFACT_LOCATION_VENDOR = 1;
+  // The recreatable cache filesystem that launches read from.
+  ARTIFACT_LOCATION_CACHE = 2;
+}
+
+// How an artifact is laid out where it was found.
+enum ArtifactProvenance {
+  ARTIFACT_PROVENANCE_UNSPECIFIED = 0;
+  // A directory named for the artifact's version.
+  ARTIFACT_PROVENANCE_VERSION_DIRECTORY = 1;
+  // Shipped inside a runtime release directory. Says where the component was
+  // found, not that the runtime can use it.
+  ARTIFACT_PROVENANCE_RUNTIME_RELEASE_BUNDLE = 2;
+  // The unversioned default layout that predates version directories.
+  ARTIFACT_PROVENANCE_LEGACY_FLAT = 3;
+}
+
+// Whether an artifact belongs to the separate managed store. This describes
+// its location, not installer provenance or permission to execute it.
+enum ArtifactManagement {
+  ARTIFACT_MANAGEMENT_UNSPECIFIED = 0;
+  // Located in the managed store; removal is subject to node-manager guards.
+  ARTIFACT_MANAGEMENT_AVENRA_MANAGED = 1;
+  // Supplied by something else; listed, never modified, removed, or adopted.
+  ARTIFACT_MANAGEMENT_EXTERNAL = 2;
+}
+
+// Who supplied an external artifact.
+enum ArtifactProvider {
+  // Also the value for avenra-managed artifacts, which have no provider.
+  ARTIFACT_PROVIDER_UNSPECIFIED = 0;
+  ARTIFACT_PROVIDER_NODE_IMAGE = 1;
+  ARTIFACT_PROVIDER_HOST_OS = 2;
+  // External, with no evidence of whose.
+  ARTIFACT_PROVIDER_UNKNOWN = 3;
+}
+
+enum ExecutionArtifactVersionSource {
+  EXECUTION_ARTIFACT_VERSION_SOURCE_UNSPECIFIED = 0;
+  EXECUTION_ARTIFACT_VERSION_SOURCE_DIRECTORY_NAME = 1;
+  // The "Linux version" banner in a kernel image whose layout names no
+  // version.
+  EXECUTION_ARTIFACT_VERSION_SOURCE_IMAGE_BANNER = 3;
+}
+
+enum ExecutionArtifactStatus {
+  EXECUTION_ARTIFACT_STATUS_UNSPECIFIED = 0;
+  EXECUTION_ARTIFACT_STATUS_VALID = 1;
+  // A required file is missing.
+  EXECUTION_ARTIFACT_STATUS_INCOMPLETE = 2;
+  // A required file exists but could not be read.
+  EXECUTION_ARTIFACT_STATUS_UNREADABLE = 3;
+  // Present, in a shape current consumers cannot use as-is.
+  EXECUTION_ARTIFACT_STATUS_INVALID = 4;
+  // The entry's name is not a version its layout recognizes.
+  EXECUTION_ARTIFACT_STATUS_UNRECOGNIZED = 5;
+  // A well-formed release with no known state-format mapping.
+  EXECUTION_ARTIFACT_STATUS_UNSUPPORTED = 6;
+}
+
+enum ScanRootPresence {
+  SCAN_ROOT_PRESENCE_UNSPECIFIED = 0;
+  SCAN_ROOT_PRESENCE_PRESENT = 1;
+  // Absent roots are not errors; an empty node lists nothing.
+  SCAN_ROOT_PRESENCE_ABSENT = 2;
+  SCAN_ROOT_PRESENCE_UNREADABLE = 3;
+}
+
+enum ScanIssueKind {
+  SCAN_ISSUE_KIND_UNSPECIFIED = 0;
+  SCAN_ISSUE_KIND_ENTRY_LIMIT = 1;
+  SCAN_ISSUE_KIND_DEADLINE = 2;
+  SCAN_ISSUE_KIND_ROOT_UNREADABLE = 3;
+  // An image was, or grew, larger than the digest limit and has no digest.
+  SCAN_ISSUE_KIND_DIGEST_LIMIT = 4;
+}
+
+message ListExecutionArtifactsRequest {
+  // Kinds to list. Empty lists every kind.
+  repeated ExecutionArtifactKind kinds = 1;
+  // Narrows listed components to these kinds. Empty lists every component
+  // kind.
+  repeated space.execution.v1.ArtifactComponentKind component_kinds = 2;
+}
+
+message ListExecutionArtifactsResponse {
+  repeated ExecutionArtifact artifacts = 1;
+  // Compatibility links as observed on disk. These are not a runtime-manager
+  // selection; the runtime manager does not own selection yet.
+  repeated ObservedAlias aliases = 2;
+  repeated ScannedRoot roots = 3;
+  // Anything that stopped the scan from seeing everything.
+  repeated ScanIssue issues = 4;
+  // Discovery coverage: false whenever issues is non-empty. Does not promise
+  // that every artifact is valid or every evidence field is available.
+  // Per-entry read failures or concurrent changes may leave digest/version
+  // unset even in a complete listing; another list request probes them again.
+  // Inspect each entry's status and optional evidence before using it.
+  bool complete = 5;
+}
+
+message ExecutionArtifact {
+  ExecutionArtifactKind kind = 1;
+  // Set for runtimes.
+  space.execution.v1.RuntimeKind runtime_kind = 2;
+  // Set for components.
+  space.execution.v1.ArtifactComponentKind component_kind = 3;
+  // The component's role, such as boot for a guest kernel.
+  optional string role = 4;
+  ArtifactLocation location = 5;
+  ArtifactProvenance provenance = 6;
+  // The directory entry that named the artifact.
+  string name = 7;
+  // The release directory for runtimes, the image file for components.
+  string path = 8;
+  optional string version = 9;
+  ExecutionArtifactVersionSource version_source = 10;
+  // From the ELF header; unset when not an ELF image or an unknown machine.
+  optional string architecture = 11;
+  // From the known-release map; unset when the release is not in it.
+  optional StateFormat state_format = 12;
+  // sha256:<hex> of a kernel image, or the aggregate release digest for a
+  // managed runtime's named binaries. Execution-root runtimes are not hashed.
+  optional string digest = 13;
+  ExecutionArtifactStatus status = 14;
+  // Why the status is not valid, or why evidence is missing.
+  optional string detail = 15;
+  ArtifactManagement management = 16;
+  // Set only when management is external.
+  ArtifactProvider provider = 17;
+  // For a kernel, the runtime release it ships with or was installed for.
+  // Both are unset when nothing on disk ties it to one.
+  space.execution.v1.RuntimeKind for_runtime_kind = 18;
+  optional string for_runtime_version = 19;
+}
+
+message StateFormat {
+  string format = 1;
+  string version = 2;
+}
+
+message ObservedAlias {
+  string path = 1;
+  // Raw link target when path is a symlink.
+  optional string target = 2;
+  // Fully resolved target when it exists.
+  optional string resolved = 3;
+  optional string detail = 4;
+}
+
+// A configured root and what its entries are expected to be.
+message ScannedRoot {
+  ExecutionArtifactKind kind = 1;
+  space.execution.v1.RuntimeKind runtime_kind = 2;
+  space.execution.v1.ArtifactComponentKind component_kind = 3;
+  ArtifactLocation location = 4;
+  ArtifactProvenance provenance = 5;
+  string path = 6;
+  ScanRootPresence presence = 7;
+}
+
+message ScanIssue {
+  ScanIssueKind kind = 1;
+  string path = 2;
+  string detail = 3;
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  // The account the service runs as, which protected paths are checked
+  // against.
+  uint32 service_uid = 1;
+  uint32 service_gid = 2;
+  repeated ProtectedPath protected_paths = 3;
+}
+
+enum ProtectedPathRole {
+  PROTECTED_PATH_ROLE_UNSPECIFIED = 0;
+  // A root of releases or kernels, the node image's or the runtime
+  // manager's own: owned by root or the runtime manager and writable by no
+  // other account. A linked root is audited where it resolves.
+  PROTECTED_PATH_ROLE_INSTALL_ROOT = 1;
+  // Staged into the shared cache by root-run bootstrap: writable by root only.
+  PROTECTED_PATH_ROLE_ROOT_MANAGED_CACHE = 2;
+  // The runtime manager's persistent state: private to its account.
+  PROTECTED_PATH_ROLE_STATE_DIRECTORY = 3;
+}
+
+enum PathProtection {
+  PATH_PROTECTION_UNSPECIFIED = 0;
+  PATH_PROTECTION_PROTECTED = 1;
+  // Not provisioned yet.
+  PATH_PROTECTION_ABSENT = 2;
+  PATH_PROTECTION_UNPROTECTED = 3;
+}
+
+message ProtectedPath {
+  string path = 1;
+  ProtectedPathRole role = 2;
+  PathProtection protection = 3;
+  // For unprotected paths, each way another account could write or displace
+  // the path or a directory above it.
+  repeated string problems = 4;
+}
+
+// Identity of verified component bytes, independent of runtime compatibility
+// and source layout. A version alone never identifies bytes. Digest is sha256:<hex>.
+message ComponentIdentity {
+  space.execution.v1.ArtifactComponentKind kind = 1;
+  string digest = 2;
+  string version = 3;
+}
+
+// Lifecycle operations share an envelope; identity preserves the distinction
+// between a runtime release and a component usable by one or more runtimes.
+message RuntimeArtifactIdentity {
+  space.execution.v1.RuntimeKind kind = 1;
+  string version = 2;
+  // Digest over the release's pinned binaries, not its download archive.
+  string digest = 3;
+}
+message ArtifactIdentity {
+  oneof artifact {
+    RuntimeArtifactIdentity runtime = 1;
+    ComponentIdentity component = 2;
+  }
+}
+message ListAvailableArtifactsRequest {
+  repeated ExecutionArtifactKind kinds = 1;
+  repeated space.execution.v1.ArtifactComponentKind component_kinds = 2;
+  // Optional runtime compatibility filter. A version may be a release line.
+  space.execution.v1.RuntimeKind runtime_kind = 3;
+  optional string runtime_version = 4;
+}
+message ListAvailableArtifactsResponse {
+  repeated AvailableArtifact artifacts = 1;
+}
+enum ArtifactPresence {
+  ARTIFACT_PRESENCE_UNSPECIFIED = 0;
+  ARTIFACT_PRESENCE_ABSENT = 1;
+  // The local slot exists. This is discovery evidence, not byte verification;
+  // install/delete recheck the immutable identity at the node-manager boundary.
+  ARTIFACT_PRESENCE_PRESENT = 2;
+  ARTIFACT_PRESENCE_UNREADABLE = 3;
+}
+message AvailableArtifact {
+  ArtifactIdentity identity = 1;
+  string architecture = 2;
+  optional uint64 size = 3;
+  string source = 4;
+  ArtifactPresence presence = 5;
+  repeated space.execution.v1.RuntimeIdentity compatible_runtimes = 6;
+}
+message InstallArtifactRequest { ArtifactIdentity identity = 1; }
+message InstallArtifactResponse { Operation operation = 1; }
+message UninstallArtifactRequest { ArtifactIdentity identity = 1; }
+message UninstallArtifactResponse { Operation operation = 1; }
+
+enum OperationState {
+  OPERATION_STATE_UNSPECIFIED = 0;
+  // Waiting for the operation ahead of it; one runs at a time.
+  OPERATION_STATE_QUEUED = 1;
+  OPERATION_STATE_DOWNLOADING = 2;
+  // Downloaded and verified; node-manager is publishing it into the node's
+  // store. Past cancelling.
+  OPERATION_STATE_PUBLISHING = 3;
+  OPERATION_STATE_REMOVING = 4;
+  OPERATION_STATE_CANCELLING = 5;
+  OPERATION_STATE_SUCCEEDED = 6;
+  // A transfer failure is retried a bounded number of times first; bytes
+  // that do not match the pins are not.
+  OPERATION_STATE_FAILED = 7;
+  OPERATION_STATE_CANCELLED = 8;
+}
+
+enum OperationOutcome {
+  OPERATION_OUTCOME_UNSPECIFIED = 0;
+  OPERATION_OUTCOME_INSTALLED = 1;
+  // The verified bytes were present when publication was retried or requested.
+  // This includes a retry after a successful publication lost its response.
+  OPERATION_OUTCOME_ALREADY_INSTALLED = 2;
+  // The managed copy is absent, including when it was already absent.
+  OPERATION_OUTCOME_UNINSTALLED = 4;
+}
+
+// A kernel or runtime install or uninstall, tracked until it ends.
+message Operation {
+  // UUIDv7.
+  string operation_id = 1;
+  ArtifactIdentity identity = 2;
+  ArtifactAction action = 3;
+  OperationState state = 6;
+  // What a succeeded operation did; unspecified in every other state.
+  OperationOutcome outcome = 7;
+  // The last attempt's failure. A failed or cancelled operation's reason;
+  // also set while a transfer failure is retried.
+  optional string error = 8;
+  // Set once the operation reached the kernel's or release's directory.
+  OnDisk on_disk = 9;
+  int64 created_at_unix_ms = 10;
+  int64 updated_at_unix_ms = 11;
+}
+
+enum ArtifactAction {
+  ARTIFACT_ACTION_UNSPECIFIED = 0;
+  ARTIFACT_ACTION_INSTALL = 1;
+  ARTIFACT_ACTION_UNINSTALL = 2;
+}
+
+// A kernel or release directory an operation published, found, or removed.
+message OnDisk {
+  string path = 1;
+  // sha256:<hex> of a kernel image, or of a release's binaries as the
+  // runtime manager computes it.
+  string digest = 2;
+}
+
+message GetOperationRequest {
+  string operation_id = 1;
+}
+
+message GetOperationResponse {
+  Operation operation = 1;
+}
+
+message CancelOperationRequest {
+  string operation_id = 1;
+}
+
+message CancelOperationResponse {
+  Operation operation = 1;
+}

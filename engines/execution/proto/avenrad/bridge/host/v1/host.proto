@@ -1,0 +1,12 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+syntax = "proto3";
+package space.avenrad.bridge.host.v1;
+
+import "avenrad/activity/v1/activity.proto";
+
+// Guest→host bridge hosted by avenrad-host-svc.
+service Meta {
+  rpc SetActivityState(space.avenrad.activity.v1.SetActivityStateRequest) returns (space.avenrad.activity.v1.SetActivityStateResponse);
+  rpc RequestActiveFor(space.avenrad.activity.v1.RequestActiveForRequest) returns (space.avenrad.activity.v1.RequestActiveForResponse);
+  rpc RequestShutdown(space.avenrad.activity.v1.RequestShutdownRequest) returns (space.avenrad.activity.v1.RequestShutdownResponse);
+}

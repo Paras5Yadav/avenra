@@ -1,0 +1,1 @@
+create index {{ if not .Transactional }}concurrently{{end}} transactions_sequences on "{{.Schema}}".transactions (id, seq);

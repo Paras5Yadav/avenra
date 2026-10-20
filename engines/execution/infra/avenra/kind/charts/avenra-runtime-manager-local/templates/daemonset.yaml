@@ -1,0 +1,101 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+{{- $ctx := dict "ctx" . "component" "runtime-manager" -}}
+{{- $socket := "/avenra/run/runtime-manager/runtime-manager.sock" -}}
+{{- include "avenra-node-service.serviceAccount" $ctx }}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "avenra-node-service.name" $ctx }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "avenra-node-service.labels" $ctx | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "avenra-node-service.selectorLabels" $ctx | nindent 6 }}
+  # Delete first: runtime-manager holds no service mutex, so nothing makes a
+  # successor wait for its predecessor. The successor binds at once and takes
+  # the socket path by rename (crates/libs/common/svc/src/bootstrap.rs), while
+  # both probes target that one shared socket rather than an instance-local
+  # health socket; and with kernel installs enabled the successor's installer
+  # empties the shared staging directory, which it may only do "when nothing
+  # in staging is live" (installs/staging.rs prepare, installs/operations.rs).
+  # Two instances therefore must not overlap on a node. Nothing waits on its
+  # listings, so the brief gap during a replacement costs nothing.
+  {{- include "avenra-node-service.updateStrategy" (dict "strategy" "deleteFirst") | nindent 2 }}
+  template:
+    metadata:
+      annotations:
+        {{- include "avenra-node-service.podAnnotations" $ctx | nindent 8 }}
+      labels:
+        {{- include "avenra-node-service.labels" $ctx | nindent 8 }}
+    spec:
+      {{- include "avenra-node-service.nodeSelector" $ctx | nindent 6 }}
+      {{- include "avenra-node-service.priorityClass" $ctx | nindent 6 }}
+      serviceAccountName: {{ include "avenra-node-service.name" $ctx }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | int }}
+      # avenra-rtmgr with its socket and node-manager client groups
+      # (AVENRA_RUNTIME_MANAGER_GROUPS); vendor and cache mounts stay read-only.
+      securityContext:
+        {{- include "avenra-node-service.runAs" (dict "ctx" . "user" "AVENRA_RTMGR" "groups" "AVENRA_RUNTIME_MANAGER_GROUPS") | nindent 8 }}
+      initContainers:
+        {{- include "avenra-node-service.prepareRunDir" (dict "ctx" . "path" "/avenra/run/runtime-manager" "mode" "0750"
+            "uid" (include "avenra-node-service.identityNumber" (dict "ctx" . "name" "AVENRA_RTMGR_UID"))
+            "gid" (include "avenra-node-service.groupId" (dict "ctx" . "name" "avenra-rtmgrclients"))) | nindent 8 }}
+      containers:
+        - name: runtime-manager
+          {{- include "avenra-node-service.image" . | nindent 10 }}
+          command: ["/opt/avenra/bin/avenra-rtmgr-svc"]
+          args: ["--list-only"]
+          {{- include "avenra-node-service.restrictedContainer" . | nindent 10 }}
+          env:
+            {{- include "avenra-node-service.env.identity" . | nindent 12 }}
+          # No instance-local health socket; probe the service socket's
+          # standard gRPC health service.
+          startupProbe:
+            exec:
+              command: ["/opt/avenra/bin/grpc_health_probe", "-addr=unix://{{ $socket }}", "-connect-timeout=2s", "-rpc-timeout=2s"]
+            periodSeconds: 5
+            failureThreshold: 24
+          readinessProbe:
+            exec:
+              command: ["/opt/avenra/bin/grpc_health_probe", "-addr=unix://{{ $socket }}", "-connect-timeout=2s", "-rpc-timeout=2s"]
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["/opt/avenra/bin/grpc_health_probe", "-addr=unix://{{ $socket }}", "-connect-timeout=3s", "-rpc-timeout=3s"]
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            {{- include "avenra-node-service.mount.run" . | nindent 12 }}
+            {{- include "avenra-node-service.mount.cache" (dict "readOnly" true) | nindent 12 }}
+            # The runtime aliases (/avenra/bin/firecracker, jailer) and the
+            # vendor releases and kernels they resolve to.
+            - name: avenra-bin
+              mountPath: /avenra/bin
+              readOnly: true
+            - name: vendor
+              mountPath: /avenra/vendor
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        {{- include "avenra-node-service.volume.run" . | nindent 8 }}
+        {{- include "avenra-node-service.volume.cache" . | nindent 8 }}
+        - name: avenra-bin
+          hostPath:
+            path: /avenra/bin
+            type: DirectoryOrCreate
+        - name: vendor
+          hostPath:
+            path: /avenra/vendor
+            type: Directory
+        - name: tmp
+          emptyDir: {}

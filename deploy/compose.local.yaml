@@ -1,0 +1,69 @@
+name: avenra-services
+services:
+  contract-db:
+    image: avenra/contract-storage:8
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: avenra
+      MONGO_INITDB_ROOT_PASSWORD: ${AVENRA_CONTRACT_DB_PASSWORD:?Run scripts/services.py prepare}
+    volumes:
+      - contract-data:/data/db
+    networks: [contracts]
+    mem_limit: 512m
+  contracts:
+    image: avenra/api-contracts:1.15.0
+    restart: unless-stopped
+    depends_on: [contract-db]
+    ports: ["127.0.0.1:4840:8080"]
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_MONGODB_URI: mongodb://avenra:${AVENRA_CONTRACT_DB_PASSWORD}@contract-db:27017/?authSource=admin
+      SPRING_MONGODB_DATABASE: avenra_contracts
+      SPRING_DATA_MONGODB_URI: mongodb://avenra:${AVENRA_CONTRACT_DB_PASSWORD}@contract-db:27017/avenra_contracts?authSource=admin
+      KEYCLOAK_ENABLED: "false"
+      JAVA_OPTIONS: -Xmx512m
+    networks: [contracts]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 900m
+  product-db:
+    image: avenra/product-storage:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: avenra
+      POSTGRES_PASSWORD: ${AVENRA_PRODUCT_DB_PASSWORD:?Run scripts/services.py prepare}
+      POSTGRES_DB: fineract_tenants
+    volumes:
+      - product-data:/var/lib/postgresql/data
+      - ./product-init.sql:/docker-entrypoint-initdb.d/01-avenra.sql:ro
+    networks: [products]
+    mem_limit: 256m
+  banking-core:
+    image: avenra/banking-core:1.15.0
+    restart: unless-stopped
+    depends_on: [product-db]
+    ports: ["127.0.0.1:4841:8443"]
+    environment:
+      FINERACT_HIKARI_DRIVER_SOURCE_CLASS_NAME: org.postgresql.Driver
+      FINERACT_HIKARI_JDBC_URL: jdbc:postgresql://product-db:5432/fineract_tenants
+      FINERACT_HIKARI_USERNAME: avenra
+      FINERACT_HIKARI_PASSWORD: ${AVENRA_PRODUCT_DB_PASSWORD}
+      FINERACT_HIKARI_MINIMUM_IDLE: 1
+      FINERACT_HIKARI_MAXIMUM_POOL_SIZE: 6
+      FINERACT_DEFAULT_TENANTDB_HOSTNAME: product-db
+      FINERACT_DEFAULT_TENANTDB_PORT: "5432"
+      FINERACT_DEFAULT_TENANTDB_UID: avenra
+      FINERACT_DEFAULT_TENANTDB_PWD: ${AVENRA_PRODUCT_DB_PASSWORD}
+      FINERACT_DEFAULT_TENANTDB_NAME: fineract_default
+      FINERACT_DEFAULT_MASTER_PASSWORD: ${AVENRA_PRODUCT_MASTER_PASSWORD}
+      FINERACT_SERVER_SSL_ENABLED: "false"
+      FINERACT_REMOTE_JOB_MESSAGE_HANDLER_SPRING_EVENTS_ENABLED: "true"
+      JAVA_TOOL_OPTIONS: -Xmx1400m -XX:TieredStopAtLevel=1
+    networks: [products]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 2200m
+networks:
+  contracts:
+  products:
+volumes:
+  contract-data:
+  product-data:

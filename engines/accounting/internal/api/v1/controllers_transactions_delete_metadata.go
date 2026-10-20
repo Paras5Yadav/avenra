@@ -1,0 +1,41 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package v1
+
+import (
+	"net/http"
+	"strconv"
+
+	ledgercontroller "avenra.local/accounting/internal/controller/ledger"
+
+	"errors"
+
+	"github.com/formancehq/go-libs/v3/api"
+	"avenra.local/accounting/internal/api/common"
+	"github.com/go-chi/chi/v5"
+)
+
+func deleteTransactionMetadata(w http.ResponseWriter, r *http.Request) {
+	l := common.LedgerFromContext(r.Context())
+
+	transactionID, err := strconv.ParseUint(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		api.BadRequest(w, common.ErrValidation, errors.New("invalid transaction ID"))
+		return
+	}
+
+	metadataKey := chi.URLParam(r, "key")
+
+	_, idempotencyHit, err := l.DeleteTransactionMetadata(r.Context(), getCommandParameters(r, ledgercontroller.DeleteTransactionMetadata{
+		TransactionID: transactionID,
+		Key:           metadataKey,
+	}))
+	if err != nil {
+		common.HandleCommonWriteErrors(w, r, err)
+		return
+	}
+	if idempotencyHit {
+		w.Header().Set("Idempotency-Hit", "true")
+	}
+
+	api.NoContent(w)
+}

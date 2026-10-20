@@ -1,0 +1,161 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package ledger
+
+import (
+	"fmt"
+	"avenra.local/accounting/internal/storage/common"
+	"avenra.local/accounting/pkg/features"
+	"github.com/stoewer/go-strcase"
+	"github.com/uptrace/bun"
+)
+
+type accountsResourceHandler struct {
+	store *Store
+}
+
+func (h accountsResourceHandler) Schema() common.EntitySchema {
+	return common.EntitySchema{
+		Fields: map[string]common.Field{
+			"address":        common.NewStringField().Paginated(),
+			"first_usage":    common.NewDateField().Paginated(),
+			"balance":        common.NewNumericMapField(),
+			"metadata":       common.NewStringMapField(),
+			"insertion_date": common.NewDateField().Paginated(),
+			"updated_at":     common.NewDateField().Paginated(),
+		},
+	}
+}
+
+func (h accountsResourceHandler) BuildDataset(opts common.RepositoryHandlerBuildContext[any]) (*bun.SelectQuery, error) {
+	ret := h.store.newScopedSelect().
+		ModelTableExpr(h.store.GetPrefixedRelationName("accounts")).
+		Column("address", "address_array", "first_usage", "insertion_date", "updated_at")
+
+	if opts.PIT != nil && !opts.PIT.IsZero() {
+		ret = ret.Where("accounts.first_usage <= ?", opts.PIT)
+	}
+
+	if h.store.ledger.HasFeature(features.FeatureAccountMetadataHistory, "SYNC") && opts.PIT != nil && !opts.PIT.IsZero() {
+		selectDistinctAccountMetadataHistories := h.store.newScopedSelect().
+			DistinctOn("accounts_address").
+			ModelTableExpr(h.store.GetPrefixedRelationName("accounts_metadata")).
+			Column("accounts_address").
+			ColumnExpr("first_value(metadata) over (partition by accounts_address order by revision desc) as metadata").
+			Where("date <= ?", opts.PIT)
+
+		ret = ret.
+			Join(
+				`left join (?) accounts_metadata on accounts_metadata.accounts_address = accounts.address`,
+				selectDistinctAccountMetadataHistories,
+			).
+			ColumnExpr(metadataOrEmpty)
+	} else {
+		ret = ret.ColumnExpr("accounts.metadata")
+	}
+
+	return ret, nil
+}
+
+func (h accountsResourceHandler) ResolveFilter(opts common.ResourceQuery[any], operator, property string, value any) (string, []any, error) {
+	switch {
+	case property == "address":
+		return filterAccountAddress(value.(string), "address"), nil, nil
+	case property == "first_usage" || property == "insertion_date" || property == "updated_at":
+		value, err := common.NormalizeDateFilterValue(value)
+		if err != nil {
+			return "", nil, err
+		}
+		return fmt.Sprintf("%s %s ?", property, common.ConvertOperatorToSQL(operator)), []any{value}, nil
+	case balanceRegex.MatchString(property) || property == "balance":
+
+		selectBalance := h.store.newScopedSelect().
+			Where("accounts_address = dataset.address")
+
+		if opts.PIT != nil && !opts.PIT.IsZero() {
+			if !h.store.ledger.HasFeature(features.FeatureMovesHistory, "ON") {
+				return "", nil, NewErrMissingFeature(features.FeatureMovesHistory)
+			}
+			selectBalance = selectBalance.
+				ModelTableExpr(h.store.GetPrefixedRelationName("moves")).
+				DistinctOn("asset").
+				ColumnExpr("first_value((post_commit_effective_volumes).inputs - (post_commit_effective_volumes).outputs) over (partition by (accounts_address, asset) order by effective_date desc, seq desc) as balance").
+				Where("effective_date <= ?", opts.PIT)
+		} else {
+			selectBalance = selectBalance.
+				ModelTableExpr(h.store.GetPrefixedRelationName("accounts_volumes")).
+				ColumnExpr("input - output as balance")
+		}
+
+		if balanceRegex.MatchString(property) {
+			selectBalance = selectBalance.Where("asset = ?", balanceRegex.FindAllStringSubmatch(property, 2)[0][1])
+		}
+
+		return h.store.db.NewSelect().
+			TableExpr("(?) balance", selectBalance).
+			ColumnExpr(fmt.Sprintf("balance %s ?", common.ConvertOperatorToSQL(operator)), value).
+			String(), nil, nil
+	case property == "metadata":
+		return "metadata -> ? is not null", []any{value}, nil
+
+	case common.MetadataRegex.Match([]byte(property)):
+		match := common.MetadataRegex.FindAllStringSubmatch(property, 3)
+
+		return "metadata @> ?", []any{map[string]any{
+			match[0][1]: value,
+		}}, nil
+	default:
+		return "", nil, common.NewErrInvalidQuery("invalid filter property %s", property)
+	}
+}
+
+func (h accountsResourceHandler) Project(_ common.ResourceQuery[any], selectQuery *bun.SelectQuery) (*bun.SelectQuery, error) {
+	return selectQuery.ColumnExpr("*"), nil
+}
+
+func (h accountsResourceHandler) Expand(opts common.ResourceQuery[any], property string) (*bun.SelectQuery, *common.JoinCondition, error) {
+	switch property {
+	case "volumes":
+		if !h.store.ledger.HasFeature(features.FeatureMovesHistory, "ON") {
+			return nil, nil, common.NewErrInvalidQuery("feature %s must be 'ON' to use volumes", features.FeatureMovesHistory)
+		}
+	case "effectiveVolumes":
+		if !h.store.ledger.HasFeature(features.FeatureMovesHistoryPostCommitEffectiveVolumes, "SYNC") {
+			return nil, nil, common.NewErrInvalidQuery("feature %s must be 'SYNC' to use effectiveVolumes", features.FeatureMovesHistoryPostCommitEffectiveVolumes)
+		}
+	}
+
+	selectRowsQuery := h.store.newScopedSelect().
+		Where("accounts_address in (select address from dataset)")
+	if opts.UsePIT() {
+		selectRowsQuery = selectRowsQuery.
+			ModelTableExpr(h.store.GetPrefixedRelationName("moves")).
+			DistinctOn("accounts_address, asset").
+			Column("accounts_address", "asset")
+		if property == "volumes" {
+			selectRowsQuery = selectRowsQuery.
+				ColumnExpr("first_value(post_commit_volumes) over (partition by (accounts_address, asset) order by seq desc) as volumes").
+				Where("insertion_date <= ?", opts.PIT)
+		} else {
+			selectRowsQuery = selectRowsQuery.
+				ColumnExpr("first_value(post_commit_effective_volumes) over (partition by (accounts_address, asset) order by effective_date desc, seq desc) as volumes").
+				Where("effective_date <= ?", opts.PIT)
+		}
+	} else {
+		selectRowsQuery = selectRowsQuery.
+			ModelTableExpr(h.store.GetPrefixedRelationName("accounts_volumes")).
+			Column("asset", "accounts_address").
+			ColumnExpr("(input, output)::" + h.store.GetPrefixedRelationName("volumes") + " as volumes")
+	}
+
+	return h.store.db.NewSelect().
+			With("rows", selectRowsQuery).
+			ModelTableExpr("rows").
+			Column("accounts_address").
+			ColumnExpr("public.aggregate_objects(json_build_object(asset, json_build_object('input', (volumes).inputs, 'output', (volumes).outputs))::jsonb) as " + strcase.SnakeCase(property)).
+			Group("accounts_address"), &common.JoinCondition{
+			Left:  "address",
+			Right: "accounts_address",
+		}, nil
+}
+
+var _ common.RepositoryHandler[any] = accountsResourceHandler{}

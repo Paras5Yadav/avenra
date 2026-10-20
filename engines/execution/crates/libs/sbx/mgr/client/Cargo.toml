@@ -1,0 +1,44 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-sbx-mgr-client"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+# Exposes `test_support`, the shared quarantine/recovery `SandboxInfo`
+# fixtures, to other crates' test suites. Unit tests in this crate get it
+# automatically under `cfg(test)`; external consumers (sbx-mgr, node-ctl) opt
+# in with this feature as a dev-dependency. Mirrors `avenra-runtime-common-svc`'s
+# `test-support`.
+test-support = []
+
+[dependencies]
+tokio = { workspace = true, features = ["time"] }
+prost = { workspace = true }
+prost-types = { workspace = true }
+thiserror = { workspace = true }
+tonic = { workspace = true }
+tonic-prost = { workspace = true }
+uuid = { workspace = true }
+
+# internal
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-execution-common = { workspace = true }
+avenra-runtime-net-common = { workspace = true }
+avenra-runtime-net-gateway-client = { workspace = true }
+avenra-runtime-avenrad-common = { workspace = true }
+
+[build-dependencies]
+anyhow = { workspace = true }
+avenra-runtime-avenrad-build = { workspace = true }
+avenra-runtime-common-proto-build = { workspace = true }
+tonic-prost-build = { workspace = true }

@@ -1,0 +1,6 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: common
+description: Shared contract for the opt-in Avenra observability charts
+type: library
+version: 0.1.0

@@ -1,0 +1,28 @@
+# Kind-only: the in-repo intermediate-key broker fixture
+# (crates/apps/mock/branching-key-provider), which the Kind credential-manager
+# authority uses as its external key provider
+# (infra/avenra/kind/charts/avenra-kind-key-broker). It derives deterministic key
+# material from the tenant reference and is a connectivity fixture, not a key
+# authority (proto/credential/provider/v2/README.md); never deploy it outside
+# a local cluster.
+ARG AVENRA_RUST_BUILD_IMAGE=avenra-rust-build-kind:local
+FROM ${AVENRA_RUST_BUILD_IMAGE} AS rust-build
+
+FROM public.ecr.aws/docker/library/debian:bookworm-slim
+
+RUN groupadd --system --gid 65532 avenra-key-broker \
+    && useradd --system --uid 65532 --gid 65532 --no-create-home --shell /usr/sbin/nologin avenra-key-broker
+
+ARG AVENRA_GIT_SHA=unknown
+LABEL org.opencontainers.image.revision="${AVENRA_GIT_SHA}"
+RUN mkdir -p /etc/space && printf '%s\n' "${AVENRA_GIT_SHA}" > /etc/avenra/build-git-sha
+
+LABEL org.opencontainers.image.title="avenra-kind-key-broker"
+LABEL org.opencontainers.image.description="Local-only Avenra intermediate-key broker fixture for the kind stack."
+
+COPY --from=rust-build /artifacts/bin/avenra-mock-branching-key-provider-svc /usr/local/bin/avenra-mock-branching-key-provider-svc
+
+USER avenra-key-broker
+
+EXPOSE 50051
+ENTRYPOINT ["/usr/local/bin/avenra-mock-branching-key-provider-svc"]

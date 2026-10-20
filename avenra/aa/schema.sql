@@ -1,0 +1,12 @@
+CREATE TABLE aa_schema(version INTEGER PRIMARY KEY);
+INSERT INTO aa_schema VALUES(1);
+CREATE TABLE aa_links(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,environment_id TEXT NOT NULL,fip_id TEXT NOT NULL,customer TEXT NOT NULL,account_ref TEXT NOT NULL,masked TEXT NOT NULL,state TEXT NOT NULL,UNIQUE(environment_id,fip_id,account_ref));
+CREATE TABLE aa_consents(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,environment_id TEXT NOT NULL,handle TEXT NOT NULL UNIQUE,fiu_id TEXT NOT NULL,customer TEXT NOT NULL,request_json TEXT NOT NULL,state TEXT NOT NULL,artifact_json TEXT,binding_hash TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE aa_provider_consents(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,environment_id TEXT NOT NULL,consent_id TEXT NOT NULL,link_id TEXT NOT NULL,fip_id TEXT NOT NULL,artifact_json TEXT NOT NULL,state TEXT NOT NULL,UNIQUE(consent_id,link_id));
+CREATE TABLE aa_sessions(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,environment_id TEXT NOT NULL,consent_id TEXT NOT NULL,fiu_id TEXT NOT NULL,request_json TEXT NOT NULL,state TEXT NOT NULL,frequency_window INTEGER NOT NULL,expires_at REAL NOT NULL,key_reference TEXT,created_at TEXT NOT NULL);
+CREATE TABLE aa_session_legs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,environment_id TEXT NOT NULL,session_id TEXT NOT NULL,provider_consent_id TEXT NOT NULL,fip_id TEXT NOT NULL,provider_session TEXT,state TEXT NOT NULL,response_hash TEXT,UNIQUE(session_id,provider_consent_id));
+CREATE TABLE aa_jobs(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,environment_id TEXT NOT NULL,kind TEXT NOT NULL,target_id TEXT,resource_id TEXT NOT NULL,path TEXT NOT NULL,body_json TEXT NOT NULL,state TEXT NOT NULL,error TEXT,binding_hash TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE TABLE aa_inbox(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,environment_id TEXT NOT NULL,peer_id TEXT NOT NULL,txnid TEXT NOT NULL,path TEXT NOT NULL,body_hash TEXT NOT NULL,response_json TEXT NOT NULL,UNIQUE(environment_id,peer_id,txnid));
+CREATE TABLE aa_events(id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,environment_id TEXT NOT NULL,kind TEXT NOT NULL,resource_id TEXT NOT NULL,payload_hash TEXT NOT NULL,created_at TEXT NOT NULL);
+CREATE INDEX aa_job_pending ON aa_jobs(environment_id,state);
+CREATE INDEX aa_leg_provider ON aa_session_legs(environment_id,fip_id,provider_session);

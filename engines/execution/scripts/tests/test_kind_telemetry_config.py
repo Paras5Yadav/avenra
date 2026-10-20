@@ -1,0 +1,567 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+"""Identity/launch boundaries shared by native and OTLP Kind experiments."""
+
+import importlib.util
+import json
+import os
+import pathlib
+import re
+import subprocess
+
+import pytest
+from kind_chart_render import (
+    BUILD_MANAGER_CHART,
+    KIND_DIR,
+    TELEMETRY_CHARTS,
+    bootstrap_guard_environment,
+    render,
+)
+
+SCRIPT = KIND_DIR / "scripts/telemetry_config.py"
+METRICS_ENDPOINT = "http://collector.avenra-metrics.svc.cluster.local:4317"
+TRACES_ENDPOINT = "http://collector.avenra-traces.svc.cluster.local:4317"
+SHIM_OVERRIDE = "http://192.0.2.10:4317"
+LOCAL_ENDPOINT = "http://127.0.0.1:4317"
+spec = importlib.util.spec_from_file_location("kind_telemetry_config", SCRIPT)
+config = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(config)
+
+
+@pytest.mark.parametrize("mode", ["datadog", "otel", "off"])
+@pytest.mark.parametrize("global_overlay", [None, "null"], ids=["absent", "null"])
+def test_chart_and_executed_shim_share_isolated_identity(mode, global_overlay, tmp_path):
+    settings = config.configuration(
+        {
+            "AVENRA_KIND_TELEMETRY_MODE": mode,
+            "AVENRA_KIND_ENV": "local-kind-owner-box",
+            "AVENRA_KIND_VERSION": "abc123",
+            "AVENRA_KIND_PHASE": "after-datadog",
+            "AVENRA_KIND_OWNER": "owner",
+        }
+    )
+    wrapper = tmp_path / "shim"
+    wrapper.write_text(config.shim_wrapper(settings, "/usr/bin/env", "old-binary"))
+    result = subprocess.run(
+        ["bash", str(wrapper)],
+        env={"PATH": os.environ["PATH"], "DD_ENV": "prod", "DD_VERSION": "old"},
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    launch = dict(row.split("=", 1) for row in result.stdout.splitlines())
+    args = [
+        item for setting in settings["helm_set"] for item in ("--set-string", setting)
+    ]
+    # Unsetting an overlay must preserve the Kind identity/exporter contract
+    # instead of activating global validation.
+    if global_overlay is not None:
+        args += ["--set", f"global.observability={global_overlay}"]
+    for chart in TELEMETRY_CHARTS:
+        # Not "docs": oss/refs-to-private.sh reads that word on a path-joining
+        # line as the private docs/ tree and fails the OSS export gate.
+        manifests = render(chart, "avenra", *args)
+        workload = next(
+            doc for doc in manifests if doc["kind"] in ("Deployment", "DaemonSet")
+        )
+        annotations = workload["spec"]["template"]["metadata"].get("annotations", {})
+        assert (annotations.get("ad.datadoghq.com/logs_exclude") == "true") == (mode == "otel")
+        env = {
+            entry["name"]: entry.get("value")
+            for entry in workload["spec"]["template"]["spec"]["containers"][0]["env"]
+        }
+        for key in ("DD_ENV", "DD_VERSION"):
+            assert env[key] == launch[key]
+        # The workload and the shim agree on the Avenra identity only where the
+        # shim uses it. Its DogStatsD version tag carries the shim's build
+        # version rather than DD_VERSION, so a AVENRA_VERSION in a Datadog-only
+        # mode would change the tag; the chart's services have no such
+        # difference and keep it in every mode.
+        for key in ("AVENRA_ENV", "AVENRA_VERSION"):
+            assert key in env
+            if mode == "otel":
+                assert env[key] == launch[key]
+            else:
+                assert key not in launch
+        assert env["DD_ENV"].startswith("local-kind-")
+        assert env["DD_VERSION"].endswith("-after-datadog")
+        resources = dict(
+            item.split("=", 1) for item in env["OTEL_RESOURCE_ATTRIBUTES"].split(",")
+        )
+        assert resources["deployment.environment.name"] == env["DD_ENV"]
+        assert resources["service.version"] == env["DD_VERSION"]
+        # The mode's whole purpose is selecting one sink; assert it, not just
+        # the trace exporter, so inverting MODES cannot leave this suite green.
+        assert (
+            env["AVENRA_METRICS_SINK"]
+            == {
+                "datadog": "datadog",
+                "otel": "otlp",
+                "off": "off",
+            }[mode]
+        )
+        if mode == "otel":
+            assert env["OTEL_TRACES_SAMPLER"] == "always_on"
+            # sandbox-manager takes the node-reachable Collectors instead, for
+            # the sidecars it launches on the node.
+            if chart.name != "avenra-sandbox-manager-local":
+                assert env["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] == METRICS_ENDPOINT
+                assert env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == TRACES_ENDPOINT
+            else:
+                assert env["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] == config.collector_endpoint(settings, "metrics")
+                assert env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == config.collector_endpoint(settings, "traces")
+            assert env["OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"] == "cumulative"
+            assert env["OTEL_EXPORTER_OTLP_METRICS_PROTOCOL"] == "grpc"
+            assert env["OTEL_EXPORTER_OTLP_TRACES_PROTOCOL"] == "grpc"
+        else:
+            # An empty sampler is not a valid name; the charts omit it.
+            assert "OTEL_TRACES_SAMPLER" not in env
+            assert not any(key.startswith("OTEL_EXPORTER_OTLP_") for key in env)
+        assert "OTEL_EXPORTER_OTLP_ENDPOINT" not in env
+        assert "OTEL_EXPORTER_OTLP_PROTOCOL" not in env
+        # Cluster-named fields carry the cluster, not the environment.
+        assert resources["k8s.cluster.name"] == "avenra-local"
+        # The chart and the shim wrapper must agree on the tag set.
+        assert env["DD_TAGS"] == launch["DD_TAGS"]
+        if chart.name != "avenra-data-plane-local":
+            assert env["AVENRA_CLUSTER_ID"] == launch["AVENRA_CLUSTER_ID"]
+    # Each signal goes to its own Collector: traces for the shim's spans,
+    # metrics for its OTLP sink.
+    if mode == "off":
+        assert not any(key.startswith("OTEL_EXPORTER_OTLP_") for key in launch)
+    else:
+        assert launch["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == (
+            config.collector_endpoint(settings, "traces")
+            if mode == "otel"
+            else LOCAL_ENDPOINT
+        )
+    # The shim reads AVENRA_METRICS_SINK as well; it must follow the mode, or an
+    # otel run leaves the shim on native metrics while the workloads move.
+    expected = {"datadog": "datadog", "otel": "otlp", "off": "off"}[mode]
+    assert launch["AVENRA_TRACE_EXPORTER"] == expected
+    assert launch["AVENRA_METRICS_SINK"] == expected
+    # Shim metrics have no endpoint fallback, unlike traces.
+    assert ("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT" in launch) == (mode == "otel")
+    if mode == "otel":
+        assert launch["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] == config.collector_endpoint(
+            settings, "metrics"
+        )
+        assert launch["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] != launch[
+            "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"
+        ]
+        assert launch["OTEL_EXPORTER_OTLP_METRICS_PROTOCOL"] == "grpc"
+    assert "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE" not in launch
+
+    launched_resources = dict(
+        item.split("=", 1) for item in launch["OTEL_RESOURCE_ATTRIBUTES"].split(",")
+    )
+    # The resolver recomputes process-local attributes and drops any it
+    # inherits here, so the node name has to arrive as its own setting. bash
+    # expanded $(hostname) for both, so compare the values.
+    assert launch["AVENRA_K8S_NODE_NAME"] == launched_resources["k8s.node.name"]
+    # Cluster metadata is not identity and survives in every mode, as do the
+    # Datadog settings the shim has always read.
+    assert "k8s.cluster.name" in launched_resources
+    for key in ("DD_ENV", "DD_VERSION", "DD_SERVICE"):
+        assert key in launch, f"{mode} must still set {key}"
+    # Identity is gated on the mode, in the resource attributes as well as the
+    # direct settings: the resolver reads service.version from here into the
+    # same slot, and in a Datadog-only mode that would replace the shim's build
+    # version in its DogStatsD version tag.
+    identity_present = mode == "otel"
+    assert ("OTEL_SERVICE_NAME" in launch) == identity_present
+    for key in ("service.version", "deployment.environment.name"):
+        assert (key in launched_resources) == identity_present, (
+            f"{mode}: {key} in {launched_resources}"
+        )
+
+
+@pytest.mark.parametrize(
+    "path,mode",
+    [("kind", "datadog"), ("kind", "otel"), ("kind", "off"), ("global", "datadog"), ("global", "otlp")],
+)
+@pytest.mark.parametrize(
+    "trace_exporter",
+    [None, '"off"', "off", "false", "null"],
+    ids=["default", "quoted-off", "bare-off", "false", "null"],
+)
+def test_build_manager_traces_and_command_logs_stay_excluded_across_profiles(path, mode, trace_exporter, tmp_path):
+    """Build failures can carry guest output, so build-manager exports no traces."""
+    if path == "kind":
+        settings = config.configuration({"AVENRA_KIND_TELEMETRY_MODE": mode})
+        args = [item for setting in settings["helm_set"] for item in ("--set-string", setting)]
+        metrics = config.MODES[mode][0]
+    else:
+        args = [
+            "--set-string", f"global.observability.mode={mode}",
+            "--set-string", "global.observability.environment=example",
+            "--set-string", "global.observability.cluster=cluster-a",
+        ]
+        metrics = mode
+    if trace_exporter is not None:
+        # Use YAML, not Python booleans, to cover the caller-side conversion of
+        # bare off to false and Helm's removal of a null default.
+        values = tmp_path / "build-manager.yaml"
+        values.write_text(f"traceExporter: {trace_exporter}\n")
+        args += ["-f", str(values)]
+    manifests = render(BUILD_MANAGER_CHART, "avenra-builder", *args)
+    workload = next(doc for doc in manifests if doc["kind"] == "DaemonSet")
+    annotations = workload["spec"]["template"]["metadata"]["annotations"]
+    assert annotations["ad.datadoghq.com/build-manager.logs_exclude"] == "true"
+    assert (annotations.get("ad.datadoghq.com/logs_exclude") == "true") == (path == "kind" and mode == "otel")
+    env = {
+        entry["name"]: entry.get("value")
+        for entry in workload["spec"]["template"]["spec"]["containers"][0]["env"]
+    }
+    assert env["AVENRA_TRACE_EXPORTER"] == "off"
+    assert "OTEL_EXPORTER_OTLP_TRACES_ENDPOINT" not in env
+    if path == "global":
+        assert env.get("DD_TRACE_ENABLED") != "true"
+        assert "DD_TRACE_AGENT_PORT" not in env
+        assert "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL" not in env
+        assert "OTEL_TRACES_SAMPLER" not in env
+    assert env["AVENRA_METRICS_SINK"] == metrics
+
+
+@pytest.mark.parametrize("chart", TELEMETRY_CHARTS, ids=lambda chart: chart.name)
+@pytest.mark.parametrize("role", ["worker", "builder"])
+def test_chart_otlp_endpoints_can_be_overridden_independently(chart, role):
+    custom_metrics = "http://metrics.example:4317"
+    custom_traces = "http://traces.example:4317"
+    settings = config.configuration({
+        "AVENRA_KIND_TELEMETRY_MODE": "otel",
+        "AVENRA_KIND_OTLP_METRICS_ENDPOINT": custom_metrics,
+        "AVENRA_KIND_OTLP_TRACES_ENDPOINT": custom_traces,
+    })
+    extra = []
+    if (chart / "charts/avenra-node-service").exists():
+        extra = ["--set-string", f"node.role={role}"]
+        if role == "builder" and (chart / "values-builder.yaml").exists():
+            extra += ["-f", str(chart / "values-builder.yaml")]
+    manifests = render(
+        chart, "avenra-builder" if role == "builder" else "avenra", *extra,
+        *(item for setting in settings["helm_set"] for item in ("--set-string", setting)),
+    )
+    workloads = [doc for doc in manifests if doc["kind"] in ("Deployment", "DaemonSet")]
+    assert workloads
+    for workload in workloads:
+        # The API chart has both shared and admin Deployments.
+        annotations = workload["spec"]["template"]["metadata"]["annotations"]
+        assert annotations["ad.datadoghq.com/logs_exclude"] == "true"
+        env = {
+            entry["name"]: entry.get("value")
+            for entry in workload["spec"]["template"]["spec"]["containers"][0]["env"]
+        }
+        assert env["OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"] == custom_metrics
+        assert env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == custom_traces
+    assert config.collector_endpoint(settings, "metrics") == custom_metrics
+    assert config.collector_endpoint(settings, "traces") == custom_traces
+
+
+@pytest.mark.parametrize("role", ["worker", "builder"])
+@pytest.mark.parametrize(
+    "environment",
+    [
+        {"AVENRA_KIND_TELEMETRY_MODE": "otel"},
+        {
+            "AVENRA_KIND_TELEMETRY_MODE": "otel",
+            "AVENRA_KIND_OTLP_METRICS_ENDPOINT": "http://192.0.2.10:4317",
+            "AVENRA_KIND_OTLP_TRACES_ENDPOINT": "http://192.0.2.11:4317",
+        },
+        {"AVENRA_KIND_TELEMETRY_MODE": "otel", "AVENRA_KIND_SHIM_OTLP_ENDPOINT": LOCAL_ENDPOINT},
+        {"AVENRA_KIND_TELEMETRY_MODE": "datadog"},
+        {"AVENRA_KIND_TELEMETRY_MODE": "off"},
+    ],
+)
+def test_profile_reaches_runtime_supervisor_node_environment(environment, role):
+    settings = config.configuration(environment)
+    manifests = render(
+        KIND_DIR / "charts/avenra-node-manager-local", "avenra",
+        "--set-string", f"node.role={role}",
+        *(item for setting in settings["helm_set"] for item in ("--set-string", setting)),
+    )
+    workload = next(doc for doc in manifests if doc["kind"] == "DaemonSet")
+    init = next(
+        container for container in workload["spec"]["template"]["spec"]["initContainers"]
+        if container["name"] == "kind-node-env"
+    )
+    env = {entry["name"]: entry.get("value") for entry in init["env"]}
+    metrics, traces = config.MODES[settings["mode"]]
+    assert env["AVENRA_METRICS_SINK"] == metrics
+    assert env["AVENRA_TRACE_EXPORTER"] == traces
+    if settings["mode"] == "otel":
+        assert env["OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE"] == "cumulative"
+    else:
+        assert "OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE" not in env
+    for signal in ("metrics", "traces"):
+        assert env[f"NODE_OTLP_{signal.upper()}_ENDPOINT"] == config.collector_endpoint(settings, signal)
+        assert (f"OTEL_EXPORTER_OTLP_{signal.upper()}_ENDPOINT" in env) == (settings["mode"] == "otel")
+
+
+def test_shim_endpoint_override_replaces_the_collectors(tmp_path):
+    env = bootstrap_guard_environment(tmp_path)
+    env.update({
+        "AVENRA_KIND_TELEMETRY_MODE": "otel",
+        "AVENRA_KIND_SHIM_OTLP_ENDPOINT": SHIM_OVERRIDE,
+    })
+    wrapper = subprocess.run(
+        ["python3", str(SCRIPT), "shim-wrapper", "--binary", "/usr/bin/env"],
+        env=env, check=True, capture_output=True, text=True,
+    )
+    launch = subprocess.run(
+        ["bash"], input=wrapper.stdout, env=env,
+        check=True, capture_output=True, text=True,
+    )
+    values = dict(row.split("=", 1) for row in launch.stdout.splitlines())
+    assert values["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"] == SHIM_OVERRIDE
+    assert not (tmp_path / "unexpected-operation").exists()
+    settings = config.configuration(env)
+    assert not any(
+        value.startswith(("telemetry.otlpMetricsEndpoint=", "telemetry.otlpTracesEndpoint="))
+        for value in settings["helm_set"]
+    )
+    for signal in ("Metrics", "Traces"):
+        assert f"telemetry.nodeOtlp{signal}Endpoint={SHIM_OVERRIDE}" in settings["helm_set"]
+    for key in ("AVENRA_KIND_OTLP_METRICS_ENDPOINT", "AVENRA_KIND_OTLP_TRACES_ENDPOINT"):
+        with pytest.raises(ValueError, match="cannot be combined with node-only"):
+            config.configuration({**env, key: SHIM_OVERRIDE})
+
+
+# The shim wrapper included: it is installed before the Collectors exist and
+# must not need them.
+@pytest.mark.parametrize("command", ["json", "helm-set", "shim-wrapper"])
+def test_otel_configuration_does_not_require_a_cluster(command, tmp_path):
+    env = bootstrap_guard_environment(tmp_path)
+    env["AVENRA_KIND_TELEMETRY_MODE"] = "otel"
+    result = subprocess.run(
+        ["python3", str(SCRIPT), command],
+        env=env, check=True, capture_output=True, text=True,
+    )
+    assert result.stdout
+    assert not (tmp_path / "unexpected-operation").exists()
+
+
+def test_watched_file_overrides_old_launch_environment(tmp_path):
+    path = tmp_path / "identity.json"
+    path.write_text(
+        json.dumps(
+            {"AVENRA_KIND_ENV": "local-kind-new", "AVENRA_KIND_PHASE": "before-main"}
+        )
+    )
+    settings = config.configuration(
+        config.options(
+            {
+                "AVENRA_KIND_OBSERVABILITY_CONFIG": str(path),
+                "AVENRA_KIND_ENV": "old",
+                "AVENRA_KIND_PHASE": "after-otel",
+            }
+        )
+    )
+    assert settings["environment"] == "local-kind-new"
+    assert settings["phase"] == "before-main"
+
+
+def test_default_environment_is_per_devbox():
+    """An ordinary bootstrap keeps the documented env:local-<host> identity."""
+    settings = config.configuration({})
+    assert settings["environment"] == config.default_environment()
+    assert settings["environment"].startswith("local-")
+    # The Datadog filter documented in datadog-agent-local/values.yaml.
+    assert settings["environment"] != "kind-local"
+
+
+def test_experiment_identity_overrides_the_devbox_default():
+    assert config.configuration({"AVENRA_KIND_ENV": "exp-a"})["environment"] == "exp-a"
+    assert (
+        config.configuration({"AVENRA_KIND_SHIM_ENV": "legacy-b"})["environment"]
+        == "legacy-b"
+    )
+    assert (
+        config.configuration(
+            {"AVENRA_KIND_ENV": "wins", "AVENRA_KIND_SHIM_ENV": "legacy-b"}
+        )["environment"]
+        == "wins"
+    )
+
+
+def test_default_environment_is_a_valid_telemetry_token():
+    config.token(config.default_environment(), "AVENRA_KIND_ENV")
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("AVENRA_KIND_ENV", "x,$(touch /tmp/not-allowed)"),
+        ("AVENRA_KIND_VERSION", "x\nexport DD_ENV=prod"),
+        ("AVENRA_KIND_TELEMETRY_MODE", "unknown"),
+        ("AVENRA_KIND_TELEMETRY_MODE", "otel-noncounters"),
+        ("AVENRA_KIND_TELEMETRY_MODE", "datadog+otlp"),
+        ("AVENRA_KIND_PHASE", "unbounded-sandbox-id"),
+        ("AVENRA_KIND_CLUSTER", "production"),
+        ("AVENRA_KIND_SHIM_OTLP_ENDPOINT", "https://shared.example"),
+        ("AVENRA_KIND_OTLP_METRICS_ENDPOINT", "http://127.0.0.1:4317"),
+        ("AVENRA_KIND_OTLP_TRACES_ENDPOINT", "http://[::1]:4317"),
+        ("AVENRA_KIND_OTLP_METRICS_ENDPOINT", "http://localhost:4317"),
+        ("AVENRA_KIND_OTLP_TRACES_ENDPOINT", "http://collector,telemetry.traceExporter=off"),
+        ("global.observability", "false"),
+        ("global.observability.mode", "unknown"),
+        ("global.observability.mode", "true"),
+        ("global.observability.otlp.protocol", "http/protobuf"),
+        ("global.observability.otlp.nodeLocalPort", "0"),
+        ("global.observability.otlp.nodeLocalPort", "65536"),
+        ("global.observability.otlp.nodeLocalPort", "4317.5"),
+        ("global.observability.datadog.apmPort", "8136"),
+    ],
+)
+def test_invalid_configuration_rejected_before_bootstrap_mutates(key, value, tmp_path):
+    if key.startswith("global."):
+        # Global overlays enter through Helm, not the Kind profile parser.
+        # Start from an accepted render so an unrelated chart failure cannot
+        # make a rejected-input case pass vacuously.
+        mode = "datadog" if ".datadog." in key else "otlp"
+        args = [
+            "--set", f"global.observability.mode={mode}",
+            "--set", "global.observability.environment=example",
+            "--set", "global.observability.cluster=cluster-a",
+        ]
+        chart = KIND_DIR / "charts/avenra-node-manager-local"
+        assert render(chart, "avenra", *args)
+        if key == "global.observability.datadog.apmPort":
+            # Refuse partial native routing without blocking modes that do
+            # not use this setting at all.
+            for unused_mode in ("off", "otlp"):
+                assert render(
+                    chart, "avenra", *args, "--set", f"{key}={value}",
+                    "--set", f"global.observability.mode={unused_mode}",
+                )
+        with pytest.raises(subprocess.CalledProcessError) as rejected:
+            render(chart, "avenra", *args, "--set", f"{key}={value}")
+        assert key in rejected.value.stderr
+        assert not rejected.value.stdout
+        return
+    env = {
+        **bootstrap_guard_environment(tmp_path),
+        "AVENRA_KIND_TELEMETRY_MODE": "otel",
+        key: value,
+    }
+    result = subprocess.run(
+        ["bash", str(KIND_DIR / "scripts/bootstrap.sh"), "--skip-images"],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert re.search(r"Kind (telemetry|Datadog) configuration:", result.stderr)
+    # Non-vacuous anywhere: the guard must refuse before rendering any cluster
+    # configuration under this HOME.
+    assert not list(pathlib.Path(env["HOME"]).rglob("kind-cluster*.yaml"))
+    assert not (tmp_path / "unexpected-operation").exists()
+
+
+def test_configuration_file_rejects_credentials(tmp_path):
+    path = tmp_path / "bad.json"
+    path.write_text(json.dumps({"DD_API_KEY": "not-a-real-key"}))
+    with pytest.raises(ValueError, match="supported AVENRA_KIND"):
+        config.options({"AVENRA_KIND_OBSERVABILITY_CONFIG": str(path)})
+
+
+def test_default_bootstrap_ships_no_empty_tags():
+    """An unconfigured bootstrap must not tag every pod `kind_owner:`.
+
+    The shim wrapper appends owner and phase only when set, so the charts have
+    to match or the two identities diverge exactly where nothing sets them.
+    """
+    settings = config.configuration({})
+    args = [
+        item for setting in settings["helm_set"] for item in ("--set-string", setting)
+    ]
+    for chart in ("avenra-api-local", "avenra-sandbox-manager-local"):
+        workload = next(
+            doc
+            for doc in render(KIND_DIR / "charts" / chart, "avenra", *args)
+            if doc["kind"] in ("Deployment", "DaemonSet")
+        )
+        env = {
+            entry["name"]: entry.get("value")
+            for entry in workload["spec"]["template"]["spec"]["containers"][0]["env"]
+        }
+        assert "kind_owner:" not in env["DD_TAGS"], env["DD_TAGS"]
+        assert "kind_phase:" not in env["DD_TAGS"], env["DD_TAGS"]
+        assert "kind.owner=" not in env["OTEL_RESOURCE_ATTRIBUTES"]
+        assert "kind.phase=" not in env["OTEL_RESOURCE_ATTRIBUTES"]
+
+
+def test_empty_explicit_env_falls_back_to_the_legacy_variable():
+    """An exported-but-empty AVENRA_KIND_ENV must not skip the legacy name."""
+    settings = config.configuration(
+        {"AVENRA_KIND_ENV": "", "AVENRA_KIND_SHIM_ENV": "legacy-b"}
+    )
+    assert settings["environment"] == "legacy-b"
+
+
+@pytest.mark.parametrize(
+    "endpoint, rejected",
+    [
+        ("http://127.0.0.1:4317", False),
+        ("http://[::1]:4317", False),
+        ("http://collector", False),
+        ("http://collector:4317/", False),
+        ("https://collector:4317", True),
+        ("http://:4317", True),
+        ("http://collector:", True),
+        ("http://collector:99999", True),
+        ("http://collector:abc", True),
+        ("http://collector:4317:1234", True),
+        ("http://user:pw@collector:4317", True),
+        ("http://collector:4317/v1/traces", True),
+        ("http://collector:4317?", True),
+        ("http://collector:4317#", True),
+        ("http://collector:4317\t", True),
+        ("http://col lector:4317", True),
+        ("http://collector,other:4317", True),
+        ("http://collector\\:4317", True),
+        ("http://{collector}:4317", True),
+    ],
+)
+def test_shim_endpoint_override_follows_the_shared_rule(endpoint, rejected) -> None:
+    """An override accepted here must not be refused by the shim it configures."""
+    environment = {
+        "AVENRA_KIND_TELEMETRY_MODE": "datadog",
+        "AVENRA_KIND_SHIM_OTLP_ENDPOINT": endpoint,
+    }
+    if rejected:
+        with pytest.raises(ValueError, match="AVENRA_KIND_SHIM_OTLP_ENDPOINT"):
+            config.configuration(environment)
+    else:
+        assert config.configuration(environment)["shim_endpoint"] == endpoint
+
+
+def test_kind_defaults_to_datadog_without_authorizing_backend_install():
+    """Selecting the native wire must not authorize SaaS or OSS installation."""
+    settings = config.configuration({})
+    assert settings["mode"] == "datadog"
+    assert settings["install_observability"] is False
+
+
+@pytest.mark.parametrize(
+    "env,mode,installs",
+    [
+        ({}, "datadog", False),
+        ({"AVENRA_KIND_TELEMETRY_MODE": "datadog"}, "datadog", False),
+        ({"AVENRA_KIND_TELEMETRY_MODE": "off"}, "off", False),
+        ({"AVENRA_KIND_TELEMETRY_MODE": "otel", "AVENRA_KIND_OBSERVABILITY": "off"}, "otel", False),
+        ({"AVENRA_KIND_TELEMETRY_MODE": "otel", "AVENRA_KIND_OBSERVABILITY": "auto"}, "otel", True),
+    ],
+)
+def test_backends_install_only_when_the_mode_uses_them(env, mode, installs):
+    """Receiver installation follows the profile, with explicit reuse-only mode."""
+    settings = config.configuration(dict(env))
+    assert settings["mode"] == mode
+    assert settings["install_observability"] is installs
+
+
+def test_an_unknown_observability_selector_is_rejected():
+    """A typo must not quietly skip the backends the mode needs."""
+    with pytest.raises(ValueError, match="AVENRA_KIND_OBSERVABILITY"):
+        config.configuration({"AVENRA_KIND_OBSERVABILITY": "yes"})

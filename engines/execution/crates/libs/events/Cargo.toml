@@ -1,0 +1,21 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-events"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+tracing = { workspace = true }
+
+# internal
+avenra-runtime-common-core = { workspace = true }
+
+[dev-dependencies]
+tracing-subscriber = { workspace = true }

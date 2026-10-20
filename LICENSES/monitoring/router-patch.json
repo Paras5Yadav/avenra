@@ -1,0 +1,10 @@
+{
+  "base": "tazamaorg/event-director@sha256:7ffaa24179884ae6a73315306379b1221ca72a591d75f37cf7207bc32c454607",
+  "original_sha256": "2e40f8ac981ae1bf0459856f542382cc988f7a01abe5a75eb0ad38cab656a182",
+  "modified_sha256": "53a4121127cbf791123bcf012d5305929efdd3df63ff9f1a4792c06ffe6e58e9",
+  "image_id": "sha256:bb483a77ec5a05dce7d95b186528fa75be3a7dc19bba95bf909d86ca7e5e4042",
+  "license": "Apache-2.0",
+  "source_reference": "https://github.com/tazama-lf/event-director/blob/74d13fea685688378b72ac0536b213ae85156971/src/services/logic.service.ts",
+  "change": "Remove loop-variable shadowing and assign the matching network map on initial lookup. Original SPDX retained.",
+  "scope": "Local integration qualification"
+}

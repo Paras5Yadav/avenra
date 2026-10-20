@@ -1,0 +1,3194 @@
+{
+  "role": "contracts",
+  "revision": "bd1bc7e90e4c9cc84b606b868a04dfd744f6338b",
+  "archive_sha256": "2285ec77d0a18daeeb5f8da184604cd5105d06c833e8bcd595a11bc886abb9aa",
+  "changes": "Product, namespace and local module branding only. Runtime behaviour requires separate verification.",
+  "files": [
+    {
+      "original_path": ".circleci/config.yml",
+      "path": "engines/contracts/.circleci/config.yml",
+      "original_sha256": "509e2e05fdb3a255dd7c8c617c7b0847d8b6bd7382d091f3bd7795d5e0c4bb0a",
+      "sha256": "509e2e05fdb3a255dd7c8c617c7b0847d8b6bd7382d091f3bd7795d5e0c4bb0a",
+      "modified": false
+    },
+    {
+      "original_path": ".dockerignore",
+      "path": "engines/contracts/.dockerignore",
+      "original_sha256": "df7a9aa13869fdcddfd6bca8b4b31228bc4c6ed1d2b75aabf8e8a745f08d60e8",
+      "sha256": "df7a9aa13869fdcddfd6bca8b4b31228bc4c6ed1d2b75aabf8e8a745f08d60e8",
+      "modified": false
+    },
+    {
+      "original_path": ".gitignore",
+      "path": "engines/contracts/.gitignore",
+      "original_sha256": "36033388005d5fc6cdc94738030b1230e1209b3214d5ac6bb24bcce239cb15b9",
+      "sha256": "62f1180fc24c4bd7f8835c77136814d361531b02262fa8dfc25053750ea7e26a",
+      "modified": true
+    },
+    {
+      "original_path": ".grype.yaml",
+      "path": "engines/contracts/.grype.yaml",
+      "original_sha256": "af7ae2c740024b303b35eccd866ef39a79de7aa92c6b4c2641f48a75ea55c448",
+      "sha256": "af7ae2c740024b303b35eccd866ef39a79de7aa92c6b4c2641f48a75ea55c448",
+      "modified": false
+    },
+    {
+      "original_path": ".ncurc.yaml",
+      "path": "engines/contracts/.ncurc.yaml",
+      "original_sha256": "adbdf4326332b5cbffbb08261ab8c93ac07aa21fe229f4562a0ad12c2669e26b",
+      "sha256": "adbdf4326332b5cbffbb08261ab8c93ac07aa21fe229f4562a0ad12c2669e26b",
+      "modified": false
+    },
+    {
+      "original_path": ".npmignore",
+      "path": "engines/contracts/.npmignore",
+      "original_sha256": "4d1a1a55351a7e617e9fd06e61fcc547d822fdc9fb9cc52a10e9c40c3ce1025b",
+      "sha256": "4d1a1a55351a7e617e9fd06e61fcc547d822fdc9fb9cc52a10e9c40c3ce1025b",
+      "modified": false
+    },
+    {
+      "original_path": ".nvmrc",
+      "path": "engines/contracts/.nvmrc",
+      "original_sha256": "4137094e7792cb49fe1afddc3f87208f0ef4adfef7d3acd1def0198786d393c2",
+      "sha256": "4137094e7792cb49fe1afddc3f87208f0ef4adfef7d3acd1def0198786d393c2",
+      "modified": false
+    },
+    {
+      "original_path": ".versionrc.js",
+      "path": "engines/contracts/.versionrc.js",
+      "original_sha256": "2454f2cf7273d6a5e0f3f1ff81e27e352351fb10678bfb7331181b7a5db90d77",
+      "sha256": "2454f2cf7273d6a5e0f3f1ff81e27e352351fb10678bfb7331181b7a5db90d77",
+      "modified": false
+    },
+    {
+      "original_path": "CHANGELOG.md",
+      "path": "engines/contracts/CHANGELOG.md",
+      "original_sha256": "ae510135533c8986ad9293a46393c46350527d5b7631c266ed6bae49712423f4",
+      "sha256": "ae510135533c8986ad9293a46393c46350527d5b7631c266ed6bae49712423f4",
+      "modified": false
+    },
+    {
+      "original_path": "CODEOWNERS",
+      "path": "engines/contracts/CODEOWNERS",
+      "original_sha256": "78f7a7bfa44f61d327d13ee7beb20492252897c160ec31f0580a5a23161157e1",
+      "sha256": "78f7a7bfa44f61d327d13ee7beb20492252897c160ec31f0580a5a23161157e1",
+      "modified": false
+    },
+    {
+      "original_path": "Dockerfile",
+      "path": "engines/contracts/Dockerfile",
+      "original_sha256": "b760fdb12c5d4d69e5e0e78da77aa964c97212b4a999e0f0876b192fc5589609",
+      "sha256": "b760fdb12c5d4d69e5e0e78da77aa964c97212b4a999e0f0876b192fc5589609",
+      "modified": false
+    },
+    {
+      "original_path": "Dockerfile-newman",
+      "path": "engines/contracts/Dockerfile-newman",
+      "original_sha256": "f6b23981ab7cce5105f732616ad486243022d991ce59943573a4dc2fd9fe273b",
+      "sha256": "f6b23981ab7cce5105f732616ad486243022d991ce59943573a4dc2fd9fe273b",
+      "modified": false
+    },
+    {
+      "original_path": "LICENSE.md",
+      "path": "engines/contracts/LICENSE.md",
+      "original_sha256": "e9cb16dd131664e6745d8a0501bcae1b611e3dba45a280e4c363919b080aa2b6",
+      "sha256": "e9cb16dd131664e6745d8a0501bcae1b611e3dba45a280e4c363919b080aa2b6",
+      "modified": false
+    },
+    {
+      "original_path": "README.md",
+      "path": "engines/contracts/README.md",
+      "original_sha256": "5712a6118ecee542e292a394672fb12bcbb8c7ff97be246e02b265c6816f220f",
+      "sha256": "5712a6118ecee542e292a394672fb12bcbb8c7ff97be246e02b265c6816f220f",
+      "modified": false
+    },
+    {
+      "original_path": "assets/diagrams/architectural/architectural-diagram.svg",
+      "path": "engines/contracts/assets/diagrams/architectural/architectural-diagram.svg",
+      "original_sha256": "fb37659ec9c7f4e6fc26063bcfacba31661b57cd55e7a7c3da0fc895b9cfb39d",
+      "sha256": "fb37659ec9c7f4e6fc26063bcfacba31661b57cd55e7a7c3da0fc895b9cfb39d",
+      "modified": false
+    },
+    {
+      "original_path": "assets/diagrams/flow/flow-diagram.svg",
+      "path": "engines/contracts/assets/diagrams/flow/flow-diagram.svg",
+      "original_sha256": "055c6a891de65d7661f0150395e40163555e219e6aaaab179bac857c31244ccd",
+      "sha256": "055c6a891de65d7661f0150395e40163555e219e6aaaab179bac857c31244ccd",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/Sample-Response-Failure.png",
+      "path": "engines/contracts/assets/images/Sample-Response-Failure.png",
+      "original_sha256": "879845f6c06602b6dd714adaa35ba32a4d4889c5dfba31253014279b543a7180",
+      "sha256": "879845f6c06602b6dd714adaa35ba32a4d4889c5dfba31253014279b543a7180",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/Screenshot 2020-04-16 at 22.58.04.png",
+      "path": "engines/contracts/assets/images/Screenshot 2020-04-16 at 22.58.04.png",
+      "original_sha256": "1f1347f7a48548164e1818db5563002274b8b3f4daa27962393b4894378f3885",
+      "sha256": "1f1347f7a48548164e1818db5563002274b8b3f4daa27962393b4894378f3885",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/TLS-Enabled-on-Environment.png",
+      "path": "engines/contracts/assets/images/TLS-Enabled-on-Environment.png",
+      "original_sha256": "2fd0ea027d037f6ec5757ae666fa7e79ee8401fbaaf87bf5a43de1426849e2e9",
+      "sha256": "2fd0ea027d037f6ec5757ae666fa7e79ee8401fbaaf87bf5a43de1426849e2e9",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/adapter-mutual-tls-enabled.png",
+      "path": "engines/contracts/assets/images/adapter-mutual-tls-enabled.png",
+      "original_sha256": "49af0db547f3206be9c4ec4a6dd3dd9d4aaad3ed3bd7c7f2a1a462bf71ca53ee",
+      "sha256": "49af0db547f3206be9c4ec4a6dd3dd9d4aaad3ed3bd7c7f2a1a462bf71ca53ee",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/add-additional-input-values.png",
+      "path": "engines/contracts/assets/images/add-additional-input-values.png",
+      "original_sha256": "887a841aceff57dc9e4bf3823cce32343a0c1baac477b3106dad4fdef5aceaf3",
+      "sha256": "887a841aceff57dc9e4bf3823cce32343a0c1baac477b3106dad4fdef5aceaf3",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/add-condition-button.png",
+      "path": "engines/contracts/assets/images/add-condition-button.png",
+      "original_sha256": "0aada81e53710e02a8b9fe1a3a8b4002acca380d285ac276f5f5d49440bcdff6",
+      "sha256": "0aada81e53710e02a8b9fe1a3a8b4002acca380d285ac276f5f5d49440bcdff6",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/add-new-assertion.png",
+      "path": "engines/contracts/assets/images/add-new-assertion.png",
+      "original_sha256": "e7482a8ec23e55f09b3b0de8f7f30079467be47fba59a1f8d38e45b3214edab9",
+      "sha256": "e7482a8ec23e55f09b3b0de8f7f30079467be47fba59a1f8d38e45b3214edab9",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/add-new-input-value.png",
+      "path": "engines/contracts/assets/images/add-new-input-value.png",
+      "original_sha256": "4146a91c84276509c3934b53e18a9d0e1b48127f3fa9e4baaab51d0b76c45d8e",
+      "sha256": "4146a91c84276509c3934b53e18a9d0e1b48127f3fa9e4baaab51d0b76c45d8e",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/add-new-input-variable.png",
+      "path": "engines/contracts/assets/images/add-new-input-variable.png",
+      "original_sha256": "f537e62cc092ea319c3014f40d0267319f09373d6a6ac1f6f0f9cd30c6c580df",
+      "sha256": "f537e62cc092ea319c3014f40d0267319f09373d6a6ac1f6f0f9cd30c6c580df",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/additional-transfers.png",
+      "path": "engines/contracts/assets/images/additional-transfers.png",
+      "original_sha256": "0e00cac9c5dbd70932cd02313d68531192c304a9c8ff61c4e973c10472b22b52",
+      "sha256": "0e00cac9c5dbd70932cd02313d68531192c304a9c8ff61c4e973c10472b22b52",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/api-provisioning-add-new-api-confirmation.png",
+      "path": "engines/contracts/assets/images/api-provisioning-add-new-api-confirmation.png",
+      "original_sha256": "3e09a2d682cb62671e06e3ff57412ffdc8250a8fb60c38f4719cc4efa38e4cea",
+      "sha256": "3e09a2d682cb62671e06e3ff57412ffdc8250a8fb60c38f4719cc4efa38e4cea",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/api-provisioning-file-input-window.png",
+      "path": "engines/contracts/assets/images/api-provisioning-file-input-window.png",
+      "original_sha256": "66131c875918464430286a516d8da4d951550079a1a5f398362506520a8e30f4",
+      "sha256": "66131c875918464430286a516d8da4d951550079a1a5f398362506520a8e30f4",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/api-provisioning-list-apis-view.png",
+      "path": "engines/contracts/assets/images/api-provisioning-list-apis-view.png",
+      "original_sha256": "659655454303e40ddad2d76eedac46733cc51bed5d9f33a2f25480ea5b93316a",
+      "sha256": "659655454303e40ddad2d76eedac46733cc51bed5d9f33a2f25480ea5b93316a",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/api-provisioning-menu-item.png",
+      "path": "engines/contracts/assets/images/api-provisioning-menu-item.png",
+      "original_sha256": "58672f7c50f3d5586a447c11625ba2df47eda150eafbf230db702709d41a3599",
+      "sha256": "58672f7c50f3d5586a447c11625ba2df47eda150eafbf230db702709d41a3599",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/apply_and_restart.jpg",
+      "path": "engines/contracts/assets/images/apply_and_restart.jpg",
+      "original_sha256": "dd5b1fe540fa535df9b72ffe2591636a7309096af05743536e3eceb02960f9c1",
+      "sha256": "dd5b1fe540fa535df9b72ffe2591636a7309096af05743536e3eceb02960f9c1",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/assess-request-or-response.png",
+      "path": "engines/contracts/assets/images/assess-request-or-response.png",
+      "original_sha256": "626fb8a51988c58292f8a9bccbe1febefce3e089d01e45f7fed0aecda089de47",
+      "sha256": "626fb8a51988c58292f8a9bccbe1febefce3e089d01e45f7fed0aecda089de47",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/assess-response-equation-save.png",
+      "path": "engines/contracts/assets/images/assess-response-equation-save.png",
+      "original_sha256": "9e070d8c736b0074f3192a968cc736b529cc282f57e7b006ae004d3f95d0f2a1",
+      "sha256": "9e070d8c736b0074f3192a968cc736b529cc282f57e7b006ae004d3f95d0f2a1",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/assess-response-equation.png",
+      "path": "engines/contracts/assets/images/assess-response-equation.png",
+      "original_sha256": "2a01159d4958049161a7ab7ed61501c7daf687c9b246909d8be27bdc14fbf8c2",
+      "sha256": "2a01159d4958049161a7ab7ed61501c7daf687c9b246909d8be27bdc14fbf8c2",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/assess-response-status.png",
+      "path": "engines/contracts/assets/images/assess-response-status.png",
+      "original_sha256": "59de991317412dabce3729e71823eeb69465a166ab6721844ce50102ac4a660d",
+      "sha256": "59de991317412dabce3729e71823eeb69465a166ab6721844ce50102ac4a660d",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/building-new-rules-file.png",
+      "path": "engines/contracts/assets/images/building-new-rules-file.png",
+      "original_sha256": "d188a72cb4f81ff528362795579adf56e9dfd26871697146bf10e339575840d2",
+      "sha256": "d188a72cb4f81ff528362795579adf56e9dfd26871697146bf10e339575840d2",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/callback-rules-screen.png",
+      "path": "engines/contracts/assets/images/callback-rules-screen.png",
+      "original_sha256": "5950b1e4557c918c14c7aadef19702acb52853247eb1e5ebc01cb82e02ad6265",
+      "sha256": "5950b1e4557c918c14c7aadef19702acb52853247eb1e5ebc01cb82e02ad6265",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/configurable-parameter-assertion.png",
+      "path": "engines/contracts/assets/images/configurable-parameter-assertion.png",
+      "original_sha256": "b89d1a952dee04c2c1d565c3868504fae2933b4c4bdea85b25b3c6c8af76be44",
+      "sha256": "b89d1a952dee04c2c1d565c3868504fae2933b4c4bdea85b25b3c6c8af76be44",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/configurable-parameter-currency.png",
+      "path": "engines/contracts/assets/images/configurable-parameter-currency.png",
+      "original_sha256": "10b5ee40a971af25f6649532d386ec62a1d9564013378f27c2c0f8508e9867e3",
+      "sha256": "10b5ee40a971af25f6649532d386ec62a1d9564013378f27c2c0f8508e9867e3",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/configurable-parameter.png",
+      "path": "engines/contracts/assets/images/configurable-parameter.png",
+      "original_sha256": "33cad4e3e59719cea3b5f6f2a5f3b7bb2a183114839e0538f082a37dab39e638",
+      "sha256": "33cad4e3e59719cea3b5f6f2a5f3b7bb2a183114839e0538f082a37dab39e638",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/connection-manager-ui-opening.png",
+      "path": "engines/contracts/assets/images/connection-manager-ui-opening.png",
+      "original_sha256": "3c11bc4b0a5599baa8afb6a64f4988f96246f67e86adc9adbcb8dd9c74cb35d9",
+      "sha256": "3c11bc4b0a5599baa8afb6a64f4988f96246f67e86adc9adbcb8dd9c74cb35d9",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/create-inbound-user-simulator.png",
+      "path": "engines/contracts/assets/images/create-inbound-user-simulator.png",
+      "original_sha256": "3197539fecb39aab80529577599f1e1e18ea4bc6a6d47dd6639969cef0407801",
+      "sha256": "3197539fecb39aab80529577599f1e1e18ea4bc6a6d47dd6639969cef0407801",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/creating-new-rule-file.png",
+      "path": "engines/contracts/assets/images/creating-new-rule-file.png",
+      "original_sha256": "d19735e35a95313033ec02ae11647bc28379550b46c377f759c5a6ba2cbd19be",
+      "sha256": "d19735e35a95313033ec02ae11647bc28379550b46c377f759c5a6ba2cbd19be",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/dfsp-client-cacert.png",
+      "path": "engines/contracts/assets/images/dfsp-client-cacert.png",
+      "original_sha256": "47bc1addb6d4e89efa0e0649e5789e9c7b72a6efc63063609f8baaeb3fbaa8b1",
+      "sha256": "47bc1addb6d4e89efa0e0649e5789e9c7b72a6efc63063609f8baaeb3fbaa8b1",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/dfsp-client-submit.png",
+      "path": "engines/contracts/assets/images/dfsp-client-submit.png",
+      "original_sha256": "4494af7c5655beacb1c7f6a77d90ee890bbc7f8c3dbc4d0cc9f4180657e11866",
+      "sha256": "4494af7c5655beacb1c7f6a77d90ee890bbc7f8c3dbc4d0cc9f4180657e11866",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/dfsp-client.png",
+      "path": "engines/contracts/assets/images/dfsp-client.png",
+      "original_sha256": "3383bd43d24a0a151457cb65a7d8c3025572d8124309c36634d5818f21b92509",
+      "sha256": "3383bd43d24a0a151457cb65a7d8c3025572d8124309c36634d5818f21b92509",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/dfsp-p2p-happy-path.png",
+      "path": "engines/contracts/assets/images/dfsp-p2p-happy-path.png",
+      "original_sha256": "127992fefed5a496b785fcdfc3097e04168c39249abecc477abdcfa32da993f9",
+      "sha256": "127992fefed5a496b785fcdfc3097e04168c39249abecc477abdcfa32da993f9",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/dfsp-server-cacert.png",
+      "path": "engines/contracts/assets/images/dfsp-server-cacert.png",
+      "original_sha256": "65b5ae4a1c90be888d8f41212e94e4ec9235f1d6e7417f2a89562abd1f4f6827",
+      "sha256": "65b5ae4a1c90be888d8f41212e94e4ec9235f1d6e7417f2a89562abd1f4f6827",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/dfsp-server-cert.png",
+      "path": "engines/contracts/assets/images/dfsp-server-cert.png",
+      "original_sha256": "37280858a2d635687e4ec52166c580f23bebdcce94287de6c3bb7cfcee1c2195",
+      "sha256": "37280858a2d635687e4ec52166c580f23bebdcce94287de6c3bb7cfcee1c2195",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/download-report.png",
+      "path": "engines/contracts/assets/images/download-report.png",
+      "original_sha256": "722dc0221ebeed6a1f3fd01c5ebe22a7b26605f9c294ff4ade8bd54aafe9e9cb",
+      "sha256": "722dc0221ebeed6a1f3fd01c5ebe22a7b26605f9c294ff4ade8bd54aafe9e9cb",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/drive_have_not_been_shared.jpg",
+      "path": "engines/contracts/assets/images/drive_have_not_been_shared.jpg",
+      "original_sha256": "bb12cd98e7bed3d036b21a946d87017c5ed251a9ffc79665dbd6cdffed8e5e57",
+      "sha256": "bb12cd98e7bed3d036b21a946d87017c5ed251a9ffc79665dbd6cdffed8e5e57",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/event-response-options.png",
+      "path": "engines/contracts/assets/images/event-response-options.png",
+      "original_sha256": "efcce93ba07e6e74e97b1f6752611b7a3375a93e1e09b337ab3176011bcfc14f",
+      "sha256": "efcce93ba07e6e74e97b1f6752611b7a3375a93e1e09b337ab3176011bcfc14f",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/expand-monitoring-messages.png",
+      "path": "engines/contracts/assets/images/expand-monitoring-messages.png",
+      "original_sha256": "3632773e2a64a4e13fb332634436e85f43be305f67317a6bb98766a8ff7ac499",
+      "sha256": "3632773e2a64a4e13fb332634436e85f43be305f67317a6bb98766a8ff7ac499",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/fixed-response-sample.png",
+      "path": "engines/contracts/assets/images/fixed-response-sample.png",
+      "original_sha256": "58dfdb0976bb9ea9fc414025f352f75588eb3f58ed10148c5da1f5166b493ee2",
+      "sha256": "58dfdb0976bb9ea9fc414025f352f75588eb3f58ed10148c5da1f5166b493ee2",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/header-selection.png",
+      "path": "engines/contracts/assets/images/header-selection.png",
+      "original_sha256": "94d7c81efcd118aa33ca9ecbdc3be2418fb150c3d3220fd83db90b44f627e428",
+      "sha256": "94d7c81efcd118aa33ca9ecbdc3be2418fb150c3d3220fd83db90b44f627e428",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/heap_error_windows.jpg",
+      "path": "engines/contracts/assets/images/heap_error_windows.jpg",
+      "original_sha256": "08d9c6bbc9502c098b00b5990a50e8197aa1ddaa0f4f5e41eee1bf2b88ed74eb",
+      "sha256": "08d9c6bbc9502c098b00b5990a50e8197aa1ddaa0f4f5e41eee1bf2b88ed74eb",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/hosted-mode-docker-compose-intro.png",
+      "path": "engines/contracts/assets/images/hosted-mode-docker-compose-intro.png",
+      "original_sha256": "846004ff7db08b99965c3ec0403dcefd8bb9b09dfbb929095b16ef1bd4065735",
+      "sha256": "846004ff7db08b99965c3ec0403dcefd8bb9b09dfbb929095b16ef1bd4065735",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/hub-client-cert.png",
+      "path": "engines/contracts/assets/images/hub-client-cert.png",
+      "original_sha256": "3777366d127364777cb2e6c1d9def9878b2ba0b607c48c24ae6202885352b893",
+      "sha256": "3777366d127364777cb2e6c1d9def9878b2ba0b607c48c24ae6202885352b893",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/import-template.png",
+      "path": "engines/contracts/assets/images/import-template.png",
+      "original_sha256": "d310253c209d81390e5203b0fbd804a542b35b66de351a2025910acee39a4d85",
+      "sha256": "d310253c209d81390e5203b0fbd804a542b35b66de351a2025910acee39a4d85",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/inbound-requests-environment.png",
+      "path": "engines/contracts/assets/images/inbound-requests-environment.png",
+      "original_sha256": "653ecb5ca84e088a729b19bf4b7021f184b0143c1d298be5113c42cb3adca226",
+      "sha256": "653ecb5ca84e088a729b19bf4b7021f184b0143c1d298be5113c42cb3adca226",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/inbound-requests-scripts.png",
+      "path": "engines/contracts/assets/images/inbound-requests-scripts.png",
+      "original_sha256": "4eca455da61879d0d7a9255846cb9848548eb258228c629d1f57fdb4eb570b1f",
+      "sha256": "4eca455da61879d0d7a9255846cb9848548eb258228c629d1f57fdb4eb570b1f",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/jws-certificate-submit.png",
+      "path": "engines/contracts/assets/images/jws-certificate-submit.png",
+      "original_sha256": "995749261ecc70c19162a43d61f900a11e3ee7033728fd9d7b45ad062aa76310",
+      "sha256": "995749261ecc70c19162a43d61f900a11e3ee7033728fd9d7b45ad062aa76310",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/jws-certificate.png",
+      "path": "engines/contracts/assets/images/jws-certificate.png",
+      "original_sha256": "9edb12140f3c88f9f9df46e96bc27f424ec44e3fe55a99f820236e0cdd851387",
+      "sha256": "9edb12140f3c88f9f9df46e96bc27f424ec44e3fe55a99f820236e0cdd851387",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/jws-certs-keys.png",
+      "path": "engines/contracts/assets/images/jws-certs-keys.png",
+      "original_sha256": "1d2daa0bd8504cb9ca21df5a8fa37ec5eb5ac1cf73735f6fb8b20f849ea324e3",
+      "sha256": "1d2daa0bd8504cb9ca21df5a8fa37ec5eb5ac1cf73735f6fb8b20f849ea324e3",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/jws-hub-certs-keys.png",
+      "path": "engines/contracts/assets/images/jws-hub-certs-keys.png",
+      "original_sha256": "5dbe840fbee737a9c21c59fdd2085a3646eb3244ecf1ccf8c5f1350461e2d856",
+      "sha256": "5dbe840fbee737a9c21c59fdd2085a3646eb3244ecf1ccf8c5f1350461e2d856",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/local-enable-jws-publickey.png",
+      "path": "engines/contracts/assets/images/local-enable-jws-publickey.png",
+      "original_sha256": "b4dfcf1c591ab480bb255c48eac3d5e47c8056597369f886edad937d25b0594d",
+      "sha256": "b4dfcf1c591ab480bb255c48eac3d5e47c8056597369f886edad937d25b0594d",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/local-mutual-tls-enabled.png",
+      "path": "engines/contracts/assets/images/local-mutual-tls-enabled.png",
+      "original_sha256": "0d501a1d6ad7356a194b7cd80395ea958b67af2bf164a998469e74f74d8d1152",
+      "sha256": "0d501a1d6ad7356a194b7cd80395ea958b67af2bf164a998469e74f74d8d1152",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/local_drives_to_be_available.jpg",
+      "path": "engines/contracts/assets/images/local_drives_to_be_available.jpg",
+      "original_sha256": "778f4cd5ba682f05e9b2c21d66535352c211c44a8ff181f2c5c765749d2e2491",
+      "sha256": "778f4cd5ba682f05e9b2c21d66535352c211c44a8ff181f2c5c765749d2e2491",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/mcm-environment-opening.png",
+      "path": "engines/contracts/assets/images/mcm-environment-opening.png",
+      "original_sha256": "2fc22d14518e4fc840d95895e7495efa66de61acc4acb7fb0dc3a9a00ebb931d",
+      "sha256": "2fc22d14518e4fc840d95895e7495efa66de61acc4acb7fb0dc3a9a00ebb931d",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/menu-items.png",
+      "path": "engines/contracts/assets/images/menu-items.png",
+      "original_sha256": "4c707fc8863f33fa06ba2ffead5b667e81d74defc78b90fc1f36d4e20b4fc23d",
+      "sha256": "4c707fc8863f33fa06ba2ffead5b667e81d74defc78b90fc1f36d4e20b4fc23d",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/mock-response-sample.png",
+      "path": "engines/contracts/assets/images/mock-response-sample.png",
+      "original_sha256": "2fe538b6fab36c872da48dae6eda86d08332341b5e305325696c70bab14267db",
+      "sha256": "2fe538b6fab36c872da48dae6eda86d08332341b5e305325696c70bab14267db",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/monitoring-initial-state.png",
+      "path": "engines/contracts/assets/images/monitoring-initial-state.png",
+      "original_sha256": "f47c5679cb7cde3f0af4cdfccca52390c7a46885703cf4ec2e0d73c92900dfe6",
+      "sha256": "f47c5679cb7cde3f0af4cdfccca52390c7a46885703cf4ec2e0d73c92900dfe6",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/monitoring-messages.png",
+      "path": "engines/contracts/assets/images/monitoring-messages.png",
+      "original_sha256": "2728aa72d0b6c4ba6b3b2da1054def1bd9bbf841f246029ae2c86745173835e6",
+      "sha256": "2728aa72d0b6c4ba6b3b2da1054def1bd9bbf841f246029ae2c86745173835e6",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/new-empty-assertion.png",
+      "path": "engines/contracts/assets/images/new-empty-assertion.png",
+      "original_sha256": "ec2d8cfcde910fbac63cb494838a6cab4ef524fb80024ab5c2868aa05534af4c",
+      "sha256": "ec2d8cfcde910fbac63cb494838a6cab4ef524fb80024ab5c2868aa05534af4c",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/opened-imported-template.png",
+      "path": "engines/contracts/assets/images/opened-imported-template.png",
+      "original_sha256": "92c7e295d899ebd23c0fe5cf9c46031cfd5453173731134c21a9e277172f95e0",
+      "sha256": "92c7e295d899ebd23c0fe5cf9c46031cfd5453173731134c21a9e277172f95e0",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/opening-default-settings.png",
+      "path": "engines/contracts/assets/images/opening-default-settings.png",
+      "original_sha256": "8ab46d1037c7bce3d535dcb6cff5fd650c354aaa8d154954f90e61fc99d4a9b8",
+      "sha256": "8ab46d1037c7bce3d535dcb6cff5fd650c354aaa8d154954f90e61fc99d4a9b8",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/opening-sync-response-rules.png",
+      "path": "engines/contracts/assets/images/opening-sync-response-rules.png",
+      "original_sha256": "b41dc773e3c2a10bc97e75e9ba269289b178705112cb551eb6452b7e8f3d532c",
+      "sha256": "b41dc773e3c2a10bc97e75e9ba269289b178705112cb551eb6452b7e8f3d532c",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/opening-view.png",
+      "path": "engines/contracts/assets/images/opening-view.png",
+      "original_sha256": "c389a8fe2ae78b3be81b404c2cc9ca0be6765c593338443d5f5a30ca2904ba84",
+      "sha256": "c389a8fe2ae78b3be81b404c2cc9ca0be6765c593338443d5f5a30ca2904ba84",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/outbound-display-opening-hub.png",
+      "path": "engines/contracts/assets/images/outbound-display-opening-hub.png",
+      "original_sha256": "cca7f84af8b09c4cd56aa81effe8a747d70ac3e8f19a495006563cd76626dcb5",
+      "sha256": "cca7f84af8b09c4cd56aa81effe8a747d70ac3e8f19a495006563cd76626dcb5",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/outbound-display-opening.png",
+      "path": "engines/contracts/assets/images/outbound-display-opening.png",
+      "original_sha256": "d4597a3e214049ebb8a98846f9616b9f7b2c9e7bd4dabc944c411baae816b6ec",
+      "sha256": "d4597a3e214049ebb8a98846f9616b9f7b2c9e7bd4dabc944c411baae816b6ec",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/override-with-environment-variable.png",
+      "path": "engines/contracts/assets/images/override-with-environment-variable.png",
+      "original_sha256": "e035fecbbccda16805a09d2fc27e3a836cf25b5edaeaa040fe4821f938a3a697",
+      "sha256": "e035fecbbccda16805a09d2fc27e3a836cf25b5edaeaa040fe4821f938a3a697",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/populate-with-sample-body.png",
+      "path": "engines/contracts/assets/images/populate-with-sample-body.png",
+      "original_sha256": "9cdc15e45b69120a21ed1cd4d1cd60e7555a2e72df053463dc1f75e1ccb76dc8",
+      "sha256": "9cdc15e45b69120a21ed1cd4d1cd60e7555a2e72df053463dc1f75e1ccb76dc8",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/resource-selection.png",
+      "path": "engines/contracts/assets/images/resource-selection.png",
+      "original_sha256": "120affc20445c50323e40c09f5c7a9f7aad8eb18b608609b0114751a8a2a65d8",
+      "sha256": "120affc20445c50323e40c09f5c7a9f7aad8eb18b608609b0114751a8a2a65d8",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/rule-builder-select-api.png",
+      "path": "engines/contracts/assets/images/rule-builder-select-api.png",
+      "original_sha256": "9f2477bc41d7f55e47f81f405195274a8efae320abe86e6f3592d550fab6c826",
+      "sha256": "9f2477bc41d7f55e47f81f405195274a8efae320abe86e6f3592d550fab6c826",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/sample-condition-add-configurable-params.png",
+      "path": "engines/contracts/assets/images/sample-condition-add-configurable-params.png",
+      "original_sha256": "b400d44af8d514252693cdf41c12a77d72a1fd41a5e4156bd62f4e4d9d6f8e5f",
+      "sha256": "b400d44af8d514252693cdf41c12a77d72a1fd41a5e4156bd62f4e4d9d6f8e5f",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/sample-condition.png",
+      "path": "engines/contracts/assets/images/sample-condition.png",
+      "original_sha256": "b236dc36328f5565be0cd53e9990bfa3de32194c60d974c675652a64b7229977",
+      "sha256": "b236dc36328f5565be0cd53e9990bfa3de32194c60d974c675652a64b7229977",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/sample-editor.png",
+      "path": "engines/contracts/assets/images/sample-editor.png",
+      "original_sha256": "816f1b8531114c801e8b3f6a298c7d22f60c8594282a4b57f9e0f946070327d3",
+      "sha256": "816f1b8531114c801e8b3f6a298c7d22f60c8594282a4b57f9e0f946070327d3",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/sample-request.png",
+      "path": "engines/contracts/assets/images/sample-request.png",
+      "original_sha256": "4d2bd956cc4ca77db3b7bfe69fa650f64fb416d2cf51abe36f8653b1f6330bbb",
+      "sha256": "4d2bd956cc4ca77db3b7bfe69fa650f64fb416d2cf51abe36f8653b1f6330bbb",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/sample-test-assertion.png",
+      "path": "engines/contracts/assets/images/sample-test-assertion.png",
+      "original_sha256": "bec7faa6f0b05701d53223593c492d6fbe4746529449410d94b415ebc2164237",
+      "sha256": "bec7faa6f0b05701d53223593c492d6fbe4746529449410d94b415ebc2164237",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/send-transfer.png",
+      "path": "engines/contracts/assets/images/send-transfer.png",
+      "original_sha256": "b2781259fe7e29a65b9403d9379d7410c879f068a32beff034aa20068eed688c",
+      "sha256": "b2781259fe7e29a65b9403d9379d7410c879f068a32beff034aa20068eed688c",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/sending-single-test-case-1.png",
+      "path": "engines/contracts/assets/images/sending-single-test-case-1.png",
+      "original_sha256": "3d6c36cded07611ad93ea4686aadb27b841f47dc84b247470ecf206c71f40780",
+      "sha256": "3d6c36cded07611ad93ea4686aadb27b841f47dc84b247470ecf206c71f40780",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/sending-single-test-case-2.png",
+      "path": "engines/contracts/assets/images/sending-single-test-case-2.png",
+      "original_sha256": "8f7a19e4eaa7481f9ce32b5cfb1ea6ed9c30efbb5eb612a83871b02f2d7aded7",
+      "sha256": "8f7a19e4eaa7481f9ce32b5cfb1ea6ed9c30efbb5eb612a83871b02f2d7aded7",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/sending-test-cases.png",
+      "path": "engines/contracts/assets/images/sending-test-cases.png",
+      "original_sha256": "b6be21c022bb43875849e0ad68c53e6a6ba80874f227b41a6f65c7bf2047ca52",
+      "sha256": "b6be21c022bb43875849e0ad68c53e6a6ba80874f227b41a6f65c7bf2047ca52",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/server-certificates-submitted.png",
+      "path": "engines/contracts/assets/images/server-certificates-submitted.png",
+      "original_sha256": "5e678b22b39a470436b1e47d5135988f0d5d01961c62058a823b9f0bd87c2695",
+      "sha256": "5e678b22b39a470436b1e47d5135988f0d5d01961c62058a823b9f0bd87c2695",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/simulator-response.png",
+      "path": "engines/contracts/assets/images/simulator-response.png",
+      "original_sha256": "e9ea1d964daa8ce6487b45142f05c446c4ffb5e9112706bbbb9c22306ec9e53b",
+      "sha256": "e9ea1d964daa8ce6487b45142f05c446c4ffb5e9112706bbbb9c22306ec9e53b",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/simulator-scheme-adapter-endpoint.png",
+      "path": "engines/contracts/assets/images/simulator-scheme-adapter-endpoint.png",
+      "original_sha256": "2bfe41e93c0edfb39e3ae8e71ff52557661b6d3daf0639e33425cfa3d1fd6ec5",
+      "sha256": "2bfe41e93c0edfb39e3ae8e71ff52557661b6d3daf0639e33425cfa3d1fd6ec5",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/summarized-view-of-rule.png",
+      "path": "engines/contracts/assets/images/summarized-view-of-rule.png",
+      "original_sha256": "68f046bda013a105664b321a84fe569ff3df66a1fe6717690ff19485815ef169",
+      "sha256": "68f046bda013a105664b321a84fe569ff3df66a1fe6717690ff19485815ef169",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/template-window.png",
+      "path": "engines/contracts/assets/images/template-window.png",
+      "original_sha256": "0026566f03c4c28173979fae90ded196bb40e08399c103a49e7ed51fd6aa1d2e",
+      "sha256": "0026566f03c4c28173979fae90ded196bb40e08399c103a49e7ed51fd6aa1d2e",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/test-case-editor-console-log.png",
+      "path": "engines/contracts/assets/images/test-case-editor-console-log.png",
+      "original_sha256": "2e00d2ef1da37e4b7068aacec30630cb55fcdbb1af8e1bc09dfbd3f20506e818",
+      "sha256": "2e00d2ef1da37e4b7068aacec30630cb55fcdbb1af8e1bc09dfbd3f20506e818",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/test-case-editor-environment-state.png",
+      "path": "engines/contracts/assets/images/test-case-editor-environment-state.png",
+      "original_sha256": "73455d3b64a4ff80b5c48b3e279cdaad764d37604acf6c18b2e30f491bdb597f",
+      "sha256": "73455d3b64a4ff80b5c48b3e279cdaad764d37604acf6c18b2e30f491bdb597f",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/test-case-editor-scripts.png",
+      "path": "engines/contracts/assets/images/test-case-editor-scripts.png",
+      "original_sha256": "d61bdae4aca6bba0f8998c5393c687a387a75011e81cf66ee96e4d53d49b9b27",
+      "sha256": "d61bdae4aca6bba0f8998c5393c687a387a75011e81cf66ee96e4d53d49b9b27",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/test-case-editor.png",
+      "path": "engines/contracts/assets/images/test-case-editor.png",
+      "original_sha256": "9aa4102847124d8b2e35cdb209a4a07dec6ea16e4cac794d5769304b5786c815",
+      "sha256": "9aa4102847124d8b2e35cdb209a4a07dec6ea16e4cac794d5769304b5786c815",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/testcase-definition-download.png",
+      "path": "engines/contracts/assets/images/testcase-definition-download.png",
+      "original_sha256": "514a6f6951a80e09127d98d5b87d50c8c0f56c365ae24b09c73e4fb4818544f3",
+      "sha256": "514a6f6951a80e09127d98d5b87d50c8c0f56c365ae24b09c73e4fb4818544f3",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/testcase-definition-edit-meta-info.png",
+      "path": "engines/contracts/assets/images/testcase-definition-edit-meta-info.png",
+      "original_sha256": "1ec6156398287ba58670a6ab769dd957b4637acace40d3a049e1edd065eeee16",
+      "sha256": "1ec6156398287ba58670a6ab769dd957b4637acace40d3a049e1edd065eeee16",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/testing-toolkit-mojaloop-testing-toolkit-endpoint.png",
+      "path": "engines/contracts/assets/images/testing-toolkit-mojaloop-testing-toolkit-endpoint.png",
+      "original_sha256": "0fed353ee49ee82d071883c2e1c1e5b56b222937921d0f5a43e27bfda5796ec1",
+      "sha256": "0fed353ee49ee82d071883c2e1c1e5b56b222937921d0f5a43e27bfda5796ec1",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/tls-hub-certs-keys.png",
+      "path": "engines/contracts/assets/images/tls-hub-certs-keys.png",
+      "original_sha256": "c3d01827698d3ee89cadc6aaa94b4513895466d7ead2996c2860396ae7771097",
+      "sha256": "c3d01827698d3ee89cadc6aaa94b4513895466d7ead2996c2860396ae7771097",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/tls-jws-enabled-on-environment.png",
+      "path": "engines/contracts/assets/images/tls-jws-enabled-on-environment.png",
+      "original_sha256": "b0bd4ee26971de831c0150243fdf9a6f5858b769a0fef008c40683e38a80b5a6",
+      "sha256": "b0bd4ee26971de831c0150243fdf9a6f5858b769a0fef008c40683e38a80b5a6",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/updated-sample-body-data.png",
+      "path": "engines/contracts/assets/images/updated-sample-body-data.png",
+      "original_sha256": "b0df8f1868b5bc05b4f12193031cc03e4bdfd3c27497e7f3cf0dc511e5171934",
+      "sha256": "b0df8f1868b5bc05b4f12193031cc03e4bdfd3c27497e7f3cf0dc511e5171934",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/using-configurable-parameter.png",
+      "path": "engines/contracts/assets/images/using-configurable-parameter.png",
+      "original_sha256": "79359c0bae6fb83efd3d28ce38c88f7ce7d921f405083617fea6806ad76f98eb",
+      "sha256": "79359c0bae6fb83efd3d28ce38c88f7ce7d921f405083617fea6806ad76f98eb",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/validation-rules-screen.png",
+      "path": "engines/contracts/assets/images/validation-rules-screen.png",
+      "original_sha256": "051388990cb67120739bb65e83c7c5f819cec4fcc96973ec5cc9f2df21017367",
+      "sha256": "051388990cb67120739bb65e83c7c5f819cec4fcc96973ec5cc9f2df21017367",
+      "modified": false
+    },
+    {
+      "original_path": "assets/images/view-response.png",
+      "path": "engines/contracts/assets/images/view-response.png",
+      "original_sha256": "98c3da69b03498f242603b992b5c2b2ca890c2a3e6ebd655181e1ebf078f7b2d",
+      "sha256": "98c3da69b03498f242603b992b5c2b2ca890c2a3e6ebd655181e1ebf078f7b2d",
+      "modified": false
+    },
+    {
+      "original_path": "audit-ci.jsonc",
+      "path": "engines/contracts/audit-ci.jsonc",
+      "original_sha256": "5b17cbbd2ef96ea81c11fc4a38af35ab96adc45ca71a5267e3fd8a732d789e71",
+      "sha256": "5b17cbbd2ef96ea81c11fc4a38af35ab96adc45ca71a5267e3fd8a732d789e71",
+      "modified": false
+    },
+    {
+      "original_path": "connection-manager/docker-compose.yml",
+      "path": "engines/contracts/connection-manager/docker-compose.yml",
+      "original_sha256": "aecd850f508befd47fdbf63eafe871f867a9458147816918e27c8a8669688a92",
+      "sha256": "aecd850f508befd47fdbf63eafe871f867a9458147816918e27c8a8669688a92",
+      "modified": false
+    },
+    {
+      "original_path": "database/docker-compose.yml",
+      "path": "engines/contracts/database/docker-compose.yml",
+      "original_sha256": "c9fafdc15b2708622eeaacf3096ddf26d67db613380ab478e89676443a4b819d",
+      "sha256": "c9fafdc15b2708622eeaacf3096ddf26d67db613380ab478e89676443a4b819d",
+      "modified": false
+    },
+    {
+      "original_path": "docker-compose.yml",
+      "path": "engines/contracts/docker-compose.yml",
+      "original_sha256": "ea4185bc48c60b3dea83e87a4a0a378cf8b08d6e33e370942437568a6f2aae67",
+      "sha256": "ea4185bc48c60b3dea83e87a4a0a378cf8b08d6e33e370942437568a6f2aae67",
+      "modified": false
+    },
+    {
+      "original_path": "docker/hosted-mode-tls/docker-compose.yaml",
+      "path": "engines/contracts/docker/hosted-mode-tls/docker-compose.yaml",
+      "original_sha256": "106ade328820aab90183464266b2265e1c53321adf2c37cd2fb2c33b4dcb1855",
+      "sha256": "106ade328820aab90183464266b2265e1c53321adf2c37cd2fb2c33b4dcb1855",
+      "modified": false
+    },
+    {
+      "original_path": "docker/hosted-mode-tls/keycloak/keycloak-realm.json",
+      "path": "engines/contracts/docker/hosted-mode-tls/keycloak/keycloak-realm.json",
+      "original_sha256": "d5e8bc5936fcdf6a459681f727603b529182b1f428188ba29453c9680a7e90e0",
+      "sha256": "d5e8bc5936fcdf6a459681f727603b529182b1f428188ba29453c9680a7e90e0",
+      "modified": false
+    },
+    {
+      "original_path": "docker/hosted-mode-tls/mongo-init.sh",
+      "path": "engines/contracts/docker/hosted-mode-tls/mongo-init.sh",
+      "original_sha256": "f5325bb4173a51c63330de47a3afe890adc58cc8c2e82bc7f014c7ce6829f24f",
+      "sha256": "f5325bb4173a51c63330de47a3afe890adc58cc8c2e82bc7f014c7ce6829f24f",
+      "modified": false
+    },
+    {
+      "original_path": "docker/hosted-mode/docker-compose.yaml",
+      "path": "engines/contracts/docker/hosted-mode/docker-compose.yaml",
+      "original_sha256": "c4dcbe8c455ddefe825b1b685cf884008bba3e2bbb8fb64ced3f0da53fcd9235",
+      "sha256": "c4dcbe8c455ddefe825b1b685cf884008bba3e2bbb8fb64ced3f0da53fcd9235",
+      "modified": false
+    },
+    {
+      "original_path": "docker/hosted-mode/keycloak/keycloak-realm.json",
+      "path": "engines/contracts/docker/hosted-mode/keycloak/keycloak-realm.json",
+      "original_sha256": "d5e8bc5936fcdf6a459681f727603b529182b1f428188ba29453c9680a7e90e0",
+      "sha256": "d5e8bc5936fcdf6a459681f727603b529182b1f428188ba29453c9680a7e90e0",
+      "modified": false
+    },
+    {
+      "original_path": "docker/hosted-mode/mongo-init.sh",
+      "path": "engines/contracts/docker/hosted-mode/mongo-init.sh",
+      "original_sha256": "f5325bb4173a51c63330de47a3afe890adc58cc8c2e82bc7f014c7ce6829f24f",
+      "sha256": "f5325bb4173a51c63330de47a3afe890adc58cc8c2e82bc7f014c7ce6829f24f",
+      "modified": false
+    },
+    {
+      "original_path": "documents/Mojaloop-Testing-Toolkit.md",
+      "path": "engines/contracts/documents/Mojaloop-Testing-Toolkit.md",
+      "original_sha256": "d4dfc5cacce09e213a1c59c37acb9ecb5d0ebeddd6e0f846247c96aa77ca016d",
+      "sha256": "d4dfc5cacce09e213a1c59c37acb9ecb5d0ebeddd6e0f846247c96aa77ca016d",
+      "modified": false
+    },
+    {
+      "original_path": "documents/RULES_ENGINE.md",
+      "path": "engines/contracts/documents/RULES_ENGINE.md",
+      "original_sha256": "95ff4b08b68423eabce0ed6e8ced2eff237512a2f7d49566a4d8cf1005cb11c9",
+      "sha256": "95ff4b08b68423eabce0ed6e8ced2eff237512a2f7d49566a4d8cf1005cb11c9",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-API-Provisioning.md",
+      "path": "engines/contracts/documents/User-Guide-API-Provisioning.md",
+      "original_sha256": "f77ee0b8f66f89640bbba6ad1accc1e2d5c5d06e157982d44524f058cf0e75f1",
+      "sha256": "f77ee0b8f66f89640bbba6ad1accc1e2d5c5d06e157982d44524f058cf0e75f1",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-CLI.md",
+      "path": "engines/contracts/documents/User-Guide-CLI.md",
+      "original_sha256": "15a05110bf917483a3b32363babef1059c81c16aca74dc06a7b030a717f53766",
+      "sha256": "15a05110bf917483a3b32363babef1059c81c16aca74dc06a7b030a717f53766",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-Connection-Manager.md",
+      "path": "engines/contracts/documents/User-Guide-Connection-Manager.md",
+      "original_sha256": "0d620549c6637aadc525f0a3405edc2d05987710d1ac1ae61be124efce00b645",
+      "sha256": "0d620549c6637aadc525f0a3405edc2d05987710d1ac1ae61be124efce00b645",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-Frequently-Asked-Questions.md",
+      "path": "engines/contracts/documents/User-Guide-Frequently-Asked-Questions.md",
+      "original_sha256": "251b4846e0d8696034459713f7faffe370ec5f38c8cc00ddedf988fa742e6668",
+      "sha256": "251b4846e0d8696034459713f7faffe370ec5f38c8cc00ddedf988fa742e6668",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-Hosted-Mode-Docker-Compose.md",
+      "path": "engines/contracts/documents/User-Guide-Hosted-Mode-Docker-Compose.md",
+      "original_sha256": "20829449e9eb1c4b16b12eb2aa9a712a2a0637a97db3af3a12704a07d7df2dcb",
+      "sha256": "20829449e9eb1c4b16b12eb2aa9a712a2a0637a97db3af3a12704a07d7df2dcb",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-Installation.md",
+      "path": "engines/contracts/documents/User-Guide-Installation.md",
+      "original_sha256": "92a9395fbe02bf5b8accf6d25233e322ca97ce23efc08bbd689179604990a677",
+      "sha256": "92a9395fbe02bf5b8accf6d25233e322ca97ce23efc08bbd689179604990a677",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-Mojaloop-Testing-Toolkit.md",
+      "path": "engines/contracts/documents/User-Guide-Mojaloop-Testing-Toolkit.md",
+      "original_sha256": "9e009c7f55f5fe8d73f476fe33c40dfbea3a6181d5b73d0286d96d321f671b31",
+      "sha256": "9e009c7f55f5fe8d73f476fe33c40dfbea3a6181d5b73d0286d96d321f671b31",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-OAuth-Server-Deployment.md",
+      "path": "engines/contracts/documents/User-Guide-OAuth-Server-Deployment.md",
+      "original_sha256": "3188cc810cf1b8e62c50b386b3becdf30429451d3cefd8631202cd9c351358a2",
+      "sha256": "3188cc810cf1b8e62c50b386b3becdf30429451d3cefd8631202cd9c351358a2",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-Onboarding-DFSP.md",
+      "path": "engines/contracts/documents/User-Guide-Onboarding-DFSP.md",
+      "original_sha256": "6e51c9fe8518942f1b3bcf07a86f9934698f609887c4c17ad433f4505719528d",
+      "sha256": "6e51c9fe8518942f1b3bcf07a86f9934698f609887c4c17ad433f4505719528d",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide-Onboarding-HUB.md",
+      "path": "engines/contracts/documents/User-Guide-Onboarding-HUB.md",
+      "original_sha256": "1f9e6ae3ca21ffdd94d27a85bf975976b2ca4a997944db574872fe1fc695f4c7",
+      "sha256": "1f9e6ae3ca21ffdd94d27a85bf975976b2ca4a997944db574872fe1fc695f4c7",
+      "modified": false
+    },
+    {
+      "original_path": "documents/User-Guide.md",
+      "path": "engines/contracts/documents/User-Guide.md",
+      "original_sha256": "61fdd80d16cba39ada6713a4170ce6597b004fb9952b8a2eba48f6d844c93369",
+      "sha256": "61fdd80d16cba39ada6713a4170ce6597b004fb9952b8a2eba48f6d844c93369",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/dfsp/p2p_failed_tests.json",
+      "path": "engines/contracts/examples/collections/dfsp/p2p_failed_tests.json",
+      "original_sha256": "94d95ec499441724afb3b5ef21c75ad700460a91a63ac48687a79ab8d2e9884f",
+      "sha256": "94d95ec499441724afb3b5ef21c75ad700460a91a63ac48687a79ab8d2e9884f",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/dfsp/p2p_fx_happy_path.json",
+      "path": "engines/contracts/examples/collections/dfsp/p2p_fx_happy_path.json",
+      "original_sha256": "7ba62e5001074f08bbd0fb57f92061b695950e04239007c1ed31b93aa174b8eb",
+      "sha256": "7ba62e5001074f08bbd0fb57f92061b695950e04239007c1ed31b93aa174b8eb",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/dfsp/p2p_happy_path.json",
+      "path": "engines/contracts/examples/collections/dfsp/p2p_happy_path.json",
+      "original_sha256": "0eec4f96cc50158ea79bd6ff47c138944b9ff09a333aeeefce941abe53e069c1",
+      "sha256": "0eec4f96cc50158ea79bd6ff47c138944b9ff09a333aeeefce941abe53e069c1",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/dfsp/p2p_happy_path_extended.json",
+      "path": "engines/contracts/examples/collections/dfsp/p2p_happy_path_extended.json",
+      "original_sha256": "76c01891602b153d7bd69ea85f27e864fbc6be17249a7d8f5d59f8ada6d794e2",
+      "sha256": "76c01891602b153d7bd69ea85f27e864fbc6be17249a7d8f5d59f8ada6d794e2",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/dfsp/p2p_happy_path_jws.json",
+      "path": "engines/contracts/examples/collections/dfsp/p2p_happy_path_jws.json",
+      "original_sha256": "7b91c2c6422c6dc5d302769f8ddc485f5e1b4956c0caba6fd64354a06a6d0057",
+      "sha256": "7b91c2c6422c6dc5d302769f8ddc485f5e1b4956c0caba6fd64354a06a6d0057",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/dfsp/p2p_payee_assertions_websocket.json",
+      "path": "engines/contracts/examples/collections/dfsp/p2p_payee_assertions_websocket.json",
+      "original_sha256": "c9f6b382d3acae969d123f0c72979542c26aff01bc4941a5a81e59cef8e10913",
+      "sha256": "c9f6b382d3acae969d123f0c72979542c26aff01bc4941a5a81e59cef8e10913",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/dfsp/sample.json",
+      "path": "engines/contracts/examples/collections/dfsp/sample.json",
+      "original_sha256": "f20a5fa840bff3f32bf75279f9502129de09d6c2c2eed156450ea1a8aa871f17",
+      "sha256": "f20a5fa840bff3f32bf75279f9502129de09d6c2c2eed156450ea1a8aa871f17",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/dfsp/transaction_request_service.json",
+      "path": "engines/contracts/examples/collections/dfsp/transaction_request_service.json",
+      "original_sha256": "cb1dd40949538e0eefbbcdf37cb0e93c56161cee9c88efe361ba7028df5aaf2d",
+      "sha256": "cb1dd40949538e0eefbbcdf37cb0e93c56161cee9c88efe361ba7028df5aaf2d",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/fxp/FXP.json",
+      "path": "engines/contracts/examples/collections/fxp/FXP.json",
+      "original_sha256": "77111aa7cb8d522ece4149c3b4158a00301f7f929d970898106baf449df36428",
+      "sha256": "77111aa7cb8d522ece4149c3b4158a00301f7f929d970898106baf449df36428",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/fxp/SDK_backend.json",
+      "path": "engines/contracts/examples/collections/fxp/SDK_backend.json",
+      "original_sha256": "6f7bfde1b3c83c48b4ee4362742f174136f908d163dc3f321e28fb449d44aa19",
+      "sha256": "6f7bfde1b3c83c48b4ee4362742f174136f908d163dc3f321e28fb449d44aa19",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/fxp/SDK_outbound.json",
+      "path": "engines/contracts/examples/collections/fxp/SDK_outbound.json",
+      "original_sha256": "47be12ed52b6234607048a2c4ff1c9d9a334327c0b8215bb0027bcb672e9d699",
+      "sha256": "47be12ed52b6234607048a2c4ff1c9d9a334327c0b8215bb0027bcb672e9d699",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_01_p2p_happy_path/hub_p2p_receive_quote.json",
+      "path": "engines/contracts/examples/collections/hub/hub_01_p2p_happy_path/hub_p2p_receive_quote.json",
+      "original_sha256": "cc47487e7932d0c7cfb344024bbe1bda059ef303b7ba57515b489144fec46855",
+      "sha256": "cc47487e7932d0c7cfb344024bbe1bda059ef303b7ba57515b489144fec46855",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_01_p2p_happy_path/hub_p2p_send_quote.json",
+      "path": "engines/contracts/examples/collections/hub/hub_01_p2p_happy_path/hub_p2p_send_quote.json",
+      "original_sha256": "d83f4173c155472330817ae69e7e22f614f2c46fddd7e10586e51e9aa78bc07f",
+      "sha256": "d83f4173c155472330817ae69e7e22f614f2c46fddd7e10586e51e9aa78bc07f",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_02_block_transfer/hub_block_transfer.json",
+      "path": "engines/contracts/examples/collections/hub/hub_02_block_transfer/hub_block_transfer.json",
+      "original_sha256": "e39231b2b002926149846c3067ac0dfd5e654952bf9c0c58505f4ec17a3d889b",
+      "sha256": "e39231b2b002926149846c3067ac0dfd5e654952bf9c0c58505f4ec17a3d889b",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_03_funds_in_out/hub_funds_in.json",
+      "path": "engines/contracts/examples/collections/hub/hub_03_funds_in_out/hub_funds_in.json",
+      "original_sha256": "ecef46a0dcc4cf8c9e7aeae8c3054f1c109b6ea06ea00dad8c2b17e4a2267f2e",
+      "sha256": "ecef46a0dcc4cf8c9e7aeae8c3054f1c109b6ea06ea00dad8c2b17e4a2267f2e",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_03_funds_in_out/hub_funds_out.json",
+      "path": "engines/contracts/examples/collections/hub/hub_03_funds_in_out/hub_funds_out.json",
+      "original_sha256": "24d7894760bcb5f02874a0d64efa018e1671188f1c328b9110a2d7fa3a9a9598",
+      "sha256": "24d7894760bcb5f02874a0d64efa018e1671188f1c328b9110a2d7fa3a9a9598",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_04_settlements/hub_settlements.json",
+      "path": "engines/contracts/examples/collections/hub/hub_04_settlements/hub_settlements.json",
+      "original_sha256": "e87b88db7b13800099dac3bb2d883b13999d9a8e47273a2ebeaba65cd0b543b1",
+      "sha256": "e87b88db7b13800099dac3bb2d883b13999d9a8e47273a2ebeaba65cd0b543b1",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_05_transfer_negative_scenarios/hub_transfer_negative_payee_abort.json",
+      "path": "engines/contracts/examples/collections/hub/hub_05_transfer_negative_scenarios/hub_transfer_negative_payee_abort.json",
+      "original_sha256": "b33227fc6f700e8b35a1c9322769d06c4a268d424fbd6afe002f8b20fc0875d9",
+      "sha256": "b33227fc6f700e8b35a1c9322769d06c4a268d424fbd6afe002f8b20fc0875d9",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_05_transfer_negative_scenarios/hub_transfer_negative_payee_invalid_fulfillment.json",
+      "path": "engines/contracts/examples/collections/hub/hub_05_transfer_negative_scenarios/hub_transfer_negative_payee_invalid_fulfillment.json",
+      "original_sha256": "a174937f42a040dfe9c791a8c524215769491a6591b059a8e3de6e390718ad5e",
+      "sha256": "a174937f42a040dfe9c791a8c524215769491a6591b059a8e3de6e390718ad5e",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_05_transfer_negative_scenarios/hub_transfer_negative_transfer_timeout.json",
+      "path": "engines/contracts/examples/collections/hub/hub_05_transfer_negative_scenarios/hub_transfer_negative_transfer_timeout.json",
+      "original_sha256": "7e7e3f2a5fd857ec741896a6752685a77781c1e400d7a0040414dc651623b548",
+      "sha256": "7e7e3f2a5fd857ec741896a6752685a77781c1e400d7a0040414dc651623b548",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_06_transaction_requests_service/hub_trs_authorizations.json",
+      "path": "engines/contracts/examples/collections/hub/hub_06_transaction_requests_service/hub_trs_authorizations.json",
+      "original_sha256": "06bc0781adf79b396e3ace52f986a468288dea051f4e57d9198542f8e90cfd33",
+      "sha256": "06bc0781adf79b396e3ace52f986a468288dea051f4e57d9198542f8e90cfd33",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_06_transaction_requests_service/hub_trs_error_framework.json",
+      "path": "engines/contracts/examples/collections/hub/hub_06_transaction_requests_service/hub_trs_error_framework.json",
+      "original_sha256": "31dbba8c17aab8b59610eda035f160f1e2d86dd7bc2c80666bc9ccf81bdb891c",
+      "sha256": "31dbba8c17aab8b59610eda035f160f1e2d86dd7bc2c80666bc9ccf81bdb891c",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_06_transaction_requests_service/hub_trs_received_state.json",
+      "path": "engines/contracts/examples/collections/hub/hub_06_transaction_requests_service/hub_trs_received_state.json",
+      "original_sha256": "73a54f43e4ba3930515456db0c6fc09871a3eaa6a9b737c66e6c9e1ab2ad1cc7",
+      "sha256": "73a54f43e4ba3930515456db0c6fc09871a3eaa6a9b737c66e6c9e1ab2ad1cc7",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_06_transaction_requests_service/hub_trs_reject_state.json",
+      "path": "engines/contracts/examples/collections/hub/hub_06_transaction_requests_service/hub_trs_reject_state.json",
+      "original_sha256": "c5208cce4c840362e595c758a7ae0f52851b8a0d0f9b6e38d0ad4e95e808a283",
+      "sha256": "c5208cce4c840362e595c758a7ae0f52851b8a0d0f9b6e38d0ad4e95e808a283",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_07_quoting_service.json",
+      "path": "engines/contracts/examples/collections/hub/hub_07_quoting_service.json",
+      "original_sha256": "e8d0886cb15bb425ddc43d3d32fb0072dcebc7825885e857cb08fe23ab56aaf2",
+      "sha256": "e8d0886cb15bb425ddc43d3d32fb0072dcebc7825885e857cb08fe23ab56aaf2",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_08_participant_inactive_stop_transfers.json",
+      "path": "engines/contracts/examples/collections/hub/hub_08_participant_inactive_stop_transfers.json",
+      "original_sha256": "d4d602df272e8e15858260309a590a6420951034d5c7200e41e9c7f0b7a0b490",
+      "sha256": "d4d602df272e8e15858260309a590a6420951034d5c7200e41e9c7f0b7a0b490",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_09_duplicate_handling_transfers.json",
+      "path": "engines/contracts/examples/collections/hub/hub_09_duplicate_handling_transfers.json",
+      "original_sha256": "6a640f96d079b5189d4cff45e836d90f9be8bc0baaeae5acdd92f5ac033e4b8e",
+      "sha256": "6a640f96d079b5189d4cff45e836d90f9be8bc0baaeae5acdd92f5ac033e4b8e",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_10_on_us_transfers.json",
+      "path": "engines/contracts/examples/collections/hub/hub_10_on_us_transfers.json",
+      "original_sha256": "5a82f998cb8320efdc5f0894b831546747ba59adc86495a4ec0385c7808324e4",
+      "sha256": "5a82f998cb8320efdc5f0894b831546747ba59adc86495a4ec0385c7808324e4",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_11_accented_and_spl_chars.json",
+      "path": "engines/contracts/examples/collections/hub/hub_11_accented_and_spl_chars.json",
+      "original_sha256": "7fc70e5e5582f49b18d043bbd7af59612c49f6b108147c67d474e1b01cdd1317",
+      "sha256": "7fc70e5e5582f49b18d043bbd7af59612c49f6b108147c67d474e1b01cdd1317",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_12_fspiop_version_1.1.json",
+      "path": "engines/contracts/examples/collections/hub/hub_12_fspiop_version_1.1.json",
+      "original_sha256": "743ff1ee1e7bad88445c58ee14a99059869e9e68fdf24728fa9dad7b031ee936",
+      "sha256": "743ff1ee1e7bad88445c58ee14a99059869e9e68fdf24728fa9dad7b031ee936",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/hub/hub_13_bulk_transfers.json",
+      "path": "engines/contracts/examples/collections/hub/hub_13_bulk_transfers.json",
+      "original_sha256": "6552c30400469a20823f3f3b1bcf53e0c2bf1e1f74ee4d2181799f0e85a32c17",
+      "sha256": "6552c30400469a20823f3f3b1bcf53e0c2bf1e1f74ee4d2181799f0e85a32c17",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/iso20022/self_referencing_iso20022.json",
+      "path": "engines/contracts/examples/collections/iso20022/self_referencing_iso20022.json",
+      "original_sha256": "f19882c08bcbd1a5f66e4892fc83aba6fbb45d47f2e183585cb9b585f661286a",
+      "sha256": "f19882c08bcbd1a5f66e4892fc83aba6fbb45d47f2e183585cb9b585f661286a",
+      "modified": false
+    },
+    {
+      "original_path": "examples/collections/provisioning/testingtoolkitdfsp.json",
+      "path": "engines/contracts/examples/collections/provisioning/testingtoolkitdfsp.json",
+      "original_sha256": "327cd1145889941e56c923fdb0587470656b68c3b419ab3b7d44240406d84d36",
+      "sha256": "327cd1145889941e56c923fdb0587470656b68c3b419ab3b7d44240406d84d36",
+      "modified": false
+    },
+    {
+      "original_path": "examples/environments/dfsp_local_environment.json",
+      "path": "engines/contracts/examples/environments/dfsp_local_environment.json",
+      "original_sha256": "b484329094e8ccb5af71a42da03791bc2ec34c81997408072915d22f41df7e7f",
+      "sha256": "b484329094e8ccb5af71a42da03791bc2ec34c81997408072915d22f41df7e7f",
+      "modified": false
+    },
+    {
+      "original_path": "examples/environments/hub_local_environment.json",
+      "path": "engines/contracts/examples/environments/hub_local_environment.json",
+      "original_sha256": "140acdf2c2589ab627d68ed09e076a999438a46179361ab098e70fc463427ab2",
+      "sha256": "140acdf2c2589ab627d68ed09e076a999438a46179361ab098e70fc463427ab2",
+      "modified": false
+    },
+    {
+      "original_path": "jest.config.js",
+      "path": "engines/contracts/jest.config.js",
+      "original_sha256": "1e8b6fe6f2afd2faa7ea513621148d639ade82f798c8d13339aacb7690fe25f4",
+      "sha256": "1e8b6fe6f2afd2faa7ea513621148d639ade82f798c8d13339aacb7690fe25f4",
+      "modified": false
+    },
+    {
+      "original_path": "native-app-generation/assets/macos/start.sh",
+      "path": "engines/contracts/native-app-generation/assets/macos/start.sh",
+      "original_sha256": "13c74fbcb81b7537a504f06d862bc28a7f9797cfe9d14920fba92f04f2214b13",
+      "sha256": "13c74fbcb81b7537a504f06d862bc28a7f9797cfe9d14920fba92f04f2214b13",
+      "modified": false
+    },
+    {
+      "original_path": "native-app-generation/build-native-app.sh",
+      "path": "engines/contracts/native-app-generation/build-native-app.sh",
+      "original_sha256": "2d3a1d1bb4260e2bdab8dffd6c7133926ad3d0f4d4c011a29c57b38c1039aec6",
+      "sha256": "2d3a1d1bb4260e2bdab8dffd6c7133926ad3d0f4d4c011a29c57b38c1039aec6",
+      "modified": false
+    },
+    {
+      "original_path": "package-lock.json",
+      "path": "engines/contracts/package-lock.json",
+      "original_sha256": "32687a140bcc08c5e947855012746930ca77e5f07577e6d947ee8228adef78b3",
+      "sha256": "32687a140bcc08c5e947855012746930ca77e5f07577e6d947ee8228adef78b3",
+      "modified": false
+    },
+    {
+      "original_path": "package.json",
+      "path": "engines/contracts/package.json",
+      "original_sha256": "2fad861a30c8f3fa64642e45ea96f79185675d73a8a3dcb2da74d5ab6b136012",
+      "sha256": "2fad861a30c8f3fa64642e45ea96f79185675d73a8a3dcb2da74d5ab6b136012",
+      "modified": false
+    },
+    {
+      "original_path": "sbom-v18.19.2.csv",
+      "path": "engines/contracts/sbom-v18.19.2.csv",
+      "original_sha256": "c4cb0efc837cd59e5fcd20742174473039814b696a738779cb49d2eb8e21c5ce",
+      "sha256": "c4cb0efc837cd59e5fcd20742174473039814b696a738779cb49d2eb8e21c5ce",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/keygen.sh",
+      "path": "engines/contracts/secrets/keygen.sh",
+      "original_sha256": "36838dc067ac17b1503ab26cba162fe1c3e42ed4ada3fcb0400938b7fdcafae4",
+      "sha256": "36838dc067ac17b1503ab26cba162fe1c3e42ed4ada3fcb0400938b7fdcafae4",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/privatekey.pem",
+      "path": "engines/contracts/secrets/privatekey.pem",
+      "original_sha256": "8b359f52ad6d848a1996aa6870dcdf6a6727387ed7ca23ffcacd0ebb428f04fc",
+      "sha256": "8b359f52ad6d848a1996aa6870dcdf6a6727387ed7ca23ffcacd0ebb428f04fc",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/publickey.cer",
+      "path": "engines/contracts/secrets/publickey.cer",
+      "original_sha256": "93167816119e6747518e062c893d2a227a3d407c7b3899cf6f90dbec0bb8ad3c",
+      "sha256": "93167816119e6747518e062c893d2a227a3d407c7b3899cf6f90dbec0bb8ad3c",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/01.pem",
+      "path": "engines/contracts/secrets/tls/01.pem",
+      "original_sha256": "f3930cda6edf23d79b2b1122ddfd46550bc8fc2e941f75c19a36cdc7a9007e48",
+      "sha256": "f3930cda6edf23d79b2b1122ddfd46550bc8fc2e941f75c19a36cdc7a9007e48",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/createSecrets.sh",
+      "path": "engines/contracts/secrets/tls/createSecrets.sh",
+      "original_sha256": "a38b152fa04480657d260b7b17465c9b2048bbc35677456d75f07401ff88d641",
+      "sha256": "a38b152fa04480657d260b7b17465c9b2048bbc35677456d75f07401ff88d641",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_client.csr",
+      "path": "engines/contracts/secrets/tls/hub_client.csr",
+      "original_sha256": "a8257057ba146509cfff51541145d4bf6b55d6f2ee5099fc9c63d45cd01a3d24",
+      "sha256": "a8257057ba146509cfff51541145d4bf6b55d6f2ee5099fc9c63d45cd01a3d24",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_client_cacert.pem",
+      "path": "engines/contracts/secrets/tls/hub_client_cacert.pem",
+      "original_sha256": "66aad77a333d149c782eca4fba1af34c050d885a87eed0cf441f6514358497f3",
+      "sha256": "66aad77a333d149c782eca4fba1af34c050d885a87eed0cf441f6514358497f3",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_client_cakey.pem",
+      "path": "engines/contracts/secrets/tls/hub_client_cakey.pem",
+      "original_sha256": "ca00c5d1a8946daab89fa067ab7db55dcc9d194623c4c68b1606abe458b3d822",
+      "sha256": "ca00c5d1a8946daab89fa067ab7db55dcc9d194623c4c68b1606abe458b3d822",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_client_key.key",
+      "path": "engines/contracts/secrets/tls/hub_client_key.key",
+      "original_sha256": "54122901684e4eb60c1a963637db465d54bd37b22449fefdb505b472dee145b9",
+      "sha256": "54122901684e4eb60c1a963637db465d54bd37b22449fefdb505b472dee145b9",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_server.csr",
+      "path": "engines/contracts/secrets/tls/hub_server.csr",
+      "original_sha256": "90f7e4324f9400216093b27933cc3707f50966ec1aa7344c07b5193b92c0ac16",
+      "sha256": "90f7e4324f9400216093b27933cc3707f50966ec1aa7344c07b5193b92c0ac16",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_server_cacert.pem",
+      "path": "engines/contracts/secrets/tls/hub_server_cacert.pem",
+      "original_sha256": "2613644728c8b9068ac15b1c193e3f3b1e1affd6abab55382552ddb8658ef548",
+      "sha256": "2613644728c8b9068ac15b1c193e3f3b1e1affd6abab55382552ddb8658ef548",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_server_cakey.pem",
+      "path": "engines/contracts/secrets/tls/hub_server_cakey.pem",
+      "original_sha256": "89d84aae2b63ddb3e4809fd258f3465e6c17d4edc42729a780cd94bc720aee8a",
+      "sha256": "89d84aae2b63ddb3e4809fd258f3465e6c17d4edc42729a780cd94bc720aee8a",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_server_cert.pem",
+      "path": "engines/contracts/secrets/tls/hub_server_cert.pem",
+      "original_sha256": "f3930cda6edf23d79b2b1122ddfd46550bc8fc2e941f75c19a36cdc7a9007e48",
+      "sha256": "f3930cda6edf23d79b2b1122ddfd46550bc8fc2e941f75c19a36cdc7a9007e48",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/hub_server_key.key",
+      "path": "engines/contracts/secrets/tls/hub_server_key.key",
+      "original_sha256": "ef714e40fd2e8f7355bd584b50379271106d4be58b4ecf33d47b1fb4be49977e",
+      "sha256": "ef714e40fd2e8f7355bd584b50379271106d4be58b4ecf33d47b1fb4be49977e",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/index.txt",
+      "path": "engines/contracts/secrets/tls/index.txt",
+      "original_sha256": "298be4902da1da9dac1b09e31aabcf63d42c1ce0b9117518f5e971d131594587",
+      "sha256": "298be4902da1da9dac1b09e31aabcf63d42c1ce0b9117518f5e971d131594587",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/index.txt.attr",
+      "path": "engines/contracts/secrets/tls/index.txt.attr",
+      "original_sha256": "8a5810d71338d736b81a3ee0e91aca117a2480085bc7073dc986bb8b0ca6593f",
+      "sha256": "8a5810d71338d736b81a3ee0e91aca117a2480085bc7073dc986bb8b0ca6593f",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/openssl-client.cnf",
+      "path": "engines/contracts/secrets/tls/openssl-client.cnf",
+      "original_sha256": "c762e7fae4b49710c595502652ebc80361f0464e86d41f9b55ac0f680ee29a69",
+      "sha256": "c762e7fae4b49710c595502652ebc80361f0464e86d41f9b55ac0f680ee29a69",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/openssl-clientca.cnf",
+      "path": "engines/contracts/secrets/tls/openssl-clientca.cnf",
+      "original_sha256": "45ad3cc26a39b3b3645a424b31cc797f8366324e029060bb21918f0d8ec40a89",
+      "sha256": "45ad3cc26a39b3b3645a424b31cc797f8366324e029060bb21918f0d8ec40a89",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/openssl-server.cnf",
+      "path": "engines/contracts/secrets/tls/openssl-server.cnf",
+      "original_sha256": "7d21fd4a853ab7949b442bae358e688fdbcb289ba13eac488978850083f6a036",
+      "sha256": "7d21fd4a853ab7949b442bae358e688fdbcb289ba13eac488978850083f6a036",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/openssl-serverca.cnf",
+      "path": "engines/contracts/secrets/tls/openssl-serverca.cnf",
+      "original_sha256": "1c9938cb82c475641a3dffe0919fed8ff9e7bb558f5e08fa44491688b5e45ffc",
+      "sha256": "1c9938cb82c475641a3dffe0919fed8ff9e7bb558f5e08fa44491688b5e45ffc",
+      "modified": false
+    },
+    {
+      "original_path": "secrets/tls/serial.txt",
+      "path": "engines/contracts/secrets/tls/serial.txt",
+      "original_sha256": "d2e084143fcb04ffc0e548123e1f62fc19c5d73906b36e7771a085079cbf4d3c",
+      "sha256": "d2e084143fcb04ffc0e548123e1f62fc19c5d73906b36e7771a085079cbf4d3c",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/docker-compose.yml",
+      "path": "engines/contracts/simulator/docker-compose.yml",
+      "original_sha256": "cd518bb1fe93c225dc4df7d10de8b377008b5786cb1f09486da5aacc6355c047",
+      "sha256": "cd518bb1fe93c225dc4df7d10de8b377008b5786cb1f09486da5aacc6355c047",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/provision.sh",
+      "path": "engines/contracts/simulator/provision.sh",
+      "original_sha256": "3527125d29024eb4c4528a07d5e311187125cdabce0bff73195f7f19d767c774",
+      "sha256": "3527125d29024eb4c4528a07d5e311187125cdabce0bff73195f7f19d767c774",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/scheme-adapter.env",
+      "path": "engines/contracts/simulator/scheme-adapter.env",
+      "original_sha256": "8f5ce2f5697ef0dbc8a620380f99d8723ba8b35ac900e1db446db26ffa277141",
+      "sha256": "8f5ce2f5697ef0dbc8a620380f99d8723ba8b35ac900e1db446db26ffa277141",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/jws/keygen.sh",
+      "path": "engines/contracts/simulator/secrets/jws/keygen.sh",
+      "original_sha256": "3f197a7690cb8afb50d5013310d64d345aa5a14d31b2dcbb62db4a012f5205d9",
+      "sha256": "3f197a7690cb8afb50d5013310d64d345aa5a14d31b2dcbb62db4a012f5205d9",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/jws/privatekey.pem",
+      "path": "engines/contracts/simulator/secrets/jws/privatekey.pem",
+      "original_sha256": "a22097d621a15d8c13c070c003ec6f54136ff1ec157e38f3c353fd466fd851b5",
+      "sha256": "a22097d621a15d8c13c070c003ec6f54136ff1ec157e38f3c353fd466fd851b5",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/jws/publickey.cer",
+      "path": "engines/contracts/simulator/secrets/jws/publickey.cer",
+      "original_sha256": "142a515016661fb5e3c11f0c0bc7dcdeb1d71e32034e60b3cf0db9dfd2243753",
+      "sha256": "142a515016661fb5e3c11f0c0bc7dcdeb1d71e32034e60b3cf0db9dfd2243753",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/jws/verification_keys/testingtoolkitdfsp.pem",
+      "path": "engines/contracts/simulator/secrets/jws/verification_keys/testingtoolkitdfsp.pem",
+      "original_sha256": "93167816119e6747518e062c893d2a227a3d407c7b3899cf6f90dbec0bb8ad3c",
+      "sha256": "93167816119e6747518e062c893d2a227a3d407c7b3899cf6f90dbec0bb8ad3c",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/jws/verification_keys/userdfsp2.pem",
+      "path": "engines/contracts/simulator/secrets/jws/verification_keys/userdfsp2.pem",
+      "original_sha256": "e5a7156b43e7156bad6a62f923a0d7f1ee7abe3c689ac917e8715f7534d880b2",
+      "sha256": "e5a7156b43e7156bad6a62f923a0d7f1ee7abe3c689ac917e8715f7534d880b2",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/tls/createSecrets.sh",
+      "path": "engines/contracts/simulator/secrets/tls/createSecrets.sh",
+      "original_sha256": "10f302d29ea34e9e4556457ab8eb9ed24bcc5ae6b6dc7d7d25e3b101e8a3cf72",
+      "sha256": "10f302d29ea34e9e4556457ab8eb9ed24bcc5ae6b6dc7d7d25e3b101e8a3cf72",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/tls/index.txt",
+      "path": "engines/contracts/simulator/secrets/tls/index.txt",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/tls/openssl-client.cnf",
+      "path": "engines/contracts/simulator/secrets/tls/openssl-client.cnf",
+      "original_sha256": "d44d29812b3cc4573c0666b316c22c081cea8021369a12a9ed43263dfb873677",
+      "sha256": "d44d29812b3cc4573c0666b316c22c081cea8021369a12a9ed43263dfb873677",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/tls/openssl-clientca.cnf",
+      "path": "engines/contracts/simulator/secrets/tls/openssl-clientca.cnf",
+      "original_sha256": "ef753b9b03508cfada334575ae7d97a30f43b264ad0437f27260a68be6200f04",
+      "sha256": "ef753b9b03508cfada334575ae7d97a30f43b264ad0437f27260a68be6200f04",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/tls/openssl-server.cnf",
+      "path": "engines/contracts/simulator/secrets/tls/openssl-server.cnf",
+      "original_sha256": "3d51b317c4085d8a189a036575137107239018257b214dc118c6a348199bee1b",
+      "sha256": "3d51b317c4085d8a189a036575137107239018257b214dc118c6a348199bee1b",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/tls/openssl-serverca.cnf",
+      "path": "engines/contracts/simulator/secrets/tls/openssl-serverca.cnf",
+      "original_sha256": "773fa2041e6023f564b7ef37b4ff3cc1ea6eb42d48b53934ee7dae8033231137",
+      "sha256": "773fa2041e6023f564b7ef37b4ff3cc1ea6eb42d48b53934ee7dae8033231137",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/secrets/tls/serial.txt",
+      "path": "engines/contracts/simulator/secrets/tls/serial.txt",
+      "original_sha256": "43fd56f56bb9bb18bc9c33966325732b2d7e58bfe2504a2c5c164b071c1b8653",
+      "sha256": "43fd56f56bb9bb18bc9c33966325732b2d7e58bfe2504a2c5c164b071c1b8653",
+      "modified": false
+    },
+    {
+      "original_path": "simulator/sim-backend.env",
+      "path": "engines/contracts/simulator/sim-backend.env",
+      "original_sha256": "963c5c7778f23e0cdb137dca3c27408833d7fe3dafa61641bc850b1332691c9d",
+      "sha256": "963c5c7778f23e0cdb137dca3c27408833d7fe3dafa61641bc850b1332691c9d",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/docker-compose.yml",
+      "path": "engines/contracts/simulator2/docker-compose.yml",
+      "original_sha256": "278cf8288a0245d4067f21c74a999c5419596de3cfeafd11b77c5ecf1bb9f7a8",
+      "sha256": "278cf8288a0245d4067f21c74a999c5419596de3cfeafd11b77c5ecf1bb9f7a8",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/scheme-adapter.env",
+      "path": "engines/contracts/simulator2/scheme-adapter.env",
+      "original_sha256": "a1579f2a0d098407e961f37e7e274a31bf891e6d439f75cd79649972644c6f39",
+      "sha256": "a1579f2a0d098407e961f37e7e274a31bf891e6d439f75cd79649972644c6f39",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/jws/keygen.sh",
+      "path": "engines/contracts/simulator2/secrets/jws/keygen.sh",
+      "original_sha256": "000f8d559a3628e249de3ae87eb3418bad7130ccdfadae7866e0bbefb32dbaae",
+      "sha256": "000f8d559a3628e249de3ae87eb3418bad7130ccdfadae7866e0bbefb32dbaae",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/jws/privatekey.pem",
+      "path": "engines/contracts/simulator2/secrets/jws/privatekey.pem",
+      "original_sha256": "7023b91f453cdffa3dc38af6fc546b226ac1725fa23b884624df659bcc61dfed",
+      "sha256": "7023b91f453cdffa3dc38af6fc546b226ac1725fa23b884624df659bcc61dfed",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/jws/publickey.cer",
+      "path": "engines/contracts/simulator2/secrets/jws/publickey.cer",
+      "original_sha256": "e5a7156b43e7156bad6a62f923a0d7f1ee7abe3c689ac917e8715f7534d880b2",
+      "sha256": "e5a7156b43e7156bad6a62f923a0d7f1ee7abe3c689ac917e8715f7534d880b2",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/jws/verification_keys/testingtoolkitdfsp.pem",
+      "path": "engines/contracts/simulator2/secrets/jws/verification_keys/testingtoolkitdfsp.pem",
+      "original_sha256": "93167816119e6747518e062c893d2a227a3d407c7b3899cf6f90dbec0bb8ad3c",
+      "sha256": "93167816119e6747518e062c893d2a227a3d407c7b3899cf6f90dbec0bb8ad3c",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/jws/verification_keys/userdfsp.pem",
+      "path": "engines/contracts/simulator2/secrets/jws/verification_keys/userdfsp.pem",
+      "original_sha256": "142a515016661fb5e3c11f0c0bc7dcdeb1d71e32034e60b3cf0db9dfd2243753",
+      "sha256": "142a515016661fb5e3c11f0c0bc7dcdeb1d71e32034e60b3cf0db9dfd2243753",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/createSecrets.sh",
+      "path": "engines/contracts/simulator2/secrets/tls/createSecrets.sh",
+      "original_sha256": "88432d4eda2d854ff7f84f6c8aa3849917e2e03d0b9c472dd509e10ad755f5d4",
+      "sha256": "88432d4eda2d854ff7f84f6c8aa3849917e2e03d0b9c472dd509e10ad755f5d4",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_client.csr",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_client.csr",
+      "original_sha256": "39ec322a11c03060e67fb1f9b59aca9258698dc14b2a70a106fd2707cb556d1e",
+      "sha256": "39ec322a11c03060e67fb1f9b59aca9258698dc14b2a70a106fd2707cb556d1e",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_client_cacert.pem",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_client_cacert.pem",
+      "original_sha256": "7b77836af1f62d1cfebd0b92502ef9cdd68b52a7c209f6a582a97eb473f25ea6",
+      "sha256": "7b77836af1f62d1cfebd0b92502ef9cdd68b52a7c209f6a582a97eb473f25ea6",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_client_cacert.srl",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_client_cacert.srl",
+      "original_sha256": "c7f3694eb3ebf5efa9d8d7ea215bcec8958239226a364bcf8c7cd208b219dde8",
+      "sha256": "c7f3694eb3ebf5efa9d8d7ea215bcec8958239226a364bcf8c7cd208b219dde8",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_client_cakey.key",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_client_cakey.key",
+      "original_sha256": "bdb8582fde8fa43667d060c00ee2afbf03fef9c6f1c71935baadeb6a4690b6d5",
+      "sha256": "bdb8582fde8fa43667d060c00ee2afbf03fef9c6f1c71935baadeb6a4690b6d5",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_client_cert.cer",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_client_cert.cer",
+      "original_sha256": "b46e8ded905459d6cbb0594bacbdaa03600b8d3c9fde2f2ced1147ef1871b7cf",
+      "sha256": "b46e8ded905459d6cbb0594bacbdaa03600b8d3c9fde2f2ced1147ef1871b7cf",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_client_key.key",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_client_key.key",
+      "original_sha256": "2753f77b99278824e44029089fc1db0cb348a6a949cc68a4a91bf60d1cbaf698",
+      "sha256": "2753f77b99278824e44029089fc1db0cb348a6a949cc68a4a91bf60d1cbaf698",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_server.csr",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_server.csr",
+      "original_sha256": "9d1ec865c819a08e59e1cc009374086ed889f980c742a930b26c79ffe854848b",
+      "sha256": "9d1ec865c819a08e59e1cc009374086ed889f980c742a930b26c79ffe854848b",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_server_cacert.pem",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_server_cacert.pem",
+      "original_sha256": "ae8f1d3b33dfd5a0563035eb9e30b23bb9035f4b0fff18c3f78b365e7debdc28",
+      "sha256": "ae8f1d3b33dfd5a0563035eb9e30b23bb9035f4b0fff18c3f78b365e7debdc28",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_server_cacert.srl",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_server_cacert.srl",
+      "original_sha256": "9f66920e362657e0932999b4e446087156e208ac546779e377aaee18ec1a378f",
+      "sha256": "9f66920e362657e0932999b4e446087156e208ac546779e377aaee18ec1a378f",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_server_cakey.key",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_server_cakey.key",
+      "original_sha256": "5eafaaf03e5fa0d73db9b5235a5750a54dbf095a6708d8952ad272d0a1b2f278",
+      "sha256": "5eafaaf03e5fa0d73db9b5235a5750a54dbf095a6708d8952ad272d0a1b2f278",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_server_cert.pem",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_server_cert.pem",
+      "original_sha256": "8cb871442b6b95884908bee28b78dece5054294e8be1ca8217326f00501c4107",
+      "sha256": "8cb871442b6b95884908bee28b78dece5054294e8be1ca8217326f00501c4107",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/dfsp_server_key.key",
+      "path": "engines/contracts/simulator2/secrets/tls/dfsp_server_key.key",
+      "original_sha256": "8430b2d0edf599d854ed196e93199d0490f26deda54af1a828502208589605e0",
+      "sha256": "8430b2d0edf599d854ed196e93199d0490f26deda54af1a828502208589605e0",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/hub_client.csr",
+      "path": "engines/contracts/simulator2/secrets/tls/hub_client.csr",
+      "original_sha256": "f4359ed0ec582833def03299baaaf17bb0b99ddea4315eef7ca2faae1b550de1",
+      "sha256": "f4359ed0ec582833def03299baaaf17bb0b99ddea4315eef7ca2faae1b550de1",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/hub_client_cacert.pem",
+      "path": "engines/contracts/simulator2/secrets/tls/hub_client_cacert.pem",
+      "original_sha256": "92638ff46f345fcd0694565c74309e9f23a429e93709c6d4368e372cd53f7ab8",
+      "sha256": "92638ff46f345fcd0694565c74309e9f23a429e93709c6d4368e372cd53f7ab8",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/hub_client_cert.pem",
+      "path": "engines/contracts/simulator2/secrets/tls/hub_client_cert.pem",
+      "original_sha256": "8aef9011646d074a246c4bdc34e2259d04d2d6ce0da352ffee9b8717b61497e5",
+      "sha256": "8aef9011646d074a246c4bdc34e2259d04d2d6ce0da352ffee9b8717b61497e5",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/hub_server_cacert.pem",
+      "path": "engines/contracts/simulator2/secrets/tls/hub_server_cacert.pem",
+      "original_sha256": "446fb8b47f830fb4cf3802cbe5e1054291f9f880a98f0663d477d2ea85383eff",
+      "sha256": "446fb8b47f830fb4cf3802cbe5e1054291f9f880a98f0663d477d2ea85383eff",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/secrets/tls/openssl.conf",
+      "path": "engines/contracts/simulator2/secrets/tls/openssl.conf",
+      "original_sha256": "2dbf5b74c64259f722acdb048b108e05ad2456f701a7a084315e53e783dc10b1",
+      "sha256": "2dbf5b74c64259f722acdb048b108e05ad2456f701a7a084315e53e783dc10b1",
+      "modified": false
+    },
+    {
+      "original_path": "simulator2/sim-backend.env",
+      "path": "engines/contracts/simulator2/sim-backend.env",
+      "original_sha256": "3003a1ff542fb66c1ff0d4982d7336e6a139f35df3ef7f97855b73771bcf0f06",
+      "sha256": "3003a1ff542fb66c1ff0d4982d7336e6a139f35df3ef7f97855b73771bcf0f06",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/als_admin_1.1/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/als_admin_1.1/api_spec.yaml",
+      "original_sha256": "15547d673f3b810c24befd500ad61d9208800aacbaeb71f60f0c79fcf36c66c1",
+      "sha256": "15547d673f3b810c24befd500ad61d9208800aacbaeb71f60f0c79fcf36c66c1",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/central_admin_1.0/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/central_admin_1.0/api_spec.yaml",
+      "original_sha256": "5a893277f317186802bfdd1eff8a39620c5d47e851c83f756e1a7746c2fc4fc4",
+      "sha256": "5a893277f317186802bfdd1eff8a39620c5d47e851c83f756e1a7746c2fc4fc4",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/central_admin_1.0/response_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/central_admin_1.0/response_map.json",
+      "original_sha256": "7fd14ced5fc3a9a851711670ab34d92181eca91b6171f50dc7f68a1a656d0ffb",
+      "sha256": "7fd14ced5fc3a9a851711670ab34d92181eca91b6171f50dc7f68a1a656d0ffb",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/central_admin_old_9.3/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/central_admin_old_9.3/api_spec.yaml",
+      "original_sha256": "b6d69944995a5a40c27d8a56b7da1afa4551b0322349a284d09b1863c70dc5bb",
+      "sha256": "b6d69944995a5a40c27d8a56b7da1afa4551b0322349a284d09b1863c70dc5bb",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/central_admin_old_9.3/response_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/central_admin_old_9.3/response_map.json",
+      "original_sha256": "7fd14ced5fc3a9a851711670ab34d92181eca91b6171f50dc7f68a1a656d0ffb",
+      "sha256": "7fd14ced5fc3a9a851711670ab34d92181eca91b6171f50dc7f68a1a656d0ffb",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.0/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.0/api_spec.yaml",
+      "original_sha256": "74de54e64b0b6bbf37a2cf106e1bddd3da89382b4672dd6fb49d8bc19befddf0",
+      "sha256": "74de54e64b0b6bbf37a2cf106e1bddd3da89382b4672dd6fb49d8bc19befddf0",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.0/callback_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.0/callback_map.json",
+      "original_sha256": "e02a2d82c09b8e917126deaed560a32f34600f9f34ceb03ac31ba92139c8c234",
+      "sha256": "e02a2d82c09b8e917126deaed560a32f34600f9f34ceb03ac31ba92139c8c234",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.0/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.0/mockRef.json",
+      "original_sha256": "376e15b6abb8a1dc4ba313154b121f961cf16d7f8b6ee24225baae0feb27ed62",
+      "sha256": "376e15b6abb8a1dc4ba313154b121f961cf16d7f8b6ee24225baae0feb27ed62",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.0/trigger_templates/transaction_request_followup.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.0/trigger_templates/transaction_request_followup.json",
+      "original_sha256": "187c796a5b79ce8da12d6d20a54d308c3b195d018a47065dfcbecc395635c923",
+      "sha256": "187c796a5b79ce8da12d6d20a54d308c3b195d018a47065dfcbecc395635c923",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.0/trigger_templates/transaction_request_followup_quotes_only.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.0/trigger_templates/transaction_request_followup_quotes_only.json",
+      "original_sha256": "28825dd4810542adcc5541989ea5419b218f383fe4ec7488f83d7e344b6783e3",
+      "sha256": "28825dd4810542adcc5541989ea5419b218f383fe4ec7488f83d7e344b6783e3",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.1/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.1/api_spec.yaml",
+      "original_sha256": "70973cf21620324c41a4e34fdecd3c5756c71ab9178b0fe95b5590f7cae29847",
+      "sha256": "70973cf21620324c41a4e34fdecd3c5756c71ab9178b0fe95b5590f7cae29847",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.1/callback_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.1/callback_map.json",
+      "original_sha256": "2c7d16aa1b0e5378b1666773d8078c338d77b8e2351459b5054cec2a017a5112",
+      "sha256": "2c7d16aa1b0e5378b1666773d8078c338d77b8e2351459b5054cec2a017a5112",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.1/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.1/mockRef.json",
+      "original_sha256": "376e15b6abb8a1dc4ba313154b121f961cf16d7f8b6ee24225baae0feb27ed62",
+      "sha256": "376e15b6abb8a1dc4ba313154b121f961cf16d7f8b6ee24225baae0feb27ed62",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_1.1/trigger_templates/transaction_request_followup.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_1.1/trigger_templates/transaction_request_followup.json",
+      "original_sha256": "931be19fe076fb3cc3ff6694aefb4c6e6df5eb3e30dba9aaa273835c86a00a0b",
+      "sha256": "931be19fe076fb3cc3ff6694aefb4c6e6df5eb3e30dba9aaa273835c86a00a0b",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_2.0/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_2.0/api_spec.yaml",
+      "original_sha256": "9e337b0d202c11d18d1fd0595c9b6797bf5b7c5c85cbc0a877ac54ea9b8c1ea7",
+      "sha256": "9e337b0d202c11d18d1fd0595c9b6797bf5b7c5c85cbc0a877ac54ea9b8c1ea7",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_2.0/callback_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_2.0/callback_map.json",
+      "original_sha256": "3ef4bbb07a7dffa1e800cdc484c481cc05bb4f9bdf88028a8b715e07e80dc40f",
+      "sha256": "3ef4bbb07a7dffa1e800cdc484c481cc05bb4f9bdf88028a8b715e07e80dc40f",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_2.0/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_2.0/mockRef.json",
+      "original_sha256": "376e15b6abb8a1dc4ba313154b121f961cf16d7f8b6ee24225baae0feb27ed62",
+      "sha256": "376e15b6abb8a1dc4ba313154b121f961cf16d7f8b6ee24225baae0feb27ed62",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_2.0/trigger_templates/transaction_request_followup.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_2.0/trigger_templates/transaction_request_followup.json",
+      "original_sha256": "f19937c08db126ea9457d11c1071fcc0736ccaecb94937b2150f34d53069d32c",
+      "sha256": "f19937c08db126ea9457d11c1071fcc0736ccaecb94937b2150f34d53069d32c",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_2.0_iso20022/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_2.0_iso20022/api_spec.yaml",
+      "original_sha256": "927ba39dabbe5b57b0911296c1fb67382ab6f797059b0f4bd4997f9e3fa39107",
+      "sha256": "927ba39dabbe5b57b0911296c1fb67382ab6f797059b0f4bd4997f9e3fa39107",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_2.0_iso20022/callback_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_2.0_iso20022/callback_map.json",
+      "original_sha256": "c6580d12c13c34dc80eca4a9be5edcbb4c0d09d2c9d01cd15deba28fe3d41129",
+      "sha256": "c6580d12c13c34dc80eca4a9be5edcbb4c0d09d2c9d01cd15deba28fe3d41129",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fspiop_2.0_iso20022/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/fspiop_2.0_iso20022/mockRef.json",
+      "original_sha256": "a4522d40f0aaa82a0fa258a69e41b321b7f30369e1a792ab4c4fb21e11951fe7",
+      "sha256": "a4522d40f0aaa82a0fa258a69e41b321b7f30369e1a792ab4c4fb21e11951fe7",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fx-api_2.0/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/fx-api_2.0/api_spec.yaml",
+      "original_sha256": "6f6e83e9ec68242b68ae4cf6159862d6f4c15e7b99367e5f12664d92a6440d26",
+      "sha256": "6f6e83e9ec68242b68ae4cf6159862d6f4c15e7b99367e5f12664d92a6440d26",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fx-api_2.0/callback_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/fx-api_2.0/callback_map.json",
+      "original_sha256": "ad1ca62d8b77e2c5f31d36e62b73700bb26a8a187a8e06b74c6301b09d5bda71",
+      "sha256": "ad1ca62d8b77e2c5f31d36e62b73700bb26a8a187a8e06b74c6301b09d5bda71",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/fx-api_2.0/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/fx-api_2.0/mockRef.json",
+      "original_sha256": "8d9849a7f5f5b9f7b65b8d0838dcfd0edd07d53f457278cebdf79e5f63b79efd",
+      "sha256": "8d9849a7f5f5b9f7b65b8d0838dcfd0edd07d53f457278cebdf79e5f63b79efd",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_1.0/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_1.0/api_spec.yaml",
+      "original_sha256": "7293ba66c06f3772502d748a2af6fcbe2bb082ff8cba283fb1da6507a7f7fe8e",
+      "sha256": "7293ba66c06f3772502d748a2af6fcbe2bb082ff8cba283fb1da6507a7f7fe8e",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_1.0/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_1.0/mockRef.json",
+      "original_sha256": "de3911d35de159f769ffefa3db60634c183085619cf7f9256ecaf1c8dbc69aa4",
+      "sha256": "de3911d35de159f769ffefa3db60634c183085619cf7f9256ecaf1c8dbc69aa4",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_1.0/response_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_1.0/response_map.json",
+      "original_sha256": "a8ebc5cdc59f8f46ead60f9132d63b4c0d56453670041f00336edbbfcc8adcb0",
+      "sha256": "a8ebc5cdc59f8f46ead60f9132d63b4c0d56453670041f00336edbbfcc8adcb0",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_2.1/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_2.1/api_spec.yaml",
+      "original_sha256": "a35aeadf234d2d1f14c7c809dc9aa4b4064a0f4bf0d09b86aa2b0c78973f780d",
+      "sha256": "a35aeadf234d2d1f14c7c809dc9aa4b4064a0f4bf0d09b86aa2b0c78973f780d",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_2.1/callback_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_sdk_outbound_scheme_adapter_2.1/callback_map.json",
+      "original_sha256": "6e68c507d7e1df20e0d57038d5614fe4c66229cf7817e4c3e93818158dd85209",
+      "sha256": "6e68c507d7e1df20e0d57038d5614fe4c66229cf7817e4c3e93818158dd85209",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_simulator_0.1/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_simulator_0.1/api_spec.yaml",
+      "original_sha256": "fd648ded71d9cb442dd8f061dc2cfa2bceeebbb99d03dc8450e1d2da5152e022",
+      "sha256": "fd648ded71d9cb442dd8f061dc2cfa2bceeebbb99d03dc8450e1d2da5152e022",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_simulator_sim_1.4/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_simulator_sim_1.4/api_spec.yaml",
+      "original_sha256": "3dec58bde6d869c9ef3b07af44facbcb20cbd33536e6a633e2d68d3a61afdfae",
+      "sha256": "3dec58bde6d869c9ef3b07af44facbcb20cbd33536e6a633e2d68d3a61afdfae",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_simulator_sim_1.4/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_simulator_sim_1.4/mockRef.json",
+      "original_sha256": "192152de40aec6dbda3f720495e4419ee45d9d1ab1030b98ecafad53193f67e5",
+      "sha256": "192152de40aec6dbda3f720495e4419ee45d9d1ab1030b98ecafad53193f67e5",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_simulator_sim_1.4/response_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_simulator_sim_1.4/response_map.json",
+      "original_sha256": "0ea6342a90ef32b0132b567d3f467fe4d7932fee833e804a047135d337cda6ec",
+      "sha256": "0ea6342a90ef32b0132b567d3f467fe4d7932fee833e804a047135d337cda6ec",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_simulator_sim_2.1/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_simulator_sim_2.1/api_spec.yaml",
+      "original_sha256": "dda112c5bbbd941813b2f7fb7ea6ffe981e7fe7d977619da8a5d305f2cd449b4",
+      "sha256": "dda112c5bbbd941813b2f7fb7ea6ffe981e7fe7d977619da8a5d305f2cd449b4",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/mojaloop_simulator_sim_2.1/response_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/mojaloop_simulator_sim_2.1/response_map.json",
+      "original_sha256": "803d892900940f867e5cf09bf1b9d83d92321e63ecd8da39d338ca7e24c92011",
+      "sha256": "803d892900940f867e5cf09bf1b9d83d92321e63ecd8da39d338ca7e24c92011",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/payment_manager_1.4/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/payment_manager_1.4/api_spec.yaml",
+      "original_sha256": "6f57e6a84ca9caab49f8120132a6ae1abec2ec72303ae1c7802819e8bf6220c8",
+      "sha256": "6f57e6a84ca9caab49f8120132a6ae1abec2ec72303ae1c7802819e8bf6220c8",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/sdk-scheme-adapter-backend-v2_1_0-openapi3-snippets_2.1/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/sdk-scheme-adapter-backend-v2_1_0-openapi3-snippets_2.1/api_spec.yaml",
+      "original_sha256": "01e8190f430fc4df90c609b6d4fd619d136809286406ad6400399f96c062f984",
+      "sha256": "01e8190f430fc4df90c609b6d4fd619d136809286406ad6400399f96c062f984",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/sdk-scheme-adapter-outbound-v2_1_0-openapi3-snippets_2.1/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/sdk-scheme-adapter-outbound-v2_1_0-openapi3-snippets_2.1/api_spec.yaml",
+      "original_sha256": "6dbad76a8e1b7bf9bf29735a72d7a51fa4acfa6d7ce32e371c11fe937d77171b",
+      "sha256": "6dbad76a8e1b7bf9bf29735a72d7a51fa4acfa6d7ce32e371c11fe937d77171b",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/settlements_1.0/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/settlements_1.0/api_spec.yaml",
+      "original_sha256": "77b3eea9e343f275129798afdced46799b74949e5d8819714e849ab29d902955",
+      "sha256": "77b3eea9e343f275129798afdced46799b74949e5d8819714e849ab29d902955",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/settlements_1.0/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/settlements_1.0/mockRef.json",
+      "original_sha256": "ee7f6e3b144613b0e997c6e00c5dec44e102fb011747759058b8949de9f959ec",
+      "sha256": "ee7f6e3b144613b0e997c6e00c5dec44e102fb011747759058b8949de9f959ec",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/settlements_1.0/response_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/settlements_1.0/response_map.json",
+      "original_sha256": "def93b94cb088ab48c9a20dad864613b84389c90a43293f7a8b890509889ab67",
+      "sha256": "def93b94cb088ab48c9a20dad864613b84389c90a43293f7a8b890509889ab67",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/settlements_2.0/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/settlements_2.0/api_spec.yaml",
+      "original_sha256": "7170620d4a8be9751a7c58014cb91ffba75543fc47d66ba5c7b6f33434f523a3",
+      "sha256": "7170620d4a8be9751a7c58014cb91ffba75543fc47d66ba5c7b6f33434f523a3",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/settlements_2.0/mockRef.json",
+      "path": "engines/contracts/spec_files/api_definitions/settlements_2.0/mockRef.json",
+      "original_sha256": "ee7f6e3b144613b0e997c6e00c5dec44e102fb011747759058b8949de9f959ec",
+      "sha256": "ee7f6e3b144613b0e997c6e00c5dec44e102fb011747759058b8949de9f959ec",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/settlements_2.0/response_map.json",
+      "path": "engines/contracts/spec_files/api_definitions/settlements_2.0/response_map.json",
+      "original_sha256": "def93b94cb088ab48c9a20dad864613b84389c90a43293f7a8b890509889ab67",
+      "sha256": "def93b94cb088ab48c9a20dad864613b84389c90a43293f7a8b890509889ab67",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/api_definitions/thirdparty_sdk_outbound_0.1/api_spec.yaml",
+      "path": "engines/contracts/spec_files/api_definitions/thirdparty_sdk_outbound_0.1/api_spec.yaml",
+      "original_sha256": "ff51d9736f4918705f9c098e9d11aef89872c01a76219aebf930ddd2a0be6755",
+      "sha256": "ff51d9736f4918705f9c098e9d11aef89872c01a76219aebf930ddd2a0be6755",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/reports/templates/newman/html_template.html",
+      "path": "engines/contracts/spec_files/reports/templates/newman/html_template.html",
+      "original_sha256": "5247960e538f0076bfe3e3c5553c19c0d6705aee5923c3c573ff9315754ec766",
+      "sha256": "5247960e538f0076bfe3e3c5553c19c0d6705aee5923c3c573ff9315754ec766",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/reports/templates/newman/pdf_template.html",
+      "path": "engines/contracts/spec_files/reports/templates/newman/pdf_template.html",
+      "original_sha256": "c00d94dd3f094aa2f42954256d8515342321e410292a8b8641ce44258c5073ec",
+      "sha256": "c00d94dd3f094aa2f42954256d8515342321e410292a8b8641ce44258c5073ec",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/reports/templates/testcase_definition/table_view.html",
+      "path": "engines/contracts/spec_files/reports/templates/testcase_definition/table_view.html",
+      "original_sha256": "91f1008ff607904c6e739181c90272718e4034e2707795efdbe0e19b19535aeb",
+      "sha256": "91f1008ff607904c6e739181c90272718e4034e2707795efdbe0e19b19535aeb",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_callback/config.json",
+      "path": "engines/contracts/spec_files/rules_callback/config.json",
+      "original_sha256": "d0b4ac33faef01d90fc085dfe7b7e17e8f6e4b3c47562808aa2becf8f15a0096",
+      "sha256": "d0b4ac33faef01d90fc085dfe7b7e17e8f6e4b3c47562808aa2becf8f15a0096",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_callback/default.json",
+      "path": "engines/contracts/spec_files/rules_callback/default.json",
+      "original_sha256": "5f8d5040f58e1c2f5aee4ac05d67fcab5b0d58097b40723a12bc615f3d750bab",
+      "sha256": "5f8d5040f58e1c2f5aee4ac05d67fcab5b0d58097b40723a12bc615f3d750bab",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_callback/p2p-limit.json",
+      "path": "engines/contracts/spec_files/rules_callback/p2p-limit.json",
+      "original_sha256": "6e2fe9f27a309f0d2de7ed268a2446bdfceb02fefcae82cc5f0652d5186933a5",
+      "sha256": "6e2fe9f27a309f0d2de7ed268a2446bdfceb02fefcae82cc5f0652d5186933a5",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_forward/config.json",
+      "path": "engines/contracts/spec_files/rules_forward/config.json",
+      "original_sha256": "d0b4ac33faef01d90fc085dfe7b7e17e8f6e4b3c47562808aa2becf8f15a0096",
+      "sha256": "d0b4ac33faef01d90fc085dfe7b7e17e8f6e4b3c47562808aa2becf8f15a0096",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_forward/default.json",
+      "path": "engines/contracts/spec_files/rules_forward/default.json",
+      "original_sha256": "55eaeae4dbc70382d3c69b03bb040c1f8824dbf315ce05dbe6722821256056c5",
+      "sha256": "55eaeae4dbc70382d3c69b03bb040c1f8824dbf315ce05dbe6722821256056c5",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_response/config.json",
+      "path": "engines/contracts/spec_files/rules_response/config.json",
+      "original_sha256": "d0b4ac33faef01d90fc085dfe7b7e17e8f6e4b3c47562808aa2becf8f15a0096",
+      "sha256": "d0b4ac33faef01d90fc085dfe7b7e17e8f6e4b3c47562808aa2becf8f15a0096",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_response/default.json",
+      "path": "engines/contracts/spec_files/rules_response/default.json",
+      "original_sha256": "8e2b0dac83481a8554b7a7d6ef76561cb6f87336cad167c29ba8e0dc4135ebd8",
+      "sha256": "8e2b0dac83481a8554b7a7d6ef76561cb6f87336cad167c29ba8e0dc4135ebd8",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_validation/config.json",
+      "path": "engines/contracts/spec_files/rules_validation/config.json",
+      "original_sha256": "d0b4ac33faef01d90fc085dfe7b7e17e8f6e4b3c47562808aa2becf8f15a0096",
+      "sha256": "d0b4ac33faef01d90fc085dfe7b7e17e8f6e4b3c47562808aa2becf8f15a0096",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_validation/default.json",
+      "path": "engines/contracts/spec_files/rules_validation/default.json",
+      "original_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/rules_validation/p2p-limit.json",
+      "path": "engines/contracts/spec_files/rules_validation/p2p-limit.json",
+      "original_sha256": "c6062f249f3be02cf09e07ef0666c6cd24624ed4b0f1b02bf7579333893fab6e",
+      "sha256": "c6062f249f3be02cf09e07ef0666c6cd24624ed4b0f1b02bf7579333893fab6e",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/system_config.json",
+      "path": "engines/contracts/spec_files/system_config.json",
+      "original_sha256": "5368b45bb24776394579e17c2636cbac0a995f61492dc11a5d61a4f0f8ac10d7",
+      "sha256": "5368b45bb24776394579e17c2636cbac0a995f61492dc11a5d61a4f0f8ac10d7",
+      "modified": false
+    },
+    {
+      "original_path": "spec_files/user_config.json",
+      "path": "engines/contracts/spec_files/user_config.json",
+      "original_sha256": "fe7c48996def9c8f4dd3b8d13b41c123156f7fa369fa69ddc51e47502011dc5b",
+      "sha256": "fe7c48996def9c8f4dd3b8d13b41c123156f7fa369fa69ddc51e47502011dc5b",
+      "modified": false
+    },
+    {
+      "original_path": "src/index.js",
+      "path": "engines/contracts/src/index.js",
+      "original_sha256": "c5f87d5249e5d7d21b88b0790c755cc0edaeb63fc33fff87dd22868ec5bdb087",
+      "sha256": "c5f87d5249e5d7d21b88b0790c755cc0edaeb63fc33fff87dd22868ec5bdb087",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/MyEventEmitter.js",
+      "path": "engines/contracts/src/lib/MyEventEmitter.js",
+      "original_sha256": "08c4811dcf12faccceefee0d6d5d04153b9a28961e2899b22685c421a229d0ca",
+      "sha256": "08c4811dcf12faccceefee0d6d5d04153b9a28961e2899b22685c421a229d0ca",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-management.js",
+      "path": "engines/contracts/src/lib/api-management.js",
+      "original_sha256": "6df8da21e2d3c3d03aabef8188a360a3fbeb513328ceb3cc8bc2e5290cd91ec9",
+      "sha256": "6df8da21e2d3c3d03aabef8188a360a3fbeb513328ceb3cc8bc2e5290cd91ec9",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/config.js",
+      "path": "engines/contracts/src/lib/api-routes/config.js",
+      "original_sha256": "02a9399f5dd4de1d4aa12523434bae9b78b929d07cfb0e4ac21a0d76e7bf7bd1",
+      "sha256": "02a9399f5dd4de1d4aa12523434bae9b78b929d07cfb0e4ac21a0d76e7bf7bd1",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/history.js",
+      "path": "engines/contracts/src/lib/api-routes/history.js",
+      "original_sha256": "6c44976bfa3046c8cdd39ee84e363d4c26f6f1fba14376d7188661df58029bb5",
+      "sha256": "6c44976bfa3046c8cdd39ee84e363d4c26f6f1fba14376d7188661df58029bb5",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/keycloak.js",
+      "path": "engines/contracts/src/lib/api-routes/keycloak.js",
+      "original_sha256": "4b9f39db2f1aaaea1e58249de6f45c67e67c418556b6afb9a37ed342c20d1495",
+      "sha256": "4b9f39db2f1aaaea1e58249de6f45c67e67c418556b6afb9a37ed342c20d1495",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/longpolling.js",
+      "path": "engines/contracts/src/lib/api-routes/longpolling.js",
+      "original_sha256": "aa41f42677ee9c8b8e9fbf23870190f29c117590ed7e73f46bcfbc1ed96e273d",
+      "sha256": "aa41f42677ee9c8b8e9fbf23870190f29c117590ed7e73f46bcfbc1ed96e273d",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/oauth2.js",
+      "path": "engines/contracts/src/lib/api-routes/oauth2.js",
+      "original_sha256": "bbad5537a03c660fe69f5e3558afbfb9589d2b32040cc659c5236dc7d95d0bf4",
+      "sha256": "bbad5537a03c660fe69f5e3558afbfb9589d2b32040cc659c5236dc7d95d0bf4",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/objectstore.js",
+      "path": "engines/contracts/src/lib/api-routes/objectstore.js",
+      "original_sha256": "14e54e866dfd576f3a9d0e4aff5f51e8551f10cce1350dd614fb17b8ba5422cb",
+      "sha256": "14e54e866dfd576f3a9d0e4aff5f51e8551f10cce1350dd614fb17b8ba5422cb",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/openapi.js",
+      "path": "engines/contracts/src/lib/api-routes/openapi.js",
+      "original_sha256": "1113bf6a3b6040e4b6a3fadab706855b01878414dc541129ba04eca2e0bec2fa",
+      "sha256": "1113bf6a3b6040e4b6a3fadab706855b01878414dc541129ba04eca2e0bec2fa",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/outbound.js",
+      "path": "engines/contracts/src/lib/api-routes/outbound.js",
+      "original_sha256": "dac4b9c25b2cd238f60eff2c28e9994c9237894f12a26deb08925c25cf5a6a05",
+      "sha256": "dac4b9c25b2cd238f60eff2c28e9994c9237894f12a26deb08925c25cf5a6a05",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/reports.js",
+      "path": "engines/contracts/src/lib/api-routes/reports.js",
+      "original_sha256": "2bc85db01455873f37baa37041c82a5b2560ec722a7e30959390fffe874de5d2",
+      "sha256": "2bc85db01455873f37baa37041c82a5b2560ec722a7e30959390fffe874de5d2",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/rules.js",
+      "path": "engines/contracts/src/lib/api-routes/rules.js",
+      "original_sha256": "9a9e33e8db6987a6648fe2929fc5eecc53236822759df598e8bbe17d3031fa7c",
+      "sha256": "9a9e33e8db6987a6648fe2929fc5eecc53236822759df598e8bbe17d3031fa7c",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/samples.js",
+      "path": "engines/contracts/src/lib/api-routes/samples.js",
+      "original_sha256": "d13662423cf72530d41e0bbfc7fd387d5c4d05dd03cfe6db83d6fd11f529d410",
+      "sha256": "d13662423cf72530d41e0bbfc7fd387d5c4d05dd03cfe6db83d6fd11f529d410",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/server-logs.js",
+      "path": "engines/contracts/src/lib/api-routes/server-logs.js",
+      "original_sha256": "2dd21057a0391ab7a2219293afccc88c2a8af299734d0626239d83abbf83acea",
+      "sha256": "2dd21057a0391ab7a2219293afccc88c2a8af299734d0626239d83abbf83acea",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-routes/settings.js",
+      "path": "engines/contracts/src/lib/api-routes/settings.js",
+      "original_sha256": "0043226988034081bebc9194c885459ad586dd6c57c9289e1f63190b9bd41b24",
+      "sha256": "0043226988034081bebc9194c885459ad586dd6c57c9289e1f63190b9bd41b24",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/api-server.js",
+      "path": "engines/contracts/src/lib/api-server.js",
+      "original_sha256": "df3e925c85250fe54dd7f16cf7a32dbaea9e81fc655f220054ef76c907d16ea6",
+      "sha256": "df3e925c85250fe54dd7f16cf7a32dbaea9e81fc655f220054ef76c907d16ea6",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/arrayStore.js",
+      "path": "engines/contracts/src/lib/arrayStore.js",
+      "original_sha256": "45f5a0638023f38417a9cea17fa7edb7d1be8cc34319c1df42706a1204bd0bbb",
+      "sha256": "45f5a0638023f38417a9cea17fa7edb7d1be8cc34319c1df42706a1204bd0bbb",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/callbackHandler.js",
+      "path": "engines/contracts/src/lib/callbackHandler.js",
+      "original_sha256": "841e5696ea5c88f55636e6c36c590b65944cdb7aac6d2a857b9a47dca2def14e",
+      "sha256": "841e5696ea5c88f55636e6c36c590b65944cdb7aac6d2a857b9a47dca2def14e",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/config.js",
+      "path": "engines/contracts/src/lib/config.js",
+      "original_sha256": "48b44d0fc4129f79cbc07fce2a4d9529ff35141f7469b8e497870be281a3f203",
+      "sha256": "48b44d0fc4129f79cbc07fce2a4d9529ff35141f7469b8e497870be281a3f203",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/configuration-providers/mb-connection-manager.js",
+      "path": "engines/contracts/src/lib/configuration-providers/mb-connection-manager.js",
+      "original_sha256": "5fa860111831b114bbe7889dea2e1551daaf2a1b18d2894c005d1feeaa240328",
+      "sha256": "5fa860111831b114bbe7889dea2e1551daaf2a1b18d2894c005d1feeaa240328",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/db/adapters/dbAdapter.js",
+      "path": "engines/contracts/src/lib/db/adapters/dbAdapter.js",
+      "original_sha256": "cf01b648ca8fad228bb068329a6e6a84b6f68959201a0d05ffe8702b26db6098",
+      "sha256": "cf01b648ca8fad228bb068329a6e6a84b6f68959201a0d05ffe8702b26db6098",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/db/dfspMockUsers.js",
+      "path": "engines/contracts/src/lib/db/dfspMockUsers.js",
+      "original_sha256": "0071371443d6068ef90657650419aa4bae70f5d25b1678b4782e3d701aeab7fb",
+      "sha256": "0071371443d6068ef90657650419aa4bae70f5d25b1678b4782e3d701aeab7fb",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/db/models/mongoDBWrapper.js",
+      "path": "engines/contracts/src/lib/db/models/mongoDBWrapper.js",
+      "original_sha256": "a44af6058f84fb750893aed37eb58a8ff8929d3ed49b66a9c2e1f334fc903e65",
+      "sha256": "a44af6058f84fb750893aed37eb58a8ff8929d3ed49b66a9c2e1f334fc903e65",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/eventListenerClient/inboundEventListener.js",
+      "path": "engines/contracts/src/lib/eventListenerClient/inboundEventListener.js",
+      "original_sha256": "71f808d6764f637157723028dac13dfd2a7c810f3414e8ab6b40db4929a27e20",
+      "sha256": "71f808d6764f637157723028dac13dfd2a7c810f3414e8ab6b40db4929a27e20",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/fileAdapter.js",
+      "path": "engines/contracts/src/lib/fileAdapter.js",
+      "original_sha256": "aeaabfa774ad2656fd487f1686b85b9021a2467c7b9a52f3ad913437ca7f20bd",
+      "sha256": "aeaabfa774ad2656fd487f1686b85b9021a2467c7b9a52f3ad913437ca7f20bd",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/httpAgentStore.js",
+      "path": "engines/contracts/src/lib/httpAgentStore.js",
+      "original_sha256": "9f4661b9316fd7aebd7a035bb8960547cf1bd56e6732f49204dea0945d0077ce",
+      "sha256": "9f4661b9316fd7aebd7a035bb8960547cf1bd56e6732f49204dea0945d0077ce",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/importExport.js",
+      "path": "engines/contracts/src/lib/importExport.js",
+      "original_sha256": "2337d8165a953a89b9d73a1733d7df4871c5d6a5a90b3c79f7fc92d905ccc300",
+      "sha256": "2337d8165a953a89b9d73a1733d7df4871c5d6a5a90b3c79f7fc92d905ccc300",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/jws/JwsSigning.js",
+      "path": "engines/contracts/src/lib/jws/JwsSigning.js",
+      "original_sha256": "df576a5dbf727603b3a7f53622fd82d4fdabe51a66d94616a273072a0fc22787",
+      "sha256": "df576a5dbf727603b3a7f53622fd82d4fdabe51a66d94616a273072a0fc22787",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/loadSamples.js",
+      "path": "engines/contracts/src/lib/loadSamples.js",
+      "original_sha256": "d0d02c507582326d95160ffa6dbe3c106f7dc1c5f59eff1c15899ef8686c4853",
+      "sha256": "d0d02c507582326d95160ffa6dbe3c106f7dc1c5f59eff1c15899ef8686c4853",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/logger.js",
+      "path": "engines/contracts/src/lib/logger.js",
+      "original_sha256": "4970f4721e42ee335f8c57b8a40e3669d35a8ea0af6cfe0423952771b8365124",
+      "sha256": "4970f4721e42ee335f8c57b8a40e3669d35a8ea0af6cfe0423952771b8365124",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/longpollingEmitter.js",
+      "path": "engines/contracts/src/lib/longpollingEmitter.js",
+      "original_sha256": "132bfa57ee7e417bd43647cd447733b03784971b9f7d4a0b725c0ce5dc9c5174",
+      "sha256": "132bfa57ee7e417bd43647cd447733b03784971b9f7d4a0b725c0ce5dc9c5174",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/metrics.js",
+      "path": "engines/contracts/src/lib/metrics.js",
+      "original_sha256": "f091bc42751ac5cea3bf281a821fe8f8bdc24c93cfcfdf1639cdbaa4b0824847",
+      "sha256": "f091bc42751ac5cea3bf281a821fe8f8bdc24c93cfcfdf1639cdbaa4b0824847",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/custom-functions/generic.js",
+      "path": "engines/contracts/src/lib/mocking/custom-functions/generic.js",
+      "original_sha256": "7979e0d1096ea099f4155033ef42f011e72bcb83a91b7894ad41b54bf5b63e74",
+      "sha256": "7979e0d1096ea099f4155033ef42f011e72bcb83a91b7894ad41b54bf5b63e74",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/middleware-functions/ilpModel.js",
+      "path": "engines/contracts/src/lib/mocking/middleware-functions/ilpModel.js",
+      "original_sha256": "e4d3139e88c1910768c7549ed3d2e1a19b118142d80ebd6b18731919f93ed977",
+      "sha256": "e4d3139e88c1910768c7549ed3d2e1a19b118142d80ebd6b18731919f93ed977",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/middleware-functions/quotesAssociation.js",
+      "path": "engines/contracts/src/lib/mocking/middleware-functions/quotesAssociation.js",
+      "original_sha256": "ba28f572c335c20e8cf0f5ab5e941af34bff7b7b22efa3ef1190480232d9ae3e",
+      "sha256": "ba28f572c335c20e8cf0f5ab5e941af34bff7b7b22efa3ef1190480232d9ae3e",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/middleware-functions/transactionRequestsService.js",
+      "path": "engines/contracts/src/lib/mocking/middleware-functions/transactionRequestsService.js",
+      "original_sha256": "e695a7c62e6143a92abbd7d44a66bfdb8a7f659c60c0668245d73a2f00376f74",
+      "sha256": "e695a7c62e6143a92abbd7d44a66bfdb8a7f659c60c0668245d73a2f00376f74",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/openApiDefinitionsModel.js",
+      "path": "engines/contracts/src/lib/mocking/openApiDefinitionsModel.js",
+      "original_sha256": "43448750ad7d2133309b02cbc817534ae864c898a8958c9bb43f823e0eb89360",
+      "sha256": "43448750ad7d2133309b02cbc817534ae864c898a8958c9bb43f823e0eb89360",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/openApiMockHandler.js",
+      "path": "engines/contracts/src/lib/mocking/openApiMockHandler.js",
+      "original_sha256": "c43de115f52e6a0e7da59591e6d3c89b58917b6ae16d1ef57a1332999a4dcee4",
+      "sha256": "c43de115f52e6a0e7da59591e6d3c89b58917b6ae16d1ef57a1332999a4dcee4",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/openApiRulesEngine.js",
+      "path": "engines/contracts/src/lib/mocking/openApiRulesEngine.js",
+      "original_sha256": "d52049aace56a9c078fc1605471da11b544548f0e97b8188dda5eabfb5b1b57b",
+      "sha256": "d52049aace56a9c078fc1605471da11b544548f0e97b8188dda5eabfb5b1b57b",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/openApiVersionTools.js",
+      "path": "engines/contracts/src/lib/mocking/openApiVersionTools.js",
+      "original_sha256": "b792014438cde716ba25fd2423c92427b59134409653aee48f97b6ee1cc2951e",
+      "sha256": "b792014438cde716ba25fd2423c92427b59134409653aee48f97b6ee1cc2951e",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/transformers/fspiopToISO20022.js",
+      "path": "engines/contracts/src/lib/mocking/transformers/fspiopToISO20022.js",
+      "original_sha256": "ba422bda08db1c32dc05cee9675765122bf838446b259135e4212f2954126c77",
+      "sha256": "ba422bda08db1c32dc05cee9675765122bf838446b259135e4212f2954126c77",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/mocking/transformers/index.js",
+      "path": "engines/contracts/src/lib/mocking/transformers/index.js",
+      "original_sha256": "3aef1e76c75dca7864a4259c88d2a1ef7e387804a84a443902ae414d833d0a9c",
+      "sha256": "3aef1e76c75dca7864a4259c88d2a1ef7e387804a84a443902ae414d833d0a9c",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/notificationEmitter.js",
+      "path": "engines/contracts/src/lib/notificationEmitter.js",
+      "original_sha256": "e35898acacfb25de9365f11343237dfb73335c48c053ee72730e3838b0e84246",
+      "sha256": "e35898acacfb25de9365f11343237dfb73335c48c053ee72730e3838b0e84246",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/oauth/KeycloakHelper.js",
+      "path": "engines/contracts/src/lib/oauth/KeycloakHelper.js",
+      "original_sha256": "c22d3c1fdc21e6b942a15c1e83e06af7402c2f117c3aed295d1d33466197dbf2",
+      "sha256": "c22d3c1fdc21e6b942a15c1e83e06af7402c2f117c3aed295d1d33466197dbf2",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/oauth/LoginService.js",
+      "path": "engines/contracts/src/lib/oauth/LoginService.js",
+      "original_sha256": "fc7fc1a74d42e00379269e7cc6855cfb32dbc839d5c40992bf8024c7e96afdd8",
+      "sha256": "fc7fc1a74d42e00379269e7cc6855cfb32dbc839d5c40992bf8024c7e96afdd8",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/oauth/OAuthHelper.js",
+      "path": "engines/contracts/src/lib/oauth/OAuthHelper.js",
+      "original_sha256": "50415394239785cc8117de89466cec020a9133388f2035d5ee019b03b67e19a0",
+      "sha256": "50415394239785cc8117de89466cec020a9133388f2035d5ee019b03b67e19a0",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/oauth/OAuthValidator.js",
+      "path": "engines/contracts/src/lib/oauth/OAuthValidator.js",
+      "original_sha256": "b374f1bf7ed0d2489bb56eab4d2394308fa32a7e04ecbe2759c59b0ec0db1602",
+      "sha256": "b374f1bf7ed0d2489bb56eab4d2394308fa32a7e04ecbe2759c59b0ec0db1602",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/oauth/Wso2Client.js",
+      "path": "engines/contracts/src/lib/oauth/Wso2Client.js",
+      "original_sha256": "d43022fccf114fabfa625e713ca0bd74c493bd99afab2a2b5185a0f9ca6d6df2",
+      "sha256": "d43022fccf114fabfa625e713ca0bd74c493bd99afab2a2b5185a0f9ca6d6df2",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/objectStore.js",
+      "path": "engines/contracts/src/lib/objectStore.js",
+      "original_sha256": "80814da36ed15e0411ef48afb8590e962886c8c34ed2cc34a971e4a760be9771",
+      "sha256": "80814da36ed15e0411ef48afb8590e962886c8c34ed2cc34a971e4a760be9771",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/objectStore/inMemoryImpl.js",
+      "path": "engines/contracts/src/lib/objectStore/inMemoryImpl.js",
+      "original_sha256": "712d70291760dac0892f508524bd9a34292b251d0fef0d821c07a6c8cc055c89",
+      "sha256": "712d70291760dac0892f508524bd9a34292b251d0fef0d821c07a6c8cc055c89",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/objectStore/objectStoreInterface.js",
+      "path": "engines/contracts/src/lib/objectStore/objectStoreInterface.js",
+      "original_sha256": "071c4288a6df72d359bc779299811fca1f2476b540d40d265f6163a8ee79dadd",
+      "sha256": "071c4288a6df72d359bc779299811fca1f2476b540d40d265f6163a8ee79dadd",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/report-generator/generator.js",
+      "path": "engines/contracts/src/lib/report-generator/generator.js",
+      "original_sha256": "5654049eef4cb9fb2170200e584463c8711509fbb613531cf6fc67de03463aea",
+      "sha256": "5654049eef4cb9fb2170200e584463c8711509fbb613531cf6fc67de03463aea",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/report-generator/helpers.js",
+      "path": "engines/contracts/src/lib/report-generator/helpers.js",
+      "original_sha256": "5fddb60c3484c3ddcaa51486e3365b207e95acd383f852188720936765295fbf",
+      "sha256": "5fddb60c3484c3ddcaa51486e3365b207e95acd383f852188720936765295fbf",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/requestLogger.js",
+      "path": "engines/contracts/src/lib/requestLogger.js",
+      "original_sha256": "c59beb81e7090c6ffe9d9537f3d3fd7f66561574bd610f3f6d2742b806ab1c07",
+      "sha256": "c59beb81e7090c6ffe9d9537f3d3fd7f66561574bd610f3f6d2742b806ab1c07",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/resources/wso2carbon-publickey.cert",
+      "path": "engines/contracts/src/lib/resources/wso2carbon-publickey.cert",
+      "original_sha256": "6879e7894b0b3915d962b2d407efde36826c0e1b4af0c966ff63459ed4bd6c92",
+      "sha256": "6879e7894b0b3915d962b2d407efde36826c0e1b4af0c966ff63459ed4bd6c92",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/rulesEngine.js",
+      "path": "engines/contracts/src/lib/rulesEngine.js",
+      "original_sha256": "c5c5fd38e310cfb3eb45c267f39a9285794f1c4e72d5ef5bfe15051a80a33097",
+      "sha256": "c5c5fd38e310cfb3eb45c267f39a9285794f1c4e72d5ef5bfe15051a80a33097",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/rulesEngineModel.js",
+      "path": "engines/contracts/src/lib/rulesEngineModel.js",
+      "original_sha256": "912b7bea732d865c3a020d5cf92a43cfd8e204d459b4f6863fa9f07717a59d17",
+      "sha256": "912b7bea732d865c3a020d5cf92a43cfd8e204d459b4f6863fa9f07717a59d17",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/scripting-engines/postman-sandbox.js",
+      "path": "engines/contracts/src/lib/scripting-engines/postman-sandbox.js",
+      "original_sha256": "bccb627478beac0804b6c7fe20f70a483b2f5b509c0d6234e0d002d6aea6a50f",
+      "sha256": "bccb627478beac0804b6c7fe20f70a483b2f5b509c0d6234e0d002d6aea6a50f",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/scripting-engines/vm-javascript-sandbox.js",
+      "path": "engines/contracts/src/lib/scripting-engines/vm-javascript-sandbox.js",
+      "original_sha256": "0f1b4fa0517520007d0d9fb9a2b48ea32aad686ce35917e18a7037cbcb024f9a",
+      "sha256": "0f1b4fa0517520007d0d9fb9a2b48ea32aad686ce35917e18a7037cbcb024f9a",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/server-logs/adapters/elastic-search.js",
+      "path": "engines/contracts/src/lib/server-logs/adapters/elastic-search.js",
+      "original_sha256": "8d48f1b4519f612462e3e81004f75c65689ff90aad6c8ffba3d0c4186baf865d",
+      "sha256": "8d48f1b4519f612462e3e81004f75c65689ff90aad6c8ffba3d0c4186baf865d",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/server-logs/adapters/grafana.js",
+      "path": "engines/contracts/src/lib/server-logs/adapters/grafana.js",
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/server-logs/index.js",
+      "path": "engines/contracts/src/lib/server-logs/index.js",
+      "original_sha256": "19111ff57a8d3eb8f7b6a3663027481cd4f9724ce555a0f5b7d5514f32cab630",
+      "sha256": "19111ff57a8d3eb8f7b6a3663027481cd4f9724ce555a0f5b7d5514f32cab630",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/socket-server.js",
+      "path": "engines/contracts/src/lib/socket-server.js",
+      "original_sha256": "9cde48beac350faa9daaa44994fec3f05d6bdca22df36c3b405b3c89e46e1c40",
+      "sha256": "9cde48beac350faa9daaa44994fec3f05d6bdca22df36c3b405b3c89e46e1c40",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/storageAdapter.js",
+      "path": "engines/contracts/src/lib/storageAdapter.js",
+      "original_sha256": "272b86e063df46f3d3cdb374deef38b5065f991fa215bf4f8776cd7545bb10f7",
+      "sha256": "272b86e063df46f3d3cdb374deef38b5065f991fa215bf4f8776cd7545bb10f7",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/test-outbound/TestCaseRunner.js",
+      "path": "engines/contracts/src/lib/test-outbound/TestCaseRunner.js",
+      "original_sha256": "5d0fc4c4b2d1d3cdddad6237611e47a911dd23986a644dd3b4a7b0e76a54d104",
+      "sha256": "5d0fc4c4b2d1d3cdddad6237611e47a911dd23986a644dd3b4a7b0e76a54d104",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/test-outbound/getTracing.js",
+      "path": "engines/contracts/src/lib/test-outbound/getTracing.js",
+      "original_sha256": "93282790e5cb9335d32f4f1c0c38449e12ae5d3371b176a885b86da5acc6574b",
+      "sha256": "93282790e5cb9335d32f4f1c0c38449e12ae5d3371b176a885b86da5acc6574b",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/test-outbound/outbound-initiator.js",
+      "path": "engines/contracts/src/lib/test-outbound/outbound-initiator.js",
+      "original_sha256": "c739cad1a8293f3b1aa36693739a6336503dce8181bf4cf931d8c0f22d66f6fc",
+      "sha256": "c739cad1a8293f3b1aa36693739a6336503dce8181bf4cf931d8c0f22d66f6fc",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/uniqueIdGenerator.js",
+      "path": "engines/contracts/src/lib/uniqueIdGenerator.js",
+      "original_sha256": "46d6c2a59f31c6ed80607cdd0b3eb4db8c9f5103b071902a7f1c31bd85d17e9d",
+      "sha256": "46d6c2a59f31c6ed80607cdd0b3eb4db8c9f5103b071902a7f1c31bd85d17e9d",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/utils.js",
+      "path": "engines/contracts/src/lib/utils.js",
+      "original_sha256": "f440ef186dea59d6f0654e226c0e9249838a2af2ccea929585bf47243ed92d58",
+      "sha256": "f440ef186dea59d6f0654e226c0e9249838a2af2ccea929585bf47243ed92d58",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/utilsInternal.js",
+      "path": "engines/contracts/src/lib/utilsInternal.js",
+      "original_sha256": "595e6b7b5f2957c21a920199caee7e2b881467ad9b2b7a42e9891474a9103129",
+      "sha256": "595e6b7b5f2957c21a920199caee7e2b881467ad9b2b7a42e9891474a9103129",
+      "modified": false
+    },
+    {
+      "original_path": "src/lib/webSocketClient/WebSocketClientManager.js",
+      "path": "engines/contracts/src/lib/webSocketClient/WebSocketClientManager.js",
+      "original_sha256": "4f1e8c2d1e8341a2f0d442e8f686281cae2bbb0e5d271301836af1deb68f1418",
+      "sha256": "4f1e8c2d1e8341a2f0d442e8f686281cae2bbb0e5d271301836af1deb68f1418",
+      "modified": false
+    },
+    {
+      "original_path": "src/server.js",
+      "path": "engines/contracts/src/server.js",
+      "original_sha256": "fef2cbecf053492ec8cfa8858053da65888778498e6ddaa7f5c4e14912387167",
+      "sha256": "fef2cbecf053492ec8cfa8858053da65888778498e6ddaa7f5c4e14912387167",
+      "modified": false
+    },
+    {
+      "original_path": "test/.DS_Store",
+      "path": "engines/contracts/test/.DS_Store",
+      "original_sha256": "cab6128315ed85aebe6f9d9a58e5ef9ca2cb67543def372350afe4efe44020e6",
+      "sha256": "cab6128315ed85aebe6f9d9a58e5ef9ca2cb67543def372350afe4efe44020e6",
+      "modified": false
+    },
+    {
+      "original_path": "test/api_spec_async.yaml",
+      "path": "engines/contracts/test/api_spec_async.yaml",
+      "original_sha256": "f0cf9070f8cb559bde91b08bac3ee116d666e2b7a9561287d9d47f5d0231d8a0",
+      "sha256": "f0cf9070f8cb559bde91b08bac3ee116d666e2b7a9561287d9d47f5d0231d8a0",
+      "modified": false
+    },
+    {
+      "original_path": "test/api_spec_sync.yaml",
+      "path": "engines/contracts/test/api_spec_sync.yaml",
+      "original_sha256": "380d49ad55a9e8bc1616760b9980cb7487447d66a1cb273b4c5e7eb085f2d38f",
+      "sha256": "380d49ad55a9e8bc1616760b9980cb7487447d66a1cb273b4c5e7eb085f2d38f",
+      "modified": false
+    },
+    {
+      "original_path": "test/api_spec_sync_empty.yaml",
+      "path": "engines/contracts/test/api_spec_sync_empty.yaml",
+      "original_sha256": "223622fce5786b4fdd84c22fc35b504387950aaf35820e6549339adbba8b3839",
+      "sha256": "223622fce5786b4fdd84c22fc35b504387950aaf35820e6549339adbba8b3839",
+      "modified": false
+    },
+    {
+      "original_path": "test/api_spec_url.json",
+      "path": "engines/contracts/test/api_spec_url.json",
+      "original_sha256": "466046d36795a72bfe4ed41a44e970c31ea71f0601ca55a2b2e6643677977c4d",
+      "sha256": "466046d36795a72bfe4ed41a44e970c31ea71f0601ca55a2b2e6643677977c4d",
+      "modified": false
+    },
+    {
+      "original_path": "test/docker-compose.integration.yml",
+      "path": "engines/contracts/test/docker-compose.integration.yml",
+      "original_sha256": "7f5c1750e5583e219af021fa34aae8770cd5166a3bb6e8df3642ef5af1b4a900",
+      "sha256": "7f5c1750e5583e219af021fa34aae8770cd5166a3bb6e8df3642ef5af1b4a900",
+      "modified": false
+    },
+    {
+      "original_path": "test/func/docker-compose.yml",
+      "path": "engines/contracts/test/func/docker-compose.yml",
+      "original_sha256": "6db3860f2a54f9b744ef948786f60ec0c2a6604ae20c3953377a2532ed7a098e",
+      "sha256": "6db3860f2a54f9b744ef948786f60ec0c2a6604ae20c3953377a2532ed7a098e",
+      "modified": false
+    },
+    {
+      "original_path": "test/func/postman/ttk_func_collection.json",
+      "path": "engines/contracts/test/func/postman/ttk_func_collection.json",
+      "original_sha256": "0f9957481951eb724f238676c34df5b5b11c6484a8f101881ff8a39b39e318b9",
+      "sha256": "0f9957481951eb724f238676c34df5b5b11c6484a8f101881ff8a39b39e318b9",
+      "modified": false
+    },
+    {
+      "original_path": "test/func/postman/ttk_func_environment.json",
+      "path": "engines/contracts/test/func/postman/ttk_func_environment.json",
+      "original_sha256": "7c358392e72256364e59bc9ded890ad39426a323865272cf2ddc6c57942989ba",
+      "sha256": "7c358392e72256364e59bc9ded890ad39426a323865272cf2ddc6c57942989ba",
+      "modified": false
+    },
+    {
+      "original_path": "test/func/run_newman.sh",
+      "path": "engines/contracts/test/func/run_newman.sh",
+      "original_sha256": "dc69e2785ddf2e7b971062eea9e8fe252e5f240592d5427376c4d60fd2d56892",
+      "sha256": "dc69e2785ddf2e7b971062eea9e8fe252e5f240592d5427376c4d60fd2d56892",
+      "modified": false
+    },
+    {
+      "original_path": "test/integration-config.json",
+      "path": "engines/contracts/test/integration-config.json",
+      "original_sha256": "a78c31640bb978fad38356f7f7c9e3fbb1b0d8a71b85c0d1da9aa8766477c463",
+      "sha256": "a78c31640bb978fad38356f7f7c9e3fbb1b0d8a71b85c0d1da9aa8766477c463",
+      "modified": false
+    },
+    {
+      "original_path": "test/integration-runner.sh",
+      "path": "engines/contracts/test/integration-runner.sh",
+      "original_sha256": "a44ec83b06e248de3fdd61274a0fffda2fa60361cb949eb0b06c6356ee801e9e",
+      "sha256": "a44ec83b06e248de3fdd61274a0fffda2fa60361cb949eb0b06c6356ee801e9e",
+      "modified": false
+    },
+    {
+      "original_path": "test/integration/sample.test.js",
+      "path": "engines/contracts/test/integration/sample.test.js",
+      "original_sha256": "14dbdef04cafa5230180f9d6b9cff9bed22dcb18e4b2343f963ec50e3420bfd3",
+      "sha256": "14dbdef04cafa5230180f9d6b9cff9bed22dcb18e4b2343f963ec50e3420bfd3",
+      "modified": false
+    },
+    {
+      "original_path": "test/lib/mockRequest.js",
+      "path": "engines/contracts/test/lib/mockRequest.js",
+      "original_sha256": "762e66951cb74992a6a6d96369347789ebd9095476f65602b4682203392a00c8",
+      "sha256": "762e66951cb74992a6a6d96369347789ebd9095476f65602b4682203392a00c8",
+      "modified": false
+    },
+    {
+      "original_path": "test/lib/mockResponse.js",
+      "path": "engines/contracts/test/lib/mockResponse.js",
+      "original_sha256": "104a7789a64fc1eba3a9f1bebdd9ab15d0677c24bdcf0a529b331b1cfe033b0b",
+      "sha256": "104a7789a64fc1eba3a9f1bebdd9ab15d0677c24bdcf0a529b331b1cfe033b0b",
+      "modified": false
+    },
+    {
+      "original_path": "test/mockRef.json",
+      "path": "engines/contracts/test/mockRef.json",
+      "original_sha256": "543ca801ecbe63477e9f4c9df5710333c78a7b9adb3303beaa345d4f03312c75",
+      "sha256": "543ca801ecbe63477e9f4c9df5710333c78a7b9adb3303beaa345d4f03312c75",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/index.test.js",
+      "path": "engines/contracts/test/unit/index.test.js",
+      "original_sha256": "bbdecb1572bb2bea5b7c0f1b606887d8dfcddb02e074ba29f5052b880380db71",
+      "sha256": "bbdecb1572bb2bea5b7c0f1b606887d8dfcddb02e074ba29f5052b880380db71",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-management.test.js",
+      "path": "engines/contracts/test/unit/lib/api-management.test.js",
+      "original_sha256": "d1bc5eee4d9ae0f8221054d4ba0357b452a55e485e1a22b85ceddb8a90ad7c24",
+      "sha256": "d1bc5eee4d9ae0f8221054d4ba0357b452a55e485e1a22b85ceddb8a90ad7c24",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/config.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/config.test.js",
+      "original_sha256": "bd6779823c39379440043da90566cbf78809b640f68d752748fb207ddbda6445",
+      "sha256": "bd6779823c39379440043da90566cbf78809b640f68d752748fb207ddbda6445",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/history.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/history.test.js",
+      "original_sha256": "f09f9f078bba149b731fe0863f126a938e10e7f328c0d56ae1548b20f20d9d18",
+      "sha256": "f09f9f078bba149b731fe0863f126a938e10e7f328c0d56ae1548b20f20d9d18",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/keycloak.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/keycloak.test.js",
+      "original_sha256": "d1020488968dbe7bba9a78578677ad83490897e17d028f20d58026b6fcfbb8a0",
+      "sha256": "d1020488968dbe7bba9a78578677ad83490897e17d028f20d58026b6fcfbb8a0",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/longpolling.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/longpolling.test.js",
+      "original_sha256": "f2856a423334d10e6b37db6bbf82c40171921edf20ac762eda73d7d546721be5",
+      "sha256": "f2856a423334d10e6b37db6bbf82c40171921edf20ac762eda73d7d546721be5",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/oauth2.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/oauth2.test.js",
+      "original_sha256": "8055a5062f545339faf0fe4930973d30cb4286936a4871dc512d2ec8418e144f",
+      "sha256": "8055a5062f545339faf0fe4930973d30cb4286936a4871dc512d2ec8418e144f",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/objectstore.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/objectstore.test.js",
+      "original_sha256": "e51a7088436739e735a0bed364710a30028ce66ebe151fbd828661f50c767543",
+      "sha256": "e51a7088436739e735a0bed364710a30028ce66ebe151fbd828661f50c767543",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/openapi.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/openapi.test.js",
+      "original_sha256": "ca9280959fbed5db63343c3442a1dc0453f73773bcd6f3e378721cfee24bc827",
+      "sha256": "ca9280959fbed5db63343c3442a1dc0453f73773bcd6f3e378721cfee24bc827",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/outbound.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/outbound.test.js",
+      "original_sha256": "def097ead172212d0feb92bf88abb2073cb881a59fcc6c66022afc70d3987eb1",
+      "sha256": "def097ead172212d0feb92bf88abb2073cb881a59fcc6c66022afc70d3987eb1",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/reports.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/reports.test.js",
+      "original_sha256": "ae3b9e4c77febb18b06385fd66bc1fc04111ee3d0c3af05b72d28623351635f2",
+      "sha256": "ae3b9e4c77febb18b06385fd66bc1fc04111ee3d0c3af05b72d28623351635f2",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/rules.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/rules.test.js",
+      "original_sha256": "b5f7f134590e4b6e67570bbeecc3b7cf33c4129ed9f2c21d177179a74d642a1e",
+      "sha256": "b5f7f134590e4b6e67570bbeecc3b7cf33c4129ed9f2c21d177179a74d642a1e",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/samples.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/samples.test.js",
+      "original_sha256": "a473e93901d9f66be99273ee968278f4ac6192698d58f80b454300ff0b15e55a",
+      "sha256": "a473e93901d9f66be99273ee968278f4ac6192698d58f80b454300ff0b15e55a",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/server-logs.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/server-logs.test.js",
+      "original_sha256": "ad23484f321f8575702a5c78c6b7bb2d18f4e0414cb79d7babbdf8536fb4f876",
+      "sha256": "ad23484f321f8575702a5c78c6b7bb2d18f4e0414cb79d7babbdf8536fb4f876",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/api-routes/settings.test.js",
+      "path": "engines/contracts/test/unit/lib/api-routes/settings.test.js",
+      "original_sha256": "de2422db00b4208bf1fd56f648f5fcc6d7ee98a5bbd3af3e2d78e184688a01a6",
+      "sha256": "de2422db00b4208bf1fd56f648f5fcc6d7ee98a5bbd3af3e2d78e184688a01a6",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/apiServer.test.js",
+      "path": "engines/contracts/test/unit/lib/apiServer.test.js",
+      "original_sha256": "5c22f8888aba498da68ebe89fe00a7b9f002a0f9af4ab68989f75c18b0f4aa26",
+      "sha256": "5c22f8888aba498da68ebe89fe00a7b9f002a0f9af4ab68989f75c18b0f4aa26",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/arrayStore.test.js",
+      "path": "engines/contracts/test/unit/lib/arrayStore.test.js",
+      "original_sha256": "1f750a14ec90def6e51ddfd3715337d2c1b771a956fad573e976aee9aff9622a",
+      "sha256": "1f750a14ec90def6e51ddfd3715337d2c1b771a956fad573e976aee9aff9622a",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/callbackHandler.test.js",
+      "path": "engines/contracts/test/unit/lib/callbackHandler.test.js",
+      "original_sha256": "3f66205d3d4e85f3d1bcd8d229f164b08bc1ca71c42c56f28a5bf52ea3a50858",
+      "sha256": "3f66205d3d4e85f3d1bcd8d229f164b08bc1ca71c42c56f28a5bf52ea3a50858",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/config.test.js",
+      "path": "engines/contracts/test/unit/lib/config.test.js",
+      "original_sha256": "ce2a0e2351c4be24b8b05f857e0786b876169bbe9f20ced31a0af75c2a55fe1f",
+      "sha256": "ce2a0e2351c4be24b8b05f857e0786b876169bbe9f20ced31a0af75c2a55fe1f",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/configuration-providers/mb-connection-manager.test.js",
+      "path": "engines/contracts/test/unit/lib/configuration-providers/mb-connection-manager.test.js",
+      "original_sha256": "d6421579321e8c29ce7110365980e3d50c628f1837b749812bb5ae83d66c4b8a",
+      "sha256": "d6421579321e8c29ce7110365980e3d50c628f1837b749812bb5ae83d66c4b8a",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/db/dbAdapter.test.js",
+      "path": "engines/contracts/test/unit/lib/db/dbAdapter.test.js",
+      "original_sha256": "d5a732b4b777672f5b57f44fa977713655335502dc0c981d04c8a9c9a9d25248",
+      "sha256": "d5a732b4b777672f5b57f44fa977713655335502dc0c981d04c8a9c9a9d25248",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/db/dfspMockUsers.test.js",
+      "path": "engines/contracts/test/unit/lib/db/dfspMockUsers.test.js",
+      "original_sha256": "015c2cddd91eb93e07d13bdc21baf9ad916ace385e1381567ee8d2e3dac711ce",
+      "sha256": "015c2cddd91eb93e07d13bdc21baf9ad916ace385e1381567ee8d2e3dac711ce",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/eventListenerClient/inboundEventListener.test.js",
+      "path": "engines/contracts/test/unit/lib/eventListenerClient/inboundEventListener.test.js",
+      "original_sha256": "2aa518ea928489e9f873b52e19c355b8d59ba79c35b1c6f66ffc8a8ac129827f",
+      "sha256": "2aa518ea928489e9f873b52e19c355b8d59ba79c35b1c6f66ffc8a8ac129827f",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/httpAgentStore.test.js",
+      "path": "engines/contracts/test/unit/lib/httpAgentStore.test.js",
+      "original_sha256": "4240f952525559e8ddcc398a154195cfc2f274b53b4395fcf5f03a4ba13a586e",
+      "sha256": "4240f952525559e8ddcc398a154195cfc2f274b53b4395fcf5f03a4ba13a586e",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/importExport.test.js",
+      "path": "engines/contracts/test/unit/lib/importExport.test.js",
+      "original_sha256": "bf900774bfd5decf3d176c0b190cd4fd35176b253d4fd48e26d9ae2e4583d48c",
+      "sha256": "bf900774bfd5decf3d176c0b190cd4fd35176b253d4fd48e26d9ae2e4583d48c",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/jws/JwsSigning.test.js",
+      "path": "engines/contracts/test/unit/lib/jws/JwsSigning.test.js",
+      "original_sha256": "3df768555c86649dcc0def726f82bd1f7cf73abf3d2658367e685f05942cd870",
+      "sha256": "3df768555c86649dcc0def726f82bd1f7cf73abf3d2658367e685f05942cd870",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/loadSamples.test.js",
+      "path": "engines/contracts/test/unit/lib/loadSamples.test.js",
+      "original_sha256": "5165833f2adf10f027b2194621ab0327ec182e8d9ec60fc6b5190019f7491181",
+      "sha256": "5165833f2adf10f027b2194621ab0327ec182e8d9ec60fc6b5190019f7491181",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/longpollingEmitter.test.js",
+      "path": "engines/contracts/test/unit/lib/longpollingEmitter.test.js",
+      "original_sha256": "bf0da809bc2fec4d678c17ec862bdc6bc71b282f9e2448a96f61bc8d1430e495",
+      "sha256": "bf0da809bc2fec4d678c17ec862bdc6bc71b282f9e2448a96f61bc8d1430e495",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/metrics.test.js",
+      "path": "engines/contracts/test/unit/lib/metrics.test.js",
+      "original_sha256": "39dda38b18d21686cb050f9714c9c3ca851bf2ecbbf53b154aa3c66ad5293406",
+      "sha256": "39dda38b18d21686cb050f9714c9c3ca851bf2ecbbf53b154aa3c66ad5293406",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/custom-functions/generic.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/custom-functions/generic.test.js",
+      "original_sha256": "2a5e37d0bff2dd51700551df8b9292974fe3c0f1c583cd9f54935edb9ae8e6b4",
+      "sha256": "2a5e37d0bff2dd51700551df8b9292974fe3c0f1c583cd9f54935edb9ae8e6b4",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/middleware-functions/ilpModel.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/middleware-functions/ilpModel.test.js",
+      "original_sha256": "61200ffc4737d644a45c9a353f441c99215d52d1672a39bb9fffcce022407276",
+      "sha256": "61200ffc4737d644a45c9a353f441c99215d52d1672a39bb9fffcce022407276",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/middleware-functions/quotesAssociation.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/middleware-functions/quotesAssociation.test.js",
+      "original_sha256": "a80239854a07ee81b349b92e6eaf24ce75fce68a44c9982fcf2b1fa6b09cd567",
+      "sha256": "a80239854a07ee81b349b92e6eaf24ce75fce68a44c9982fcf2b1fa6b09cd567",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/middleware-functions/transactionRequestsService.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/middleware-functions/transactionRequestsService.test.js",
+      "original_sha256": "df5a4aa281388bf9832b4c259fb37cf8a49767b394bd53a4b548e317041485db",
+      "sha256": "df5a4aa281388bf9832b4c259fb37cf8a49767b394bd53a4b548e317041485db",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/openApiDefinitionsModel.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/openApiDefinitionsModel.test.js",
+      "original_sha256": "db9d9fbbfd5c5dcf0944cfb4595111f74ed3ca909c0461ee11971e410bb21df2",
+      "sha256": "db9d9fbbfd5c5dcf0944cfb4595111f74ed3ca909c0461ee11971e410bb21df2",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/openApiMockHandler.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/openApiMockHandler.test.js",
+      "original_sha256": "5d568397c88a4980cb3f69c4191eca981504c611fcf722cf92eb0f8d1cf9860b",
+      "sha256": "5d568397c88a4980cb3f69c4191eca981504c611fcf722cf92eb0f8d1cf9860b",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/openApiRulesEngine.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/openApiRulesEngine.test.js",
+      "original_sha256": "9e5255fe669c1bcae0a607c9f74752ae11a6d37fdc42096562cc95dab9967e1c",
+      "sha256": "9e5255fe669c1bcae0a607c9f74752ae11a6d37fdc42096562cc95dab9967e1c",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/openApiVersionTools.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/openApiVersionTools.test.js",
+      "original_sha256": "ab8fa17385ffdfacd1ee19659f8586f94086864d02d0b215b42f760b8326a325",
+      "sha256": "ab8fa17385ffdfacd1ee19659f8586f94086864d02d0b215b42f760b8326a325",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/transformers/fspiopToISO20022.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/transformers/fspiopToISO20022.test.js",
+      "original_sha256": "8d7925324a863eff1a52beec2c30f5b50dc4387d21597c2e864fbcb893221fcc",
+      "sha256": "8d7925324a863eff1a52beec2c30f5b50dc4387d21597c2e864fbcb893221fcc",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/transformers/index.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/transformers/index.test.js",
+      "original_sha256": "88180ffb4229453eca403fd0d3284a1b07aacacd40e5ee6cb161d3044e65a430",
+      "sha256": "88180ffb4229453eca403fd0d3284a1b07aacacd40e5ee6cb161d3044e65a430",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/mocking/transformers/requestTransform.test.js",
+      "path": "engines/contracts/test/unit/lib/mocking/transformers/requestTransform.test.js",
+      "original_sha256": "ada77663618ed3ba0a0d5dcf7c8150451b53074338b9bb9fec6e20818c90e392",
+      "sha256": "ada77663618ed3ba0a0d5dcf7c8150451b53074338b9bb9fec6e20818c90e392",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/myEventEmitter.test.js",
+      "path": "engines/contracts/test/unit/lib/myEventEmitter.test.js",
+      "original_sha256": "5cd48b4041bb50525c6e26236fab9eeffb078677918fdb7b79a83ead482ec964",
+      "sha256": "5cd48b4041bb50525c6e26236fab9eeffb078677918fdb7b79a83ead482ec964",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/notificationEmitter.test.js",
+      "path": "engines/contracts/test/unit/lib/notificationEmitter.test.js",
+      "original_sha256": "fd193134d703447a445a890d7f55123c860cbb8776c755b9cc65ec4c49399c78",
+      "sha256": "fd193134d703447a445a890d7f55123c860cbb8776c755b9cc65ec4c49399c78",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/oauth/KeycloakHelper.test.js",
+      "path": "engines/contracts/test/unit/lib/oauth/KeycloakHelper.test.js",
+      "original_sha256": "7ca8f579d0f66c6abdff144d1b88fbc76241bd6e5a55d35350eca39f6f5a901d",
+      "sha256": "7ca8f579d0f66c6abdff144d1b88fbc76241bd6e5a55d35350eca39f6f5a901d",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/oauth/LoginService.test.js",
+      "path": "engines/contracts/test/unit/lib/oauth/LoginService.test.js",
+      "original_sha256": "8bed72c5360a4453074961865401e50f37046a453171676b740656ef99abc11f",
+      "sha256": "8bed72c5360a4453074961865401e50f37046a453171676b740656ef99abc11f",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/oauth/OAuthValidator.test.js",
+      "path": "engines/contracts/test/unit/lib/oauth/OAuthValidator.test.js",
+      "original_sha256": "3821e062e6f412788a7838f96c4b4706c30011711bb1b92d1ca6f560a356dbd6",
+      "sha256": "3821e062e6f412788a7838f96c4b4706c30011711bb1b92d1ca6f560a356dbd6",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/oauth/OauthHelper.test.js",
+      "path": "engines/contracts/test/unit/lib/oauth/OauthHelper.test.js",
+      "original_sha256": "0129ba846d9850928e64110e29e51bc764c906e8fce1c23406b9c80d1d9b5c4d",
+      "sha256": "0129ba846d9850928e64110e29e51bc764c906e8fce1c23406b9c80d1d9b5c4d",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/oauth/Wso2Client.test.js",
+      "path": "engines/contracts/test/unit/lib/oauth/Wso2Client.test.js",
+      "original_sha256": "b86c8a468f989c0dd34e785f49fb28aa00031686c9b4e14c2b74c6e16c75ed7d",
+      "sha256": "b86c8a468f989c0dd34e785f49fb28aa00031686c9b4e14c2b74c6e16c75ed7d",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/objectStore.test.js",
+      "path": "engines/contracts/test/unit/lib/objectStore.test.js",
+      "original_sha256": "0a94f78bab82cb59b289de070073c944219e72094f872ed0c1ce344e8f17bdaf",
+      "sha256": "0a94f78bab82cb59b289de070073c944219e72094f872ed0c1ce344e8f17bdaf",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/report-generator/generator.test.js",
+      "path": "engines/contracts/test/unit/lib/report-generator/generator.test.js",
+      "original_sha256": "feae16438e80cd5c9d76c64a34cf67b3a8a2be99b88dc3cb311a38a552aba0a2",
+      "sha256": "feae16438e80cd5c9d76c64a34cf67b3a8a2be99b88dc3cb311a38a552aba0a2",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/report-generator/helpers.test.js",
+      "path": "engines/contracts/test/unit/lib/report-generator/helpers.test.js",
+      "original_sha256": "c27e042403d501cbbb3a8d60aa7790b094d7fc47406af8ce4d9fd3979303f64e",
+      "sha256": "c27e042403d501cbbb3a8d60aa7790b094d7fc47406af8ce4d9fd3979303f64e",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/requestLogger.test.js",
+      "path": "engines/contracts/test/unit/lib/requestLogger.test.js",
+      "original_sha256": "68e03a2220a23deb0d6105ce03f0ab952da313b94b9eda492fde4a677576ea0e",
+      "sha256": "68e03a2220a23deb0d6105ce03f0ab952da313b94b9eda492fde4a677576ea0e",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/rulesEngine.test.js",
+      "path": "engines/contracts/test/unit/lib/rulesEngine.test.js",
+      "original_sha256": "5d608800e20da6f3ed72867529b71181ed364e1ae8b80eef95f8ec5d886d634e",
+      "sha256": "5d608800e20da6f3ed72867529b71181ed364e1ae8b80eef95f8ec5d886d634e",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/rulesEngineModel.test.js",
+      "path": "engines/contracts/test/unit/lib/rulesEngineModel.test.js",
+      "original_sha256": "f6fe6734a4e57d8212c0d15964420b918b17a17bb39687deced52db2d2f1b9cd",
+      "sha256": "f6fe6734a4e57d8212c0d15964420b918b17a17bb39687deced52db2d2f1b9cd",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/scripting-engines/postman-sandbox.test.js",
+      "path": "engines/contracts/test/unit/lib/scripting-engines/postman-sandbox.test.js",
+      "original_sha256": "10d6bd96e522620d5e857dde09deff87708afa3985bef16a0c0b3763e396ce57",
+      "sha256": "10d6bd96e522620d5e857dde09deff87708afa3985bef16a0c0b3763e396ce57",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/scripting-engines/vm-javascript-sandbox.test.js",
+      "path": "engines/contracts/test/unit/lib/scripting-engines/vm-javascript-sandbox.test.js",
+      "original_sha256": "fd4bb510e2a8ed9d7a032851753180dd9eea2720e4cf15db083ae453e01e38ed",
+      "sha256": "fd4bb510e2a8ed9d7a032851753180dd9eea2720e4cf15db083ae453e01e38ed",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/server-logs/adapters/elastic-search.test.js",
+      "path": "engines/contracts/test/unit/lib/server-logs/adapters/elastic-search.test.js",
+      "original_sha256": "0d33bc6994aa5f1b226363e09d563eb7812fbb570e3a761b3d47a44f20be42ed",
+      "sha256": "0d33bc6994aa5f1b226363e09d563eb7812fbb570e3a761b3d47a44f20be42ed",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/server-logs/server-logs.test.js",
+      "path": "engines/contracts/test/unit/lib/server-logs/server-logs.test.js",
+      "original_sha256": "6fb35f4b891295f2296156aa548ff33f4c1d7d20774771fe5fa3477d7114cbca",
+      "sha256": "6fb35f4b891295f2296156aa548ff33f4c1d7d20774771fe5fa3477d7114cbca",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/socket-server.test.js",
+      "path": "engines/contracts/test/unit/lib/socket-server.test.js",
+      "original_sha256": "04bf2bd45bc3602b26398d55fa1231ae2c7080843f6806a0ad461783d32b3b58",
+      "sha256": "04bf2bd45bc3602b26398d55fa1231ae2c7080843f6806a0ad461783d32b3b58",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/storageAdapter.test.js",
+      "path": "engines/contracts/test/unit/lib/storageAdapter.test.js",
+      "original_sha256": "4960f76ca8b8843ce39a41318007d34e0b8ca11fd06f8c7bc066a5d2932f21af",
+      "sha256": "4960f76ca8b8843ce39a41318007d34e0b8ca11fd06f8c7bc066a5d2932f21af",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/test-outbound/TestCaseRunner.test.js",
+      "path": "engines/contracts/test/unit/lib/test-outbound/TestCaseRunner.test.js",
+      "original_sha256": "15420184dc35357c9f0b8b6b33f3ccfacb66d0c9538a7d1b04e4259c57b7d1dc",
+      "sha256": "15420184dc35357c9f0b8b6b33f3ccfacb66d0c9538a7d1b04e4259c57b7d1dc",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/test-outbound/outbound-initiator.test.js",
+      "path": "engines/contracts/test/unit/lib/test-outbound/outbound-initiator.test.js",
+      "original_sha256": "92bfe3b2fc1ca5d2ee06514389283f7034ea46d3dd7dffd4d843e10e06bab329",
+      "sha256": "92bfe3b2fc1ca5d2ee06514389283f7034ea46d3dd7dffd4d843e10e06bab329",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/uniqueIdGenerator.test.js",
+      "path": "engines/contracts/test/unit/lib/uniqueIdGenerator.test.js",
+      "original_sha256": "67788baeaa034c6305d856679b71a7b7f44995b1b9aa07f7555ec2f2e8f1658a",
+      "sha256": "67788baeaa034c6305d856679b71a7b7f44995b1b9aa07f7555ec2f2e8f1658a",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/utils.test.js",
+      "path": "engines/contracts/test/unit/lib/utils.test.js",
+      "original_sha256": "6c82cb4ff65f39ba05eb24a69c43c575f4ec0a1dd4976c20c5baf1bcbd0e9f80",
+      "sha256": "6c82cb4ff65f39ba05eb24a69c43c575f4ec0a1dd4976c20c5baf1bcbd0e9f80",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/utilsInternal.test.js",
+      "path": "engines/contracts/test/unit/lib/utilsInternal.test.js",
+      "original_sha256": "260dab1a5c3c950c54c568e756bb14672ca5f99ecde7c37372eb4d371ad8c0e6",
+      "sha256": "260dab1a5c3c950c54c568e756bb14672ca5f99ecde7c37372eb4d371ad8c0e6",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/lib/webSocketClient/WebSocketClientManager.test.js",
+      "path": "engines/contracts/test/unit/lib/webSocketClient/WebSocketClientManager.test.js",
+      "original_sha256": "6aed8e822f6a8fc933e3fd2bf9c3f8f312125e5fcab4928370e872bc21e0e329",
+      "sha256": "6aed8e822f6a8fc933e3fd2bf9c3f8f312125e5fcab4928370e872bc21e0e329",
+      "modified": false
+    },
+    {
+      "original_path": "test/unit/server.test.js",
+      "path": "engines/contracts/test/unit/server.test.js",
+      "original_sha256": "3927bda3494a77a4b33faf4ff218c495b2edb704e5acf697b7d4a53b3b0a4007",
+      "sha256": "3927bda3494a77a4b33faf4ff218c495b2edb704e5acf697b7d4a53b3b0a4007",
+      "modified": false
+    },
+    {
+      "original_path": "test/util/testConfig.js",
+      "path": "engines/contracts/test/util/testConfig.js",
+      "original_sha256": "a81bcc1f6ce2032b027a758d7d206235fb0a2fc2ff05a2ee62069c4ea3aabe1f",
+      "sha256": "a81bcc1f6ce2032b027a758d7d206235fb0a2fc2ff05a2ee62069c4ea3aabe1f",
+      "modified": false
+    }
+  ],
+  "additional_changes": [
+    {
+      "path": "engines/contracts/.gitignore",
+      "before_sha256": "36033388005d5fc6cdc94738030b1230e1209b3214d5ac6bb24bcce239cb15b9",
+      "after_sha256": "62f1180fc24c4bd7f8835c77136814d361531b02262fa8dfc25053750ea7e26a",
+      "purpose": "Retain imported source and build prerequisites under Git packaging."
+    }
+  ]
+}

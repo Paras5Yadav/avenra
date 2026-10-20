@@ -1,0 +1,202 @@
+= Working Capital Loan Discount Configuration
+
+== Overview
+
+Working Capital Loans support an upfront discount amount that is deducted from the gross disbursement and used as the basis for EIR income amortization. This document covers how the discount is configured on the product and how the value moves through the loan lifecycle: proposed, approved, and applied at disbursement.
+
+Discount Fee transaction creation, adjustment, accounting, and reversal behavior are documented separately in `working-capital-discount-fee-txn.adoc`.
+
+=== Purpose
+
+The discount configuration gives lenders a controlled way to price Working Capital credit while still allowing the discount to be reduced during origination when the product allows loan-level overrides.
+
+=== Scope
+
+The scope of this document includes:
+
+* Product-level discount default and override configuration
+* Discount values at loan submission, approval, and disbursement
+* Validation rules for staged discount overrides
+* Effective discount amount used by the amortization schedule
+
+=== Applicability
+
+* Working Capital Loans with the currently supported `amortizationType = EIR`
+* Discount configuration is available during product and loan lifecycle operations
+* The discount is only applied to the loan balance after disbursement
+
+=== Definitions and Key Concepts
+
+*Discount (product default):* The default discount fee amount defined on the Working Capital Loan product. It is copied to the loan instance when the loan is created.
+
+*Discount Proposed (`discount_proposed`):* The discount amount proposed at loan submission time, if the product allows overrides. Stored on `m_wc_loan`.
+
+*Discount Approved (`discount_approved`):* The discount amount set during approval. Cannot exceed `discount_proposed`. Stored on `m_wc_loan`. Cleared when approval is undone.
+
+*Discount (active, `discount`):* The discount amount applied at disbursement. It drives the `discountFeeAmount` used in EIR schedule computation.
+
+*Discount Default Overridable (`discountDefault`):* A product-level configurable attribute. When `true`, the loan officer may override the product discount at loan level. When `false`, the product discount is fixed and override attempts fail with `override.not.allowed.by.product`.
+
+== Design Decisions and Considerations
+
+=== Staged Discount Override
+
+The discount flows through three stages: proposed (submission) -> approved (approval) -> applied (disbursement). Each stage can only reduce, not increase, the discount from the prior stage. This keeps the final fee within the product default or the borrower-proposed amount.
+
+=== Applied Discount Drives EIR
+
+The EIR schedule uses the applied `discount` value from the loan product related details. Product default, proposed, and approved values are only staging values until disbursement resolves the amount.
+
+== Database Design
+
+=== Overview
+
+The discount lifecycle is tracked on the Working Capital Loan product related details and loan instance. Transaction relation tables are covered in `working-capital-discount-fee-txn.adoc`.
+
+=== Existing Tables
+
+*`m_wc_loan_product`*: Defines the product default `discount`.
+
+*`m_wc_loan`*: Stores the proposed, approved, and applied discount values embedded from `WorkingCapitalLoanProductRelatedDetails`.
+
+=== Changes to Existing Tables
+
+==== m_wc_loan
+
+[cols="1,2,1,3",options="header"]
+|===
+| Column Name | Type | Constraints | Description
+| discount | DECIMAL(19,6) | nullable | Active discount amount; set at disbursement; used as `discountFeeAmount` in EIR schedule
+| discount_proposed | DECIMAL(19,6) | nullable | Discount proposed at loan submission; upper bound for approval
+| discount_approved | DECIMAL(19,6) | nullable | Discount set during approval; upper bound for disbursement; cleared on undo-approval
+|===
+
+== Configuration
+
+=== Loan Product Configuration
+
+Configure the discount at product level. The `allowAttributeOverrides` block controls whether loan-level stages can override the product default.
+
+[source,json]
+----
+{
+    "discount": 5000.00,
+    "allowAttributeOverrides": {
+        "discountDefault": true
+    }
+}
+----
+
+[NOTE]
+====
+`discountDefault = true` means the discount can be overridden at loan level. `discountDefault = false` means the product discount is fixed.
+====
+
+== API Design
+
+=== Set Discount at Submission
+
+The `discount` field is optional when submitting a loan application. It is allowed only when `discountDefault = true` on the loan product.
+
+[source]
+----
+POST /v1/working-capital-loans
+----
+
+[source,json]
+----
+{
+  "discount": 4500.00
+}
+----
+
+=== Set Discount at Approval
+
+The `discountAmount` field is optional during approval. It sets `discount_approved` and cannot exceed `discount_proposed`.
+
+[source]
+----
+POST /v1/working-capital-loans/{loanId}?command=approve
+POST /v1/working-capital-loans/external-id/{loanExternalId}?command=approve
+----
+
+[source,json]
+----
+{
+  "discountAmount": 4000.00
+}
+----
+
+=== Set Discount at Disbursement
+
+The `discountAmount` field at disbursement resolves the applied loan discount. When the resolved amount is greater than zero, a `DISCOUNT_FEE` transaction is created as part of disbursement processing.
+
+[source]
+----
+POST /v1/working-capital-loans/{loanId}?command=disburse
+POST /v1/working-capital-loans/external-id/{loanExternalId}?command=disburse
+----
+
+[source,json]
+----
+{
+  "discountAmount": 4000.00
+}
+----
+
+== Validation Rules
+
+=== Discount at Submission
+
+* `discount` must be zero or positive when provided.
+* If `discountDefault = false`, providing `discount` fails with `override.not.allowed.by.product`.
+* If `discountDefault = true`, `discount` may be provided and must not exceed the product default discount.
+
+=== Discount at Approval
+
+* `discountAmount` must be zero or positive when provided.
+* If `discountDefault = false`, providing `discountAmount` fails with `override.not.allowed.by.product`.
+* `discountAmount` cannot exceed `discount_proposed`. If no proposed override exists, it cannot exceed the product default discount.
+
+=== Discount at Disbursement
+
+* `discountAmount` must be zero or positive when provided.
+* `discountAmount` cannot exceed the approval-time discount.
+* If no approved discount exists, `discountAmount` cannot exceed the product default discount.
+
+== Business Rules
+
+=== Discount Lifecycle
+
+* At loan creation, the product default `discount` is copied to the loan's embedded product related details.
+* At submission, if the product allows overrides (`discountDefault = true`), the borrower can propose a lower discount. The proposed value is stored as `discount_proposed`.
+* At approval, the approver may set `discountAmount`. The approved amount is stored as `discount_approved` and cannot exceed the proposed amount.
+* When approval is undone (`undoapproval`), `discount_approved` is cleared to null. The loan returns to SUBMITTED state.
+* At disbursement, the applied discount is stored as `discount`.
+* If the applied discount is greater than zero, a `DISCOUNT_FEE` transaction is created. Transaction details are covered in `working-capital-discount-fee-txn.adoc`.
+
+=== Effective Discount Amount
+
+The discount used in EIR schedule computation (`discountFeeAmount`) is the resolved active `discount` value on the Working Capital Loan at schedule generation time.
+
+== Example Scenario
+
+=== Discount Reduced During Origination
+
+**Setup:**
+* Loan product with `discount = 5000.00` and `discountDefault = true`.
+* Borrower submits with `discount = 4500.00`.
+* Approver sets `discountAmount = 4000.00`.
+
+**Action:**
+Loan is disbursed with `discountAmount = 4000.00`.
+
+**Expected Behavior:**
+
+* `discount_proposed = 4500.00`, `discount_approved = 4000.00`, and `discount = 4000.00` on `m_wc_loan`.
+* The amortization schedule uses `discountFeeAmount = 4000.00`.
+* The borrower receives net disbursement reduced by the applied discount.
+
+== Summary
+
+Working Capital Loan Discount Configuration defines the default discount and the allowed staged overrides before disbursement. The applied discount is the value used by the amortization schedule and, when greater than zero, results in a Discount Fee transaction.

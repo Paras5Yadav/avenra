@@ -1,0 +1,244 @@
+/*****
+ License
+ --------------
+ Copyright © 2020-2025 Mojaloop Foundation
+ The Mojaloop files are made available by the Mojaloop Foundation under the Apache License, Version 2.0 (the "License") and you may not use these files except in compliance with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, the Mojaloop files are distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+
+ Contributors
+ --------------
+ This is the official list of the Mojaloop project contributors for this file.
+ Names of the original copyright holders (individuals or organizations)
+ should be listed with a '*' in the first column. People who have
+ contributed from an organization can be listed under the organization
+ that actually holds the copyright for their contributions (see the
+ Mojaloop Foundation for an example). Those individuals should have
+ their names indented and be marked with a '-'. Email address can be added
+ optionally within square brackets <email>.
+
+ * Mojaloop Foundation
+ - Name Surname <name.surname@mojaloop.io>
+
+ * ModusBox
+ * Georgi Logodazhki <georgi.logodazhki@modusbox.com>
+ * Vijaya Kumar Guthi <vijaya.guthi@modusbox.com> (Original Author)
+ --------------
+ ******/
+
+'use strict'
+
+const Config = require('../../../src/lib/config')
+const requestLogger = require('../../../src/lib/requestLogger')
+const storageAdapter = require('../../../src/lib/storageAdapter')
+
+jest.mock('../../../src/lib/requestLogger')
+jest.mock('../../../src/lib/storageAdapter')
+
+describe('Config', () => {
+  beforeEach(() => {
+    jest.resetAllMocks()
+    requestLogger.logMessage.mockReturnValue()
+  })
+  afterEach(() => {
+    jest.resetAllMocks()
+  })
+  describe('when getUserConfig is called', () => {
+    it('should load userConfig only once', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {}
+      })
+      const userConfig1 = await Config.getUserConfig('testConfig')
+      const userConfig2 = await Config.getUserConfig('testConfig')
+      expect(userConfig1).toStrictEqual(userConfig2)
+    })
+    it('should not throw an error ', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {}
+      })
+      const userConfig = await Config.getUserConfig()
+      expect(userConfig).toBeDefined()
+    })
+  })
+  describe('when getSystemConfig is called', () => {
+    it('should not throw an error ', () => {
+      expect(Config.getSystemConfig()).toBeDefined()
+    })
+  })
+  describe('when getStoredUserConfig throws an error', () => {
+    it('the response should not be empty object', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {}
+      })
+      const userConfig = await Config.getStoredUserConfig()
+      expect(userConfig).toBeDefined()
+    })
+    it('the response should be empty object', async () => {
+      storageAdapter.read.mockRejectedValueOnce()
+      const userConfig = await Config.getStoredUserConfig()
+      expect(userConfig).toStrictEqual({})
+    })
+  })
+  describe('when setStoredUserConfig throws an error', () => {
+    it('the response should be false', async () => {
+      storageAdapter.upsert.mockResolvedValueOnce()
+      const storedUserConfig = await Config.setStoredUserConfig({})
+      expect(storedUserConfig).toBeTruthy()
+    })
+    it('the response should be false', async () => {
+      storageAdapter.upsert.mockRejectedValueOnce()
+      const storedUserConfig = await Config.setStoredUserConfig()
+      expect(storedUserConfig).toBeFalsy()
+    })
+  })
+  describe('when loadUserConfig throws an error', () => {
+    it('the response should be true if user is not provided and there is no error', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {}
+      })
+      const loadUserConfig = await Config.loadUserConfig()
+      expect(loadUserConfig).toBeTruthy()
+    })
+    it('the response should be true', async () => {
+      const loadUserConfig = await Config.loadUserConfig({dfspId: 'test'})
+      expect(loadUserConfig).toBeTruthy()
+    })
+    it('the response should be true', async () => {
+      storageAdapter.read.mockRejectedValueOnce()
+      const loadUserConfig = await Config.loadUserConfig()
+      expect(loadUserConfig).toBeTruthy()
+    })
+    it('the response should be true if user is provided and there an error', async () => {
+      storageAdapter.read.mockRejectedValueOnce(new Error('expected error'))
+      const loadUserConfig = await Config.loadUserConfig()
+      expect(loadUserConfig).toBeTruthy()
+    })
+  })
+  describe('when loadSystemConfig', () => {
+    it('should not throw an error', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {}
+      })
+      const loadUserConfig = await Config.loadSystemConfig()
+      expect(loadUserConfig).toBeTruthy()
+    })
+    it('should return true if there is an error reading the file', async () => {
+      storageAdapter.read.mockRejectedValueOnce()
+      const loadUserConfig = await Config.loadSystemConfig()
+      expect(loadUserConfig).toBeTruthy()
+    })
+  })
+  describe('setSystemConfig', () => {
+    it('should not throw error', async () => {
+      storageAdapter.upsert.mockResolvedValueOnce()
+      const res = await Config.setSystemConfig({})
+      expect(res).toBe(true)
+    })
+    it('the response should be false', async () => {
+      storageAdapter.upsert.mockRejectedValueOnce()
+      const res = await Config.setSystemConfig()
+      expect(res).toBe(false)
+    })
+  })
+  describe('getObjectStoreInitConfig', () => {
+    it('should not throw an error if env is not passed', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {}
+      })
+      await Config.loadSystemConfig()
+      await expect(Config.getObjectStoreInitConfig()).resolves.toBeTruthy()
+    })
+    it('should not throw an error if env is passed', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {
+          INIT_CONFIG: {
+            objectStore: {
+              test1: 'value1'
+            }
+          }
+        }
+      })
+      await Config.loadSystemConfig()
+      await expect(Config.getObjectStoreInitConfig()).resolves.toBeTruthy()
+      const objectStoreInit = await Config.getObjectStoreInitConfig()
+      expect(objectStoreInit).toHaveProperty('test1')
+    })
+  })
+  describe('Config secrets', () => {
+    afterEach(() => {
+      delete process.env.REPORTING_DB_CONNECTION_PASSWORD
+      delete process.env.REPORTING_DB_CONNECTION_STRING
+      delete process.env.REPORTING_DB_SSL_CA_FILE_PATH
+      delete process.env.REPORTING_DB_SSL_ENABLED
+      delete process.env.REPORTING_DB_SSL_VERIFY
+      delete process.env.REPORTING_DB_SSL_CLIENT_CERT_FILE_PATH
+    })
+
+    it('should load config from env if set', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {
+          INIT_CONFIG: {
+            objectStore: {
+              test1: 'value1'
+            }
+          }
+        }
+      })
+      process.env.REPORTING_DB_CONNECTION_PASSWORD = '123'
+      process.env.REPORTING_DB_CONNECTION_STRING = 'connection_string'
+      process.env.REPORTING_DB_SSL_CA_FILE_PATH = 'ssl_ca'
+      process.env.REPORTING_DB_SSL_ENABLED = 'true'
+      process.env.REPORTING_DB_SSL_VERIFY = 'true'
+      process.env.REPORTING_DB_SSL_CLIENT_CERT_FILE_PATH = 'ssl_client_cert'
+
+      await Config.loadSystemConfig()
+      await expect(Config.getSystemConfig()).toEqual(expect.objectContaining({
+        DB: {
+          PASSWORD: '123',
+          CONNECTION_STRING: 'connection_string',
+          SSL_CA_FILE_PATH: 'ssl_ca',
+          SSL_ENABLED: true,
+          SSL_VERIFY: true,
+          SSL_CLIENT_CERT_FILE_PATH: 'ssl_client_cert'
+        }
+      }))
+    })
+
+    it('should load partial config from env', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {
+          INIT_CONFIG: {
+            objectStore: {
+              test1: 'value1'
+            }
+          }
+        }
+      })
+
+      delete process.env.REPORTING_DB_CONNECTION_PASSWORD
+      delete process.env.REPORTING_DB_CONNECTION_STRING
+      delete process.env.REPORTING_DB_SSL_CA_FILE_PATH
+      delete process.env.REPORTING_DB_SSL_ENABLED
+      delete process.env.REPORTING_DB_SSL_CLIENT_CERT_FILE_PATH
+      process.env.REPORTING_DB_SSL_VERIFY = 'true'
+      await Config.loadSystemConfig()
+      await expect(Config.getSystemConfig()).toEqual(expect.objectContaining({
+        DB: {
+          SSL_ENABLED: false,
+          SSL_VERIFY: true
+        }
+      }))
+    })
+
+    it('should load SSL_CLIENT_CERT_FILE_PATH if set', async () => {
+      storageAdapter.read.mockResolvedValueOnce({
+        data: {}
+      })
+      process.env.REPORTING_DB_SSL_CLIENT_CERT_FILE_PATH = 'ssl_client_cert_path'
+      await Config.loadSystemConfig()
+      expect(Config.getSystemConfig().DB.SSL_CLIENT_CERT_FILE_PATH).toBe('ssl_client_cert_path')
+    })
+  })
+})

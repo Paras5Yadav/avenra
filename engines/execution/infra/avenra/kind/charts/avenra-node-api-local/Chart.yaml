@@ -1,0 +1,20 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-node-api-local
+description: Kind DaemonSet for the Avenra node-api node service
+type: application
+version: 0.1.0
+appVersion: "0.8.0"
+dependencies:
+  - name: avenra-kind-telemetry
+    version: 0.1.0
+    repository: "file://../avenra-kind-telemetry"
+    import-values:
+      - child: telemetry
+        parent: telemetry
+  - name: avenra-node-service
+    version: 0.1.0
+    repository: "file://../avenra-node-service"
+    import-values:
+      - child: node
+        parent: node

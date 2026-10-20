@@ -1,0 +1,10 @@
+#!/usr/bin/env just --justfile
+
+set positional-arguments
+
+push-image version='latest' registry='ghcr.io':
+    docker buildx build . \
+        --build-context root=../.. \
+        -t {{ registry }}/formancehq/ledger-provisioner:{{ version }} \
+        --push \
+        --platform linux/amd64,linux/arm64

@@ -1,0 +1,89 @@
+{
+  "retrieved_at": 1792397304.952548,
+  "scope": "Official public contract metadata. Selected AA/FIP/FIU deposit subsets have a separately qualified local synthetic binding. Full official profiles and interoperability remain unqualified. Original documents stay in the private local cache.",
+  "profiles": [
+    {
+      "role": "aa",
+      "file": "AA_2_1_0.yaml",
+      "source": "https://specifications.rebit.org.in/api_specifications/account_aggregator/AA_2_1_0.yaml",
+      "advertised_version": "2.1.0",
+      "runtime_implemented": false,
+      "interoperability_qualified": false,
+      "sha256": "e6fd56713b5775196491389064deb51e8cafd62a681c881e6eeb6aab37ae0395",
+      "declared_version": "2.1.0",
+      "state": "metadata_matches",
+      "operation_count": 12,
+      "local_synthetic_binding": {
+        "implementation": "avenra/aa/",
+        "qualification": "synthetic_deposit_subset"
+      }
+    },
+    {
+      "role": "fip",
+      "file": "FIP_2_2_0.yaml",
+      "source": "https://specifications.rebit.org.in/api_specifications/account_aggregator/FIP_2_2_0.yaml",
+      "advertised_version": "2.2.0",
+      "runtime_implemented": false,
+      "interoperability_qualified": false,
+      "sha256": "f4b0a0fa6167624408989b833e571f8f11e829dc5b3acaf1a2e7ebfa530cd023",
+      "declared_version": "2.1.0",
+      "state": "quarantined_version_mismatch",
+      "operation_count": 12,
+      "local_synthetic_binding": {
+        "implementation": "avenra/aa/",
+        "qualification": "synthetic_deposit_subset"
+      }
+    },
+    {
+      "role": "fiu",
+      "file": "FIU_2_0_0.yaml",
+      "source": "https://specifications.rebit.org.in/api_specifications/account_aggregator/FIU_2_0_0.yaml",
+      "advertised_version": "2.0.0",
+      "runtime_implemented": false,
+      "interoperability_qualified": false,
+      "sha256": "77c96cd8336c6de4a7489952365764ad5a2676f1d5823ccfdfb21d87c518238b",
+      "declared_version": "2.0.0",
+      "state": "metadata_matches",
+      "operation_count": 2,
+      "local_synthetic_binding": {
+        "implementation": "avenra/aa/",
+        "qualification": "synthetic_deposit_subset"
+      }
+    },
+    {
+      "role": "aa_interop",
+      "file": "AA_Interop_1_0_0.yaml",
+      "source": "https://specifications.rebit.org.in/api_specifications/account_aggregator/AA_Interop_1_0_0.yaml",
+      "advertised_version": "1.0.0",
+      "runtime_implemented": false,
+      "interoperability_qualified": false,
+      "sha256": "2a6c7f5386b687013a98e376ed8e9c8d5291fb85d48901823e5fabeaa59d1256",
+      "declared_version": "1.0.0",
+      "state": "metadata_matches",
+      "operation_count": 16
+    },
+    {
+      "role": "fip_interop",
+      "file": "FIP_Interop_1_0_0.yaml",
+      "source": "https://specifications.rebit.org.in/api_specifications/account_aggregator/FIP_Interop_1_0_0.yaml",
+      "advertised_version": "1.0.0",
+      "runtime_implemented": false,
+      "interoperability_qualified": false,
+      "sha256": "1d38cee2abb8c7c4071e9789eef45e8fd48405f382f32ae05b2d39f8f5986228",
+      "state": "quarantined_invalid_document",
+      "error": "Official document did not parse as the expected API schema; original bytes retained."
+    },
+    {
+      "role": "fiu_interop",
+      "file": "FIU_Interop_1_0_0.yaml",
+      "source": "https://specifications.rebit.org.in/api_specifications/account_aggregator/FIU_Interop_1_0_0.yaml",
+      "advertised_version": "1.0.0",
+      "runtime_implemented": false,
+      "interoperability_qualified": false,
+      "sha256": "efc7c8d051db4f978be9e40aefe3afd2c955b081f4b8657ed17f2580ab19e0a1",
+      "declared_version": "1.0.0",
+      "state": "metadata_matches",
+      "operation_count": 2
+    }
+  ]
+}

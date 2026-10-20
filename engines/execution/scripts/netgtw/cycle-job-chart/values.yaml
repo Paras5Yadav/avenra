@@ -1,0 +1,10 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+# These defaults document the shape; cycle-fleet.sh supplies real values per
+# node via a generated values file.
+name: netgtw-cycle
+namespace: default
+node: ""
+image: public.ecr.aws/docker/library/busybox:latest
+# Pass-through args appended to `avenra-sbxmgr cycle-net-gateway --execute`.
+cliArgs:
+  - --stale

@@ -1,0 +1,3 @@
+Avenra includes adapted source from https://github.com/mojaloop/ml-testing-toolkit at bd1bc7e90e4c9cc84b606b868a04dfd744f6338b.
+Original terms and notices are retained in original/. Modified files and original hashes are recorded in adaptations.json.
+These modifications do not imply endorsement by the original authors.

@@ -1,0 +1,9 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: avenra-logs
+  labels:
+    avenra-local-owner: logs
+    # Read-only host log mounts require an exception to restricted/baseline PSA.
+    pod-security.kubernetes.io/enforce: privileged

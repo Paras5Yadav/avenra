@@ -1,0 +1,34 @@
+{
+  "disableGoogleFont": true,
+  "disableSearch": true,
+  "scrollYOffset": ".docs-utility",
+  "hideDownloadButton": true,
+  "hideHostname": false,
+  "pathInMiddlePanel": true,
+  "requiredPropsFirst": true,
+  "onlyRequiredInSamples": true,
+  "schemaDefinitionsTagName": "Schemas",
+  "showExtensions": [
+    "x-avenra-max-utf8-bytes",
+    "x-avenra-max-aggregate-utf8-bytes"
+  ],
+  "theme": {
+    "breakpoints": {
+      "small": "50rem",
+      "medium": "200rem",
+      "large": "220rem"
+    },
+    "spacing": { "sectionHorizontal": 32, "sectionVertical": 28 },
+    "sidebar": {
+      "width": "248px"
+    },
+    "typography": {
+      "fontSize": "16px",
+      "lineHeight": "1.65em",
+      "fontFamily": "var(--docs-font-body)",
+      "headings": { "fontFamily": "var(--docs-font-body)", "fontWeight": "600", "lineHeight": "1.25em" },
+      "code": { "fontFamily": "var(--docs-font-code)" },
+      "links": { "hoverTextDecoration": "underline" }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-avenrad-host-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+test-support = []
+# Telemetry pipelines forward to `common-svc`, which is where this
+# crate's service telemetry is initialized.
+otel = ["avenra-runtime-common-svc/otel"]
+datadog = ["otel", "avenra-runtime-common-svc/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+
+[dependencies]
+tower = { workspace = true }
+http-body = { workspace = true }
+thiserror = { workspace = true }
+futures-util = { version = "0.3" }
+tokio = { workspace = true, features = ["fs", "macros", "net", "rt", "time"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true }
+tonic = { workspace = true }
+tracing = { workspace = true }
+
+# internal
+avenra-runtime-common-connection-admission = { workspace = true }
+avenra-runtime-common-core = { workspace = true }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-avenrad-common = { workspace = true }
+prost-types = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-avenrad-host-server = { path = ".", features = ["test-support"] }
+avenra-runtime-avenrad-host-client = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }
+avenra-runtime-avenrad-guest-server = { workspace = true }
+anyhow = { workspace = true }
+avenra-runtime-net-common = { workspace = true }
+tempfile = { workspace = true }
+prost-types = { workspace = true }
+tokio-stream = { workspace = true, features = ["net"] }

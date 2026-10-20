@@ -1,0 +1,78 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+# build-manager on every Avenra Kind builder node: runs ECW template recipes in
+# build VMs and publishes the results. Builder role only: one release,
+# `avenra-builder` (`--set node.role=builder`).
+
+image:
+  repository: avenra-worker
+  tag: local
+  pullPolicy: IfNotPresent
+
+datadogEnvironment: kind-local
+clusterId: kind-local
+telemetry: {}
+node:
+  role: builder
+
+# Listener on the pod's own address, which node-api dials through the
+# node-local Service (AVENRA_BUILD_MANAGER_ENDPOINT); every call is TLS with a
+# bearer token (crates/libs/build/mgr/server/src/run.rs). The probes reach
+# it on loopback inside the pod.
+listen: 0.0.0.0:9900
+probeAddr: 127.0.0.1:9900
+# The node-local Service, named as build-manager's TLS leaf.
+serviceName: avenra-builder-build-manager
+# The ServiceAccounts build-manager admits, rendered as the env vars of the
+# same names (BuildTokenReviewer::from_env,
+# crates/libs/common/svc/src/auth/build/k8s.rs). Only the builder
+# node-api dials it (build_mgr_lazy,
+# crates/libs/node/api/server/src/clients.rs), and it
+# forwards tenant builds (with an org) and system builds alike, so it needs
+# both authorities StartBuild checks (authorize_template_build,
+# crates/libs/build/mgr/server/src/lib.rs).
+auth:
+  AVENRA_BUILD_MANAGER_AUTH_ALLOWED_SERVICE_ACCOUNTS:
+    - avenra-builder-node-api
+  AVENRA_BUILD_AUTH_SYSTEM_SERVICE_ACCOUNTS:
+    - avenra-builder-node-api
+  AVENRA_BUILD_AUTH_TENANT_SERVICE_ACCOUNTS:
+    - avenra-builder-node-api
+
+# Kind sizing: one build at a time fits the 40 GiB local btrfs cache with the
+# 20 GiB default build disk.
+maxConcurrentBuilds: 1
+# On SIGTERM build-manager stops claiming work and waits up to this long for
+# running builds before it exits (--drain-timeout-seconds, the binary's
+# default; crates/libs/build/mgr/server/src/run.rs).
+drainTimeoutSeconds: 7200
+# The grace must outlast that drain, or the kubelet kills a build the drain
+# was still waiting for.
+terminationGracePeriodSeconds: 7500
+
+# Overrides AVENRA_TRACE_EXPORTER for build-manager. Kept off on the local
+# bench: recipe descriptions omit user inputs, but other build failures can
+# still contain guest output. An explicit empty string leaves the normal
+# resolution in place; null and bare YAML off keep traces disabled.
+traceExporter: "off"
+
+blob:
+  minAvailableBytes: "1073741824"
+
+# Publication target: the Kind object store's templates bucket, with smaller
+# multipart parts for the local store.
+objectStore:
+  bucket: templates
+  multipartConcurrency: 2
+  multipartPartSizeBytes: 67108864
+
+# Per-devbox sandbox SSH keypair Secret, created by bootstrap from
+# ~/.avenra-devbox/kind/ssh (the local stand-in for the node image's
+# Packer-generated key). build-manager SSHes into each build VM as root.
+sandboxSsh:
+  secretName: avenra-sandbox-ssh
+
+# Kind sizing: requests only (see avenra-node-manager-local/values.yaml).
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi

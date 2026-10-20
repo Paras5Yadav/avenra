@@ -1,0 +1,16 @@
+# Baked into the Kind node image (infra/avenra/kind/node/Dockerfile) and enabled
+# there. See infra/avenra/kind/node/avenra-kind-node.sh.
+[Unit]
+Description=Avenra Kind-only vhost-vsock nodes in Firecracker jails
+Wants=avenra-cache.service
+After=avenra-cache.service
+Before=kubelet.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/lib/avenra/kind-node/avenra-kind-node.sh vsock-jails
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

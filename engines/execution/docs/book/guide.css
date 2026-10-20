@@ -1,0 +1,121 @@
+/* Native reading controls use the shared system-selected Curiosity palette. */
+:root {
+    --sidebar-target-width: var(--docs-sidebar-width);
+    --page-padding: var(--docs-content-padding);
+    --content-max-width: 950px;
+    --menu-bar-height: var(--docs-utility-height);
+    --mono-font: var(--docs-font-code);
+}
+
+:root {
+    --bg: var(--docs-color-surface);
+    --fg: var(--docs-color-text);
+    --sidebar-bg: var(--docs-color-background);
+    --sidebar-fg: var(--docs-color-muted);
+    --sidebar-active: var(--docs-color-accent);
+    --sidebar-spacer: var(--docs-color-border);
+    --icons: var(--docs-color-muted);
+    --icons-hover: var(--docs-color-accent);
+    --links: var(--docs-color-accent);
+    --inline-code-color: var(--docs-color-text);
+    --theme-popup-bg: var(--docs-color-raised);
+    --theme-popup-border: var(--docs-color-border);
+    --theme-hover: var(--docs-color-soft);
+    --quote-bg: var(--docs-color-quote);
+    --quote-border: var(--docs-color-border);
+    --table-border-color: var(--docs-color-border);
+    --table-header-bg: var(--docs-color-quote);
+    --table-alternate-bg: var(--docs-color-raised);
+    --searchbar-bg: var(--docs-color-raised);
+    --searchbar-fg: var(--docs-color-text);
+    --searchbar-border-color: var(--docs-color-border);
+    --searchbar-shadow-color: transparent;
+    --searchresults-header-fg: var(--docs-color-muted);
+    --searchresults-border-color: var(--docs-color-border);
+    --searchresults-li-bg: var(--docs-color-raised);
+    --search-mark-bg: var(--docs-color-soft);
+    --overlay-bg: rgba(0, 0, 0, .35);
+}
+
+html, button, input { font-family: var(--docs-font-body); }
+
+/* Keep native syntax highlighting on a surface from the reading palette. */
+.content pre > .hljs { background: var(--docs-color-reading-code-background); color: var(--docs-color-text); }
+.content :not(pre) > code { background: var(--docs-color-inline-code); }
+.content .hljs-addition { color: var(--docs-color-success); background: var(--docs-color-soft); }
+.content .hljs-deletion { color: var(--docs-color-error); background: var(--docs-color-soft); }
+
+/* Keep the native toolbar available beneath the site header while scrolling. */
+#menu-bar-hover-placeholder { display: none; }
+#page-wrapper #menu-bar {
+    position: fixed;
+    top: var(--docs-header-height) !important;
+    left: 0;
+    right: 0;
+    height: var(--docs-utility-height);
+    margin: 0;
+    padding-inline: 24px;
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+    justify-content: avenra-between;
+    border-bottom: 1px solid var(--table-border-color);
+    background: var(--docs-color-background);
+}
+.left-buttons, .right-buttons { margin: 0; }
+/* The native scroll controller keeps a reference to this title. */
+.menu-title { display: none; }
+#page-wrapper #menu-bar .icon-button { padding: 0; }
+#page-wrapper #menu-bar i { padding-inline: 12px; }
+.sidebar { top: calc(var(--docs-header-height) + var(--docs-utility-height)); border-right: 1px solid var(--table-border-color); }
+.sidebar .sidebar-scrollbox { padding: 24px 16px; }
+.chapter { margin-block: 0; }
+.chapter > .chapter-item:not(.affix) { margin-block-start: 20px; }
+.chapter .section .chapter-item { margin-block-start: 4px; }
+.chapter-item > a:not(.toggle) { flex: 1; padding: 6px 8px; border-radius: 4px; }
+.chapter-item > a:hover { background: var(--docs-color-soft); }
+.chapter-item > a.active { background: var(--docs-color-soft); font-weight: 600; }
+#sidebar-toggle-anchor:checked ~ .page-wrapper { margin-inline-start: var(--sidebar-width); transform: none; }
+.page { margin-top: calc(var(--docs-header-height) + var(--docs-utility-height)); padding-top: 28px; }
+.content { padding: 0 0 48px; }
+.content main { margin-inline: 0; }
+main > h1:first-child { margin-top: 0; font-size: 30px; line-height: 1.25; }
+.content :is(h1, h2, h3, h4) { font-weight: var(--docs-heading-weight); line-height: 1.25; letter-spacing: var(--docs-heading-tracking); }
+.content p, .content li { line-height: 1.65; }
+:target { scroll-margin-top: calc(var(--docs-header-height) + var(--docs-utility-height) + 20px); }
+
+/* The native footer links work at all widths without covering chapter text. */
+.nav-wide-wrapper { display: none; }
+.nav-wrapper { display: block; max-width: var(--content-max-width); }
+.mobile-nav-chapters { color: var(--links); background: transparent; border: 0; }
+
+@media screen and (max-width: 800px) {
+    [data-docs-menu="ready"] #sidebar-toggle { display: none; }
+}
+
+@media screen and (max-width: 620px) {
+    :root { --page-padding: 20px; }
+    #page-wrapper #menu-bar { padding-inline: 20px; }
+    #sidebar-toggle-anchor:checked ~ .page-wrapper { margin-inline-start: 0; }
+    .sidebar { z-index: 100; box-shadow: 4px 0 12px var(--overlay-bg); }
+    main > h1:first-child { font-size: 26px; }
+}
+
+@media print {
+    :root, :root[data-docs-theme] {
+        --bg: #ffffff;
+        --fg: #000000;
+        --links: #000000;
+        --inline-code-color: #000000;
+        --quote-bg: #f4f4f4;
+        --quote-border: #cccccc;
+        --table-border-color: #cccccc;
+        --table-header-bg: #f4f4f4;
+        --table-alternate-bg: #ffffff;
+        color-scheme: light;
+    }
+    .content pre > .hljs, .content :not(pre) > code { background: #f4f4f4; color: #000000; }
+    .content pre > .hljs * { color: #000000 !important; }
+    .docs-header, #page-wrapper #menu-bar { display: none; }
+    .page { margin-top: 0; padding-top: 0; }
+    .content main { max-width: none; }
+}

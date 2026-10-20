@@ -1,0 +1,271 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-internal-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: avenra-internal-api
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    team: {{ .Values.datadogTeam | quote }}
+spec:
+  replicas: {{ .Values.replicas }}
+  minReadySeconds: {{ .Values.minReadySeconds }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: avenra-internal-api
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  # ClusterApi keeps its state in Postgres, so a rollout replaces one replica
+  # at a time and the other keeps serving (values.yaml).
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      annotations:
+        {{- include "avenra-kind-telemetry.logAnnotations" . | nindent 8 }}
+        ad.datadoghq.com/tags: '{"team":"{{ .Values.datadogTeam }}"}'
+      labels:
+        app.kubernetes.io/name: avenra-internal-api
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        team: {{ .Values.datadogTeam | quote }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | int }}
+      containers:
+        - name: internal-api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/opt/avenra/bin/avenra-internal-api-svc"]
+          args:
+            - --listen
+            - "0.0.0.0:{{ .Values.service.port }}"
+          env:
+            - name: AVENRA_INGRESS_ACTIVATION_ENDPOINT
+              value: {{ .Values.activationEndpoint | quote }}
+            # RemoteIngressActivation authenticates as a ClusterApi caller;
+            # the listener reviews this projected token (audience
+            # avenra-cluster-api) and admits only this ServiceAccount.
+            - name: AVENRA_CLUSTER_API_TOKEN_PATH
+              value: /var/run/avenra-activation/cluster-api.token
+            # Authenticated internal RPC TLS (docs/internal-rpc-tls.md): the
+            # ClusterApi listener's identity (avenra-internal-api,
+            # avenra-cluster-api), and, for internal-api's own NodeApi and
+            # IngressActivationApi calls, the cluster CA and the shared
+            # node-api identity, since it dials node-api by node IP.
+            - name: AVENRA_INTERNAL_RPC_TLS_CERT
+              value: /etc/avenra-rpc-tls/tls.crt
+            - name: AVENRA_INTERNAL_RPC_TLS_KEY
+              value: /etc/avenra-rpc-tls/tls.key
+            - name: AVENRA_INTERNAL_RPC_TLS_CA
+              value: /etc/avenra-rpc-ca/ca.crt
+            - name: AVENRA_NODE_API_TLS_SERVER_NAME
+              value: avenra-node-api
+            # internal-api's NodeApi credential for its service-port routes
+            # (crates/libs/internal/api/server/src/sandbox_service_ports.rs),
+            # admitted by TokenReview. It never calls WorkerApiInternal.
+            - name: AVENRA_NODE_API_TOKEN_PATH
+              value: /var/run/avenra-auth/node-api.token
+            - name: AVENRA_K8S_CONTROL_PLANE
+              value: "true"
+            - name: AVENRA_SANDBOX_NAMESPACE
+              value: {{ .Values.k8s.sandboxNamespace | quote }}
+            # As on the API: node-api pods are in the release namespace, not
+            # the sandbox namespace the substrate would otherwise assume.
+            - name: AVENRA_NODE_API_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: AVENRA_SANDBOX_POD_IMAGE
+              value: {{ .Values.k8s.sandboxPodImage | quote }}
+            - name: AVENRA_SANDBOX_NODE_SELECTOR_KEY
+              value: {{ .Values.k8s.sandboxNodeSelectorKey | quote }}
+            - name: AVENRA_SANDBOX_NODE_SELECTOR_VALUE
+              value: {{ .Values.k8s.sandboxNodeSelectorValue | quote }}
+            - name: AVENRA_INTERNAL_SECRET_NAME
+              value: {{ .Values.internal.secretName | quote }}
+            # ClusterApi reviews callers' projected tokens with no static
+            # fallback. The allowlists below name accounts in the pod's own
+            # namespace, read from its ServiceAccount mount (auth_namespace,
+            # crates/libs/common/svc/src/auth/k8s.rs).
+            - name: AVENRA_K8S_TOKEN_AUTH_ENABLED
+              value: "true"
+            - name: AVENRA_K8S_TOKEN_AUTH_STATIC_FALLBACK_ENABLED
+              value: "false"
+            # Each node service that calls ClusterApi authenticates with its
+            # own DaemonSet's ServiceAccount (avenra-node-service's projected
+            # cluster-api token), per role.
+            - name: AVENRA_CLUSTER_API_AUTH_ALLOWED_SERVICE_ACCOUNTS
+              value: {{ join "," (concat .Values.clusterApiAuth.nodeServiceAccounts .Values.clusterApiAuth.controlPlaneServiceAccounts) | quote }}
+            # Only build-manager publishes builds; the seed-publish Job
+            # publishes the system seed.
+            - name: AVENRA_TEMPLATE_PUBLISH_SYSTEM_SERVICE_ACCOUNTS
+              value: {{ join "," .Values.clusterApiAuth.systemPublishers | quote }}
+            - name: AVENRA_TEMPLATE_PUBLISH_TENANT_SERVICE_ACCOUNTS
+              value: {{ join "," .Values.clusterApiAuth.tenantPublishers | quote }}
+            {{- with .Values.visibilityCache }}
+            {{- /*
+                 Rendered per key and only when set, so an unset value leaves the
+                 binary's own default in force and the pod spec unchanged. Guard
+                 on `empty (toString .)` rather than plain truthiness: a bare
+                 `if .ttlSeconds` treats an unquoted YAML `0` as false and would
+                 silently drop the one value an operator most needs to deliver —
+                 the kill switch. Quote them in the values file.
+
+                 The `kindIs "invalid"` conjunct rejects an explicit YAML null,
+                 which `toString` renders as the non-empty string "<nil>" and
+                 would otherwise emit a valueless env var — changing the pod spec
+                 and rolling the deployment to deliver an empty string.
+            */}}
+            {{- if and (not (kindIs "invalid" .ttlSeconds)) (not (empty (toString .ttlSeconds))) }}
+            - name: AVENRA_INTERNAL_API_VISIBILITY_CACHE_TTL_SECS
+              value: {{ .ttlSeconds | quote }}
+            {{- end }}
+            {{- if and (not (kindIs "invalid" .staleCeilingSeconds)) (not (empty (toString .staleCeilingSeconds))) }}
+            - name: AVENRA_INTERNAL_API_VISIBILITY_CACHE_STALE_CEILING_SECS
+              value: {{ .staleCeilingSeconds | quote }}
+            {{- end }}
+            {{- end }}
+            # Datadog tracing — see datadog-agent-local chart.
+            {{- include "avenra-kind-telemetry.env" . | nindent 12 }}
+            - name: AVENRA_K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: AVENRA_K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.secretName }}
+                  key: {{ .Values.postgres.secretKey }}
+            - name: AVENRA_DB_USER_PASSWORD
+              {{- include "avenra-cluster.dbPassword" (dict "ctx" . "role" "USER" "value" .Values.postgres.managedUserPassword) | nindent 14 }}
+            - name: POSTGRES_POOL_MAX_CONNECTIONS
+              value: {{ .Values.postgres.poolMaxConnections | quote }}
+            - name: AVENRA_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.internal.secretName }}
+                  key: AVENRA_INTERNAL_TOKEN
+            - name: AVENRA_ECW_CREDENTIAL_KEY_PATH
+              value: /var/run/avenra-ecw-credential/ecw-credential-key
+            - name: AVENRA_API_ROUTE_ED25519_SIGNING_KEY_PATH
+              value: /var/run/avenra-route-signing/signing-key.pem
+            - name: AVENRA_API_ROUTE_ED25519_SIGNING_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.avenraApiRouteToken.ed25519.signingSecretName }}
+                  key: {{ .Values.avenraApiRouteToken.ed25519.signingKeyId }}
+            - name: AVENRA_API_ROUTE_ED25519_ISSUER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.avenraApiRouteToken.ed25519.signingSecretName }}
+                  key: {{ .Values.avenraApiRouteToken.ed25519.issuer }}
+            - name: AVENRA_CLUSTER_ID
+              value: {{ .Values.clusterId | quote }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          # Leave the Service's endpoints before SIGTERM closes the listener
+          # (values.yaml).
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.preStopSleepSeconds | int }}
+          readinessProbe:
+            exec:
+              command:
+                - /opt/avenra/bin/grpc_health_probe
+                - -addr=127.0.0.1:{{ .Values.service.port }}
+                - -tls
+                - -tls-ca-cert=/etc/avenra-rpc-ca/ca.crt
+                - -tls-server-name=avenra-internal-api
+                - -connect-timeout=1s
+                - -rpc-timeout=1s
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command:
+                - /opt/avenra/bin/grpc_health_probe
+                - -addr=127.0.0.1:{{ .Values.service.port }}
+                - -tls
+                - -tls-ca-cert=/etc/avenra-rpc-ca/ca.crt
+                - -tls-server-name=avenra-internal-api
+                - -connect-timeout=1s
+                - -rpc-timeout=1s
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: rpc-identity
+              mountPath: /etc/avenra-rpc-tls
+              readOnly: true
+            - name: rpc-ca
+              mountPath: /etc/avenra-rpc-ca
+              readOnly: true
+            - name: activation-token
+              mountPath: /var/run/avenra-activation
+              readOnly: true
+            - name: node-api-token
+              mountPath: /var/run/avenra-auth
+              readOnly: true
+            - name: route-signing
+              mountPath: /var/run/avenra-route-signing
+              readOnly: true
+            - name: ecw-credential
+              mountPath: /var/run/avenra-ecw-credential
+              readOnly: true
+      volumes:
+        - name: rpc-identity
+          secret:
+            secretName: avenra-cluster-api-tls
+            defaultMode: 0400
+        - name: rpc-ca
+          secret:
+            secretName: avenra-internal-rpc-ca
+            defaultMode: 0444
+        - name: activation-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: cluster-api.token
+                  audience: avenra-cluster-api
+                  expirationSeconds: 3600
+        - name: node-api-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: node-api.token
+                  audience: avenra-node-api
+                  expirationSeconds: {{ .Values.nodeApiTokenExpirationSeconds | int }}
+        - name: route-signing
+          secret:
+            secretName: {{ .Values.avenraApiRouteToken.ed25519.signingSecretName }}
+            defaultMode: 0444
+            items:
+              - key: {{ .Values.avenraApiRouteToken.ed25519.signingKey }}
+                path: signing-key.pem
+        - name: ecw-credential
+          secret:
+            secretName: {{ .Values.internal.secretName }}
+            defaultMode: 0444
+            items:
+              - key: ecw-credential-key
+                path: ecw-credential-key

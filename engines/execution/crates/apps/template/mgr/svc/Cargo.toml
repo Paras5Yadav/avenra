@@ -1,0 +1,40 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-tmplmgr-svc"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "avenra-tmplmgr-svc"
+path = "src/main.rs"
+
+[features]
+default = []
+otel = [
+    "avenra-runtime-common-svc/otel",
+    "avenra-runtime-template-mgr/otel",
+]
+datadog = [
+    "otel",
+    "avenra-runtime-common-svc/datadog",
+    "avenra-runtime-template-mgr/datadog",
+]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+# Compiles in the test-only environment hooks; never enabled for release builds.
+test-hooks = ["avenra-runtime-template-mgr/test-hooks"]
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+
+# internal
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-template-mgr = { workspace = true }

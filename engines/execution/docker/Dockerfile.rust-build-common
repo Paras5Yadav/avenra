@@ -1,0 +1,365 @@
+FROM public.ecr.aws/docker/library/rust:1-bookworm AS rust-base
+
+WORKDIR /workspace
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+      pkg-config \
+      protobuf-compiler \
+      libprotobuf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Pin the compiler once, for every stage. `planner` and `build-context` copied
+# rust-toolchain.toml but `fetch-deps` did not, so `cargo chef cook` there ran
+# on the base image's default rustc: on a cold build it compiled 493 dependency
+# crates under 1.98.1 and `cargo build` then recompiled the identical 493 under
+# the pinned 1.97.1 (the `syncing channel updates for 1.97.1` line appeared in
+# the build step, not the cook). The chef layer bought nothing (~60 s per set) and
+# wrote compiler-mismatched objects into the shared sccache. Installing the
+# pin here means planner, fetch-deps and build-context inherit it, cargo-chef
+# itself is built with the pinned compiler, and the cook layer stays keyed on
+# recipe.json plus this file. `rustup toolchain install` with no argument
+# reads the toolchain file, including its components and targets.
+COPY rust-toolchain.toml ./
+RUN rustup toolchain install && rustc --version && cargo --version
+
+ARG SCCACHE_VERSION=0.16.0
+ARG SCCACHE_X86_64_SHA256=aec995a83ad3dff3d14b6314e08858b7b73d35ca85a5bcf3d3a9ec07dee35588
+ARG WILD_VERSION=0.9.0
+ARG WILD_X86_64_SHA256=deb6ee0e5caec798053ec4aafaba042e20a8edf91f08cb4d36268571cc628d3b
+
+RUN set -eux; \
+    package="sccache-v${SCCACHE_VERSION}-x86_64-unknown-linux-musl"; \
+    curl -fsSL \
+      "https://github.com/mozilla/sccache/releases/download/v${SCCACHE_VERSION}/${package}.tar.gz" \
+      -o /tmp/sccache.tar.gz; \
+    printf '%s  %s\n' "${SCCACHE_X86_64_SHA256}" /tmp/sccache.tar.gz | sha256sum -c -; \
+    tar -xzf /tmp/sccache.tar.gz -C /tmp; \
+    install -m 0755 "/tmp/${package}/sccache" /usr/local/bin/sccache; \
+    rm -rf /tmp/sccache.tar.gz "/tmp/${package}"
+
+RUN set -eux; \
+    package="wild-linker-${WILD_VERSION}-x86_64-unknown-linux-gnu"; \
+    curl -fsSL \
+      "https://github.com/wild-linker/wild/releases/download/${WILD_VERSION}/${package}.tar.gz" \
+      -o /tmp/wild.tar.gz; \
+    printf '%s  %s\n' "${WILD_X86_64_SHA256}" /tmp/wild.tar.gz | sha256sum -c -; \
+    tar -xzf /tmp/wild.tar.gz -C /tmp; \
+    install -m 0755 "/tmp/${package}/wild" /usr/local/bin/wild; \
+    mkdir -p /usr/local/lib/wild-linker; \
+    ln -s /usr/local/bin/wild /usr/local/lib/wild-linker/ld; \
+    rm -rf /tmp/wild.tar.gz "/tmp/${package}"; \
+    wild --version
+
+COPY --chmod=0755 docker/run-cargo-with-sccache.sh /usr/local/bin/run-cargo-with-sccache
+
+ARG AVENRA_SCCACHE_ENABLED=false
+ARG AVENRA_SCCACHE_BUCKET=""
+ARG AVENRA_SCCACHE_REGION=us-east-1
+ARG AVENRA_SCCACHE_S3_KEY_PREFIX=sccache/avenra/v1/release
+ARG AVENRA_SCCACHE_S3_RW_MODE=READ_WRITE
+ARG AVENRA_SCCACHE_S3_SERVER_SIDE_ENCRYPTION=true
+ARG AVENRA_SCCACHE_ROLE_ARN=""
+
+ENV AVENRA_SCCACHE_ENABLED=${AVENRA_SCCACHE_ENABLED} \
+    AVENRA_SCCACHE_BUCKET=${AVENRA_SCCACHE_BUCKET} \
+    AVENRA_SCCACHE_REGION=${AVENRA_SCCACHE_REGION} \
+    AVENRA_SCCACHE_S3_KEY_PREFIX=${AVENRA_SCCACHE_S3_KEY_PREFIX} \
+    AVENRA_SCCACHE_S3_RW_MODE=${AVENRA_SCCACHE_S3_RW_MODE} \
+    AVENRA_SCCACHE_S3_SERVER_SIDE_ENCRYPTION=${AVENRA_SCCACHE_S3_SERVER_SIDE_ENCRYPTION} \
+    AVENRA_SCCACHE_ROLE_ARN=${AVENRA_SCCACHE_ROLE_ARN}
+
+# Link every native glibc Cargo target with Wild. Debian bookworm's GCC predates
+# direct `-fuse-ld=wild` support, so its supported -B lookup resolves `ld` to
+# Wild. Scope this to the CI build image and inherit it through cargo-chef and
+# final release builds so their cache keys remain consistent.
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="gcc" \
+    CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_RUSTFLAGS="-Clink-arg=-B/usr/local/lib/wild-linker"
+
+FROM rust-base AS chef-base
+
+# Without a version, an unchanged build installs whatever cargo-chef crates.io
+# serves that day.
+ARG CARGO_CHEF_VERSION=0.1.78
+RUN cargo install --locked --version "${CARGO_CHEF_VERSION}" cargo-chef
+
+FROM chef-base AS planner
+
+# Let cargo-chef derive the workspace dependency recipe so new crates and path
+# deps do not require hand-maintained manifest or placeholder lists here.
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY .cargo/config.toml .cargo/config.toml
+COPY crates ./crates
+COPY proto ./proto
+COPY infra/avenra/identity/node-identities.sh infra/avenra/identity/node-identities.sh
+COPY templates/firecracker/seed/rootfs-builder.sh templates/firecracker/seed/rootfs-builder.sh
+COPY templates/firecracker/recipes/seed.toml templates/firecracker/recipes/code-runtime.toml templates/firecracker/recipes/
+
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef-base AS fetch-deps
+
+ARG AVENRA_RUST_ARTIFACT_SET=workspace
+ARG AVENRA_CARGO_RELEASE_LTO=thin
+ENV CARGO_PROFILE_RELEASE_LTO=${AVENRA_CARGO_RELEASE_LTO}
+
+COPY --from=planner /workavenra/recipe.json recipe.json
+COPY infra/avenra/identity/node-identities.sh infra/avenra/identity/node-identities.sh
+
+RUN --mount=type=secret,id=aws_web_identity_token \
+    set -eux; \
+      case "${AVENRA_RUST_ARTIFACT_SET}" in \
+        worker) \
+          run-cargo-with-sccache cargo chef cook --locked --release --recipe-path recipe.json \
+            --features "avenra-runtime-node-api-svc/otel,avenra-runtime-node-api-svc/datadog,avenra-runtime-node-api-svc/k8s,avenra-runtime-internal-api-svc/otel,avenra-runtime-internal-api-svc/datadog,avenra-runtime-internal-api-svc/k8s,avenra-runtime-node-ctl-svc/otel,avenra-runtime-node-ctl-svc/datadog,avenra-runtime-node-ctl-svc/kubernetes,avenra-runtime-node-mgr-svc/otel,avenra-runtime-node-mgr-svc/datadog,avenra-runtime-build-mgr-svc/otel,avenra-runtime-build-mgr-svc/datadog,avenra-runtime-build-mgr-svc/k8s,avenra-runtime-runtime-supervisor-svc/otel,avenra-runtime-runtime-supervisor-svc/datadog,avenra-runtime-runtime-manager-svc/otel,avenra-runtime-runtime-manager-svc/datadog,avenra-runtime-sbxmgr-svc/otel,avenra-runtime-sbxmgr-svc/datadog,avenra-runtime-avenrad-host-svc/otel,avenra-runtime-avenrad-host-svc/datadog,avenra-runtime-net-gateway-svc/otel,avenra-runtime-net-gateway-svc/datadog,avenra-runtime-tmplmgr-svc/otel,avenra-runtime-tmplmgr-svc/datadog,avenra-runtime-volmgr-svc/otel,avenra-runtime-volmgr-svc/datadog" \
+            --bin avenra-buildmgr \
+            --bin avenra-buildmgr-svc \
+            --bin avenra-tmplmgr \
+            --bin avenra-runtime-supervisor-svc \
+            --bin avenra-rtmgr-svc \
+            --bin avenra-rtmgr \
+            --bin avenra-nodemgr-svc \
+            --bin avenra-sbxmgr \
+            --bin avenra-nodectl \
+            --bin avenra-sbxmgr-svc \
+            --bin avenra-avenrad-host-svc \
+            --bin avenra-netgtw-svc \
+            --bin avenra-tmplmgr-svc \
+            --bin avenra-volmgr \
+            --bin avenra-credmgr-svc \
+            --bin avenra-volmgr-svc \
+            --bin avenra-node-api-svc \
+            --bin avenra-internal-api-svc \
+            --bin avenra-nodectl-svc \
+            --bin avenra-db-migrator \
+          && run-cargo-with-sccache cargo chef cook --locked --release --recipe-path recipe.json \
+            --bin avenrad \
+            --bin avenrad-svc \
+          ;; \
+        builder) \
+          run-cargo-with-sccache cargo chef cook --locked --release --recipe-path recipe.json \
+            --bin avenra-buildmgr \
+            --bin avenra-tmplmgr \
+            --bin avenra-db-migrator \
+          ;; \
+        api) \
+          run-cargo-with-sccache cargo chef cook --locked --release --recipe-path recipe.json \
+            --features "avenra-runtime-api-svc/otel,avenra-runtime-api-svc/datadog,avenra-runtime-api-svc/kubernetes,avenra-runtime-api-svc/federated-identity" \
+            --bin avenra-api-svc \
+            --bin avenra-db-migrator \
+            --bin avenra-template-publish \
+          ;; \
+        data-plane) \
+          run-cargo-with-sccache cargo chef cook --locked --release --recipe-path recipe.json \
+            --features "avenra-runtime-data-plane-svc/otel,avenra-runtime-data-plane-svc/datadog,avenra-runtime-data-plane-svc/kubernetes" \
+            --bin avenra-data-plane-svc \
+          ;; \
+        cluster-controller) \
+          run-cargo-with-sccache cargo chef cook --locked --release --recipe-path recipe.json \
+            --features "avenra-runtime-cluster-controller/otel,avenra-runtime-cluster-controller/datadog" \
+            --bin avenra-cluster-controller \
+          ;; \
+        workspace) \
+          run-cargo-with-sccache cargo chef cook --locked --release --recipe-path recipe.json \
+          ;; \
+        *) \
+          echo "Unsupported AVENRA_RUST_ARTIFACT_SET=${AVENRA_RUST_ARTIFACT_SET}" >&2; \
+          exit 1 \
+          ;; \
+      esac
+
+FROM fetch-deps AS build-context
+
+ARG AVENRA_CARGO_RELEASE_LTO=thin
+ENV CARGO_PROFILE_RELEASE_LTO=${AVENRA_CARGO_RELEASE_LTO}
+
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY .cargo/config.toml .cargo/config.toml
+COPY crates ./crates
+COPY proto ./proto
+COPY db ./db
+COPY infra/avenra/identity/node-identities.sh infra/avenra/identity/node-identities.sh
+COPY templates/firecracker/seed/rootfs-builder.sh templates/firecracker/seed/rootfs-builder.sh
+COPY templates/firecracker/recipes/seed.toml templates/firecracker/recipes/code-runtime.toml templates/firecracker/recipes/
+COPY scripts/build-runtime-supervisor.sh scripts/build-runtime-supervisor.sh
+
+FROM build-context AS build-worker
+
+RUN --mount=type=secret,id=aws_web_identity_token \
+    run-cargo-with-sccache cargo build --locked --release \
+      -F avenra-runtime-node-api-svc/otel,avenra-runtime-node-api-svc/datadog \
+      -F avenra-runtime-node-api-svc/k8s \
+      -F avenra-runtime-internal-api-svc/otel,avenra-runtime-internal-api-svc/datadog \
+      -F avenra-runtime-internal-api-svc/k8s \
+      -F avenra-runtime-node-ctl-svc/otel,avenra-runtime-node-ctl-svc/datadog \
+      -F avenra-runtime-node-ctl-svc/kubernetes \
+      -F avenra-runtime-node-mgr-svc/otel,avenra-runtime-node-mgr-svc/datadog \
+      -F avenra-runtime-build-mgr-svc/otel,avenra-runtime-build-mgr-svc/datadog \
+      -F avenra-runtime-build-mgr-svc/k8s \
+      -F avenra-runtime-runtime-manager-svc/otel,avenra-runtime-runtime-manager-svc/datadog \
+      -F avenra-runtime-sbxmgr-svc/otel,avenra-runtime-sbxmgr-svc/datadog \
+      -F avenra-runtime-avenrad-host-svc/otel,avenra-runtime-avenrad-host-svc/datadog \
+      -F avenra-runtime-net-gateway-svc/otel,avenra-runtime-net-gateway-svc/datadog \
+      -F avenra-runtime-tmplmgr-svc/otel,avenra-runtime-tmplmgr-svc/datadog \
+      -F avenra-runtime-volmgr-svc/otel,avenra-runtime-volmgr-svc/datadog \
+      --bin avenra-buildmgr \
+      --bin avenra-buildmgr-svc \
+      --bin avenra-tmplmgr \
+      --bin avenra-rtmgr-svc \
+      --bin avenra-rtmgr \
+      --bin avenra-nodemgr-svc \
+      --bin avenra-sbxmgr \
+      --bin avenra-nodectl \
+      --bin avenra-sbxmgr-svc \
+      --bin avenra-avenrad-host-svc \
+      --bin avenra-netgtw-svc \
+      --bin avenra-tmplmgr-svc \
+      --bin avenra-volmgr \
+      --bin avenra-credmgr-svc \
+      --bin avenra-volmgr-svc \
+      --bin avenra-node-api-svc \
+      --bin avenra-internal-api-svc \
+      --bin avenra-nodectl-svc \
+      --bin avenra-db-migrator
+
+# The guest binaries run inside every sandbox, where nothing receives
+# telemetry. Building them in the invocation above would compile in the
+# Datadog and OTLP exporters the host services enable (cargo unifies a shared
+# dependency's features across one invocation), which in the guest cost
+# threads, memory and wakeups to reach an agent that does not exist. Their own
+# invocation, with no features, keeps them out and the binary smaller.
+RUN --mount=type=secret,id=aws_web_identity_token \
+    run-cargo-with-sccache cargo build --locked --release \
+      -p avenra-runtime-avenrad-guest-cli \
+      -p avenra-runtime-avenrad-guest-svc \
+      --bin avenrad \
+      --bin avenrad-svc
+
+RUN --mount=type=secret,id=aws_web_identity_token \
+    bash scripts/build-runtime-supervisor.sh \
+      target/release/avenra-runtime-supervisor-svc \
+      target/release/avenra-runtime-supervisor-compatibility \
+      run-cargo-with-sccache cargo build --locked --release \
+        -F avenra-runtime-runtime-supervisor-svc/otel,avenra-runtime-runtime-supervisor-svc/datadog \
+        --bin avenra-runtime-supervisor-svc
+
+FROM build-context AS build-builder
+
+RUN --mount=type=secret,id=aws_web_identity_token \
+    run-cargo-with-sccache cargo build --locked --release \
+      --bin avenra-buildmgr \
+      --bin avenra-tmplmgr \
+      --bin avenra-db-migrator
+
+FROM build-context AS build-api
+
+RUN --mount=type=secret,id=aws_web_identity_token \
+    run-cargo-with-sccache cargo build --locked --release \
+      -F avenra-runtime-api-svc/otel,avenra-runtime-api-svc/datadog \
+      -F avenra-runtime-api-svc/kubernetes \
+      -F avenra-runtime-api-svc/federated-identity \
+      --bin avenra-api-svc \
+      --bin avenra-db-migrator \
+      --bin avenra-template-publish
+
+FROM build-context AS build-data-plane
+
+RUN --mount=type=secret,id=aws_web_identity_token \
+    run-cargo-with-sccache cargo build --locked --release \
+      -F avenra-runtime-data-plane-svc/otel,avenra-runtime-data-plane-svc/datadog \
+      -F avenra-runtime-data-plane-svc/kubernetes \
+      --bin avenra-data-plane-svc
+
+FROM build-context AS build-cluster-controller
+
+RUN --mount=type=secret,id=aws_web_identity_token \
+    run-cargo-with-sccache cargo build --locked --release \
+      -F avenra-runtime-cluster-controller/otel,avenra-runtime-cluster-controller/datadog \
+      --bin avenra-cluster-controller
+
+FROM public.ecr.aws/docker/library/debian:bookworm-slim AS binary-downloader-base
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ca-certificates \
+      curl \
+    && rm -rf /var/lib/apt/lists/*
+
+FROM binary-downloader-base AS grpc-health-probe-downloader
+
+ARG TARGETARCH
+ARG GRPC_HEALTH_PROBE_VERSION=v0.4.48
+
+RUN set -eux; \
+      case "${TARGETARCH:-amd64}" in \
+        amd64) asset=grpc_health_probe-linux-amd64; sha256=ceeacfc858929b223f90a823e7da46ab34605ec7c2a9ee1dd272fa9e4fedf5e6 ;; \
+        arm64) asset=grpc_health_probe-linux-arm64; sha256=98792fd8c3356991735df46c8d1fe415d7825ff7a988ac2ba18159ed801097a4 ;; \
+        *) echo "unsupported TARGETARCH=${TARGETARCH}"; exit 1 ;; \
+      esac; \
+      curl -fsSL \
+        "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/${asset}" \
+        -o /grpc_health_probe; \
+      printf '%s  %s\n' "${sha256}" /grpc_health_probe | sha256sum -c -; \
+      chmod 0755 /grpc_health_probe
+
+FROM scratch AS build-artifacts-worker
+
+LABEL org.opencontainers.image.title="avenra-rust-build-worker"
+LABEL org.opencontainers.image.description="Avenra worker Rust build artifacts for bundle image packaging."
+
+COPY --from=build-worker /workavenra/target/release/avenrad /artifacts/bin/avenrad
+COPY --from=build-worker /workavenra/target/release/avenrad-svc /artifacts/bin/avenrad-svc
+COPY --from=build-worker /workavenra/target/release/avenra-runtime-supervisor-svc /artifacts/bin/avenra-runtime-supervisor-svc
+COPY --from=build-worker /workavenra/target/release/avenra-runtime-supervisor-compatibility /artifacts/etc/avenra-runtime-supervisor-compatibility
+COPY --from=build-worker /workavenra/target/release/avenra-rtmgr-svc /artifacts/bin/avenra-rtmgr-svc
+COPY --from=build-worker /workavenra/target/release/avenra-rtmgr /artifacts/bin/avenra-rtmgr
+COPY --from=build-worker /workavenra/target/release/avenra-nodemgr-svc /artifacts/bin/avenra-nodemgr-svc
+COPY --from=build-worker /workavenra/target/release/avenra-sbxmgr /artifacts/bin/avenra-sbxmgr
+COPY --from=build-worker /workavenra/target/release/avenra-nodectl /artifacts/bin/avenra-nodectl
+COPY --from=build-worker /workavenra/target/release/avenra-sbxmgr-svc /artifacts/bin/avenra-sbxmgr-svc
+COPY --from=build-worker /workavenra/target/release/avenra-avenrad-host-svc /artifacts/bin/avenra-avenrad-host-svc
+COPY --from=build-worker /workavenra/target/release/avenra-netgtw-svc /artifacts/bin/avenra-netgtw-svc
+COPY --from=build-worker /workavenra/target/release/avenra-tmplmgr-svc /artifacts/bin/avenra-tmplmgr-svc
+COPY --from=build-worker /workavenra/target/release/avenra-volmgr /artifacts/bin/avenra-volmgr
+COPY --from=build-worker /workavenra/target/release/avenra-credmgr-svc /artifacts/bin/avenra-credmgr-svc
+COPY --from=build-worker /workavenra/target/release/avenra-volmgr-svc /artifacts/bin/avenra-volmgr-svc
+COPY --from=build-worker /workavenra/target/release/avenra-node-api-svc /artifacts/bin/avenra-node-api-svc
+COPY --from=build-worker /workavenra/target/release/avenra-internal-api-svc /artifacts/bin/avenra-internal-api-svc
+COPY --from=build-worker /workavenra/target/release/avenra-nodectl-svc /artifacts/bin/avenra-nodectl-svc
+COPY --from=build-worker /workavenra/target/release/avenra-buildmgr /artifacts/bin/avenra-buildmgr
+COPY --from=build-worker /workavenra/target/release/avenra-buildmgr-svc /artifacts/bin/avenra-buildmgr-svc
+COPY --from=build-worker /workavenra/target/release/avenra-tmplmgr /artifacts/bin/avenra-tmplmgr
+COPY --from=build-worker /workavenra/target/release/avenra-db-migrator /artifacts/bin/avenra-db-migrator
+COPY --from=grpc-health-probe-downloader /grpc_health_probe /artifacts/bin/grpc_health_probe
+
+FROM scratch AS build-artifacts-builder
+
+LABEL org.opencontainers.image.title="avenra-rust-build-builder"
+LABEL org.opencontainers.image.description="Avenra builder Rust build artifacts for bundle image packaging."
+
+COPY --from=build-builder /workavenra/target/release/avenra-buildmgr /artifacts/bin/avenra-buildmgr
+COPY --from=build-builder /workavenra/target/release/avenra-tmplmgr /artifacts/bin/avenra-tmplmgr
+COPY --from=build-builder /workavenra/target/release/avenra-db-migrator /artifacts/bin/avenra-db-migrator
+
+FROM scratch AS build-artifacts-api
+
+LABEL org.opencontainers.image.title="avenra-rust-build-api"
+LABEL org.opencontainers.image.description="Avenra API Rust build artifacts for bundle image packaging."
+
+COPY --from=build-api /workavenra/target/release/avenra-api-svc /artifacts/bin/avenra-api-svc
+COPY --from=build-api /workavenra/target/release/avenra-db-migrator /artifacts/bin/avenra-db-migrator
+COPY --from=build-api /workavenra/target/release/avenra-template-publish /artifacts/bin/avenra-template-publish
+
+FROM scratch AS build-artifacts-data-plane
+
+LABEL org.opencontainers.image.title="avenra-rust-build-data-plane"
+LABEL org.opencontainers.image.description="Avenra data-plane Rust build artifacts for bundle image packaging."
+
+COPY --from=build-data-plane /workavenra/target/release/avenra-data-plane-svc /artifacts/bin/avenra-data-plane-svc
+
+FROM scratch AS build-artifacts-cluster-controller
+
+LABEL org.opencontainers.image.title="avenra-rust-build-cluster-controller"
+LABEL org.opencontainers.image.description="Avenra cluster-controller Rust build artifacts for bundle image packaging."
+
+COPY --from=build-cluster-controller /workavenra/target/release/avenra-cluster-controller /artifacts/bin/avenra-cluster-controller

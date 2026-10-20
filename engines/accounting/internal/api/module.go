@@ -1,0 +1,55 @@
+// Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+package api
+
+import (
+	_ "embed"
+	"github.com/formancehq/go-libs/v3/auth"
+	"github.com/formancehq/go-libs/v3/health"
+	"avenra.local/accounting/internal/api/bulking"
+	"avenra.local/accounting/internal/api/common"
+	"avenra.local/accounting/internal/controller/system"
+	"github.com/go-chi/chi/v5"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/fx"
+)
+
+type BulkConfig struct {
+	MaxSize  int
+	Parallel int
+}
+
+type Config struct {
+	Version              string
+	Debug                bool
+	Bulk                 BulkConfig
+	Pagination           common.PaginationConfig
+	Exporters            bool
+	ExperimentalFeatures []string
+}
+
+func Module(cfg Config) fx.Option {
+	return fx.Options(
+		fx.Provide(func(
+			backend system.Controller,
+			authenticator auth.Authenticator,
+			tracerProvider trace.TracerProvider,
+		) chi.Router {
+			return NewRouter(
+				backend,
+				authenticator,
+				cfg.Version,
+				cfg.Debug,
+				WithTracer(tracerProvider.Tracer("api")),
+				WithBulkMaxSize(cfg.Bulk.MaxSize),
+				WithBulkerFactory(bulking.NewDefaultBulkerFactory(
+					bulking.WithParallelism(cfg.Bulk.Parallel),
+					bulking.WithTracer(tracerProvider.Tracer("api.bulking")),
+				)),
+				WithPaginationConfiguration(cfg.Pagination),
+				WithExporters(cfg.Exporters),
+				WithExperimentalFeatures(cfg.ExperimentalFeatures),
+			)
+		}),
+		health.Module(),
+	)
+}

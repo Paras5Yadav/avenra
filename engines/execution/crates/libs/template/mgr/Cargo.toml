@@ -1,0 +1,73 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-template-mgr"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+otel = ["avenra-runtime-common-svc/otel"]
+datadog = ["otel", "avenra-runtime-common-svc/datadog"]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+# Compiles in the test-only environment hooks; never enabled for release builds.
+test-hooks = ["avenra-runtime-common-core/test-hooks"]
+
+[dependencies]
+rustix = { workspace = true, features = ["fs"] }
+async-trait = { workspace = true }
+futures-util = { workspace = true }
+hex = { workspace = true }
+jiff = { workspace = true }
+prost-types = { workspace = true }
+rand = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+sqlx = { workspace = true, features = ["macros", "migrate"] }
+tempfile = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["fs", "io-util", "rt", "sync", "time"] }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio-util = { workspace = true }
+tonic = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v7"] }
+zstd = { workspace = true }
+
+# internal
+avenra-runtime-common-core = { workspace = true, features = ["serde"] }
+avenra-runtime-common-io = { workspace = true, features = ["reflink"] }
+avenra-runtime-common-jobs = { workspace = true }
+avenra-runtime-common-lru-reaper = { workspace = true }
+avenra-runtime-common-svc = { workspace = true, features = ["sqlite"] }
+avenra-runtime-execution-common = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+avenra-runtime-node-api-client = { workspace = true }
+avenra-runtime-node-mgr-client = { workspace = true }
+avenra-runtime-net-common = { workspace = true, features = ["serde"] }
+avenra-runtime-observability = { workspace = true, default-features = false }
+avenra-runtime-sbx-mgr-client = { workspace = true }
+avenra-runtime-template-mgr-client = { workspace = true }
+avenra-runtime-volmgr-client = { workspace = true }
+
+[dev-dependencies]
+avenra-runtime-internal-api-server = { workspace = true }
+avenra-runtime-db-test-fixtures = { workspace = true }
+avenra-runtime-common-svc = { workspace = true, features = ["test-support"] }
+avenra-runtime-common-grpc = { workspace = true }
+avenra-runtime-common-core = { workspace = true, features = ["serde", "test-hooks"] }
+nix = { workspace = true, features = ["user"] }
+avenra-runtime-observability = { workspace = true, features = ["test-capture"] }
+avenra-runtime-test-env = { workspace = true }
+rstest = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }
+tracing-subscriber = { workspace = true }

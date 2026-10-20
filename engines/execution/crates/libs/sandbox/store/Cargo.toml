@@ -1,0 +1,29 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-sandbox-store"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"] }
+sqlx = { workspace = true, features = ["derive", "json", "postgres", "runtime-tokio", "tls-rustls-aws-lc-rs", "uuid", "time"] }
+thiserror = { workspace = true }
+time = { workspace = true }
+uuid = { workspace = true, features = ["v7"] }
+
+# internal
+avenra-runtime-common-core = { workspace = true, features = ["sqlx", "serde"] }
+avenra-runtime-sandbox-portability = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+avenra-runtime-db-test-fixtures = { workspace = true }
+avenra-runtime-test-env = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt"] }

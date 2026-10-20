@@ -1,0 +1,14 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: space
+---
+# Per-sandbox pods live apart from the control plane, as in a deployment that
+# confines them with namespace-scoped policy: the API, cluster-controller and
+# internal-api charts name this as `k8s.sandboxNamespace`, and the
+# avenra-sandbox-network-policy chart isolates every pod in it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sandboxes

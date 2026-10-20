@@ -1,0 +1,274 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+image:
+  repository: avenra-cluster-controller
+  tag: local
+  pullPolicy: IfNotPresent
+
+datadogTeam: team-space
+clusterId: "kind-local"
+
+# Env master for the cluster activation limiter, which this process evaluates
+# independently of avenra-api because the public-operation dispatcher builds its
+# own config. **Must equal `clusterActivationAdmission.enabled` in
+# `charts/avenra-api-local/values.yaml`** — the two copies of the limiter are
+# one guardrail, and a bench that disables it in one place has not disabled it.
+#
+# Empty rather than the binary's own default, and rendered either way: an
+# unrecognised value reads as "not configured" (`env_flag`), so an empty one
+# leaves whichever default the binary ships.
+clusterActivationAdmission:
+  enabled: ""
+
+# The activation limiter's store. The public-operation dispatcher
+# (`NativePublicOperationExecutor::new`) builds its limiter from
+# `ClusterSandboxAdmissionConfig::from_env`, which reads AVENRA_REDIS_URL;
+# without it this copy admits every queued activation as `misconfigured`.
+# **Must equal `redis.url` in `charts/avenra-api-local/values.yaml`**: both
+# copies consume from one bucket key, so a second store would double the
+# cluster's rate. This process runs no per-client concurrency limiter.
+redis:
+  url: "redis://avenra-redis:6379"
+
+# Telemetry defaults come from the avenra-kind-telemetry library.
+telemetry: {}
+
+# Names must match avenra-api-local so RBAC bindings re-use that chart's
+# Role and ClusterRole.
+apiReleaseName: space
+apiServiceAccount: avenra-api
+
+# Two replicas, as deployed: the Lease holder runs the reconcilers and the
+# other waits as a warm standby, so losing the leader's pod does not stop
+# reconciliation for longer than the lease takes to change hands. The harness
+# reads controller logs from every pod (controller_log_records in
+# avenra_smoke/adapters.py); the leader-election suite scales to two and back
+# to whatever it found.
+replicaCount: 2
+
+# Scheduling priority (infra/avenra/kind/manifests/priorityclasses.yaml).
+priorityClassName: avenra-control-plane
+
+nodeSelector:
+  space.pplx.net/infra: "true"
+
+serviceAccount:
+  name: avenra-cluster-controller
+
+# Lifetime of the projected node-api tokens, as deployed; the kubelet
+# refreshes them at 80% of that.
+nodeApiTokenExpirationSeconds: 600
+
+# Same KubernetesSubstrate env block as the api-server. The cluster-controller
+# requires AVENRA_K8S_CONTROL_PLANE=true to even start, and shares the same
+# substrate plumbing for orphan-sweep + warm-pool reconcilers.
+k8s:
+  # The API's sandbox namespace (avenra-api-local's k8s.sandboxNamespace).
+  sandboxNamespace: sandboxes
+  # Must match avenra-api-local's value: both substrate instances (api-server
+  # + cluster-controller) read AVENRA_SANDBOX_POD_IMAGE from env at startup
+  # and would otherwise create per-sandbox pods with different images, the
+  # cluster-controller side pulling pause:3.10 from docker.io and failing
+  # with ImagePullBackOff in KinD.
+  # Matches avenra-api-local. registry.k8s.io/pause:3.10 is what the Avenra
+  # shim sees — the shim hijacks the pause container into a real sandbox
+  # via sandbox-manager.
+  sandboxPodImage: registry.k8s.io/pause:3.10
+  sandboxNodeSelectorKey: node.kubernetes.io/avenra-enabled
+  sandboxNodeSelectorValue: "true"
+
+internal:
+  secretName: avenra-internal
+
+# Route-token signing material. This lives in its own Secret, written by the
+# avenra-api-local chart, and NOT in `internal.secretName` — the sibling
+# avenra-api-local and avenra-internal-api-local charts already read it this way.
+# The cluster-controller was left reading it out of `avenra-internal`, where it is
+# never written, so the process failed at startup with "Avenra API Ed25519 route
+# token signing configuration is missing" and the pod crash-looped on the kind
+# harness. Keep these three aligned with the api charts. The signing key is
+# mounted as a file; the key id and issuer are read from the environment.
+spaceApiRouteToken:
+  ed25519:
+    signingSecretName: avenra-route-signing
+    signingKey: signing-key.pem
+    signingKeyId: AVENRA_API_ROUTE_ED25519_SIGNING_KEY_ID
+    issuer: AVENRA_API_ROUTE_ED25519_ISSUER
+
+postgres:
+  # Secret with the managed role passwords (AVENRA_DB_BOOTSTRAP_<ROLE>_PASSWORD
+  # keys). Empty uses the Kind development passwords below.
+  rolesSecretName: ""
+  # Secret holding POSTGRES_CONNECTION_STRING.
+  secretName: avenra-postgres
+  # Dev-default managed-login passwords; the roles are provisioned by the
+  # api chart's bootstrap-roles initContainer with the same values.
+  managedUserPassword: avenra-dev-user
+  managedCredentialsPassword: avenra-dev-creds
+
+snapshotBucket: snapshots
+snapshotRegion: us-east-1
+snapshotEndpoint: http://object-store:8333
+snapshotCredentialsSecretName: avenra-object-store
+
+# Per-reconciler env overrides. Empty defaults keep prod-equivalent intervals.
+reconcilers:
+  # publicOperationDispatcher claims `state=queued` rows in public_operations
+  # and executes them — this is what materializes per-sandbox K8s pods when
+  # /v1/sandboxes is POSTed under KubernetesSubstrate. It is ON by default in
+  # the binary, so the explicit enable below is redundant but keeps local
+  # smoke deployments independent of that default; setting it to false leaves
+  # CreateSandbox returning 202 with the operation `queued` forever. The tick,
+  # claim limit and claim staleness are test hooks
+  # (crates/libs/cluster/controller/server/src/public_operation_dispatcher.rs)
+  # left at their release values, so Kind picks up queued operations on the
+  # deployed 25 ms tick. Execution concurrency is a deployment setting.
+  publicOperationDispatcher:
+    env:
+      AVENRA_PUBLIC_OPERATION_DISPATCHER_ENABLED: "true"
+      AVENRA_PUBLIC_OPERATION_DISPATCHER_EXECUTION_CONCURRENCY: "16"
+  # Both repairs ship on and live, with no dry-run mode, and deployments run
+  # them so. Each moves a sandbox row back to `suspended` only when no
+  # execution or pod is left and a restorable snapshot is ready, after a
+  # minimum age: 180 s for failed rows (MIN_AGE_SECS,
+  # crates/libs/cluster/controller/server/src/failed_restorable_repair/mod.rs),
+  # 300 s for started ones (DEFAULT_MIN_AGE_SECS, started_sandbox_repair/mod.rs).
+  # Rendered explicitly so the chart says what runs.
+  failedRestorableRepair:
+    env:
+      AVENRA_FAILED_RESTORABLE_REPAIR_ENABLED: "true"
+  startedSandboxRepair:
+    env:
+      AVENRA_STARTED_SANDBOX_REPAIR_ENABLED: "true"
+  orphanedSandboxes:
+    env: {}
+  warmPool:
+    env: {}
+  # Default-on locally so the kind e2e node-drain test can exercise the
+  # reconciler without an extra opt-in.
+  #
+  # Terminator backend is `kube-delete` for kind: the reconciler
+  # actually removes the kube Node object, which is the closest
+  # provider-agnostic analogue of an EC2 ASG terminate. The smoke
+  # test verifies the Node disappears, then re-registers it by
+  # restarting kubelet inside the kind worker container
+  # (`docker exec <name> systemctl restart kubelet`) so subsequent
+  # runs still see two workers. Switch to `noop` only if you want
+  # to exercise the state machine without touching the kube Node.
+  nodeDrain:
+    env:
+      AVENRA_NODE_DRAIN_ENABLED: "true"
+      # Enable the opt-in node-census residency discount for standing SQL
+      # coverage. Keep this aligned with the API chart's nodeCensusResidency
+      # setting. `local.gentle_drain_leaves_sandbox_resident` exercises the
+      # drain; store tests separately verify stale-census safety.
+      AVENRA_NODE_DRAIN_NODE_CENSUS_RESIDENCY: "true"
+      AVENRA_NODE_DRAIN_TERMINATOR_KIND: "kube-delete"
+  # Default-on locally to exercise drained -> terminating -> deleted with the
+  # kube-delete backend. Drain scenarios that need the node afterward set
+  # space.pplx.net/drain-keep.
+  drainedNodeTerminator:
+    env:
+      AVENRA_DRAINED_NODE_TERMINATOR_ENABLED: "true"
+  # Kube-node-sync: proactively registers labeled kube Nodes in Avenra so
+  # they appear in the admin UI without needing a sandbox to land there
+  # first. Enabled in kind where the node-api-svc DaemonSet doesn't run.
+  kubeNodeSync:
+    env:
+      AVENRA_KUBE_NODE_SYNC_ENABLED: "true"
+  # Transient-lifecycle sweeper: cluster-wide backstop for sandbox rows
+  # wedged in a transient lifecycle (ReconcilerConfig::from_env,
+  # crates/libs/cluster/controller/server/src/transient_lifecycle_sweeper/mod.rs).
+  # The binary ships it off; deployments run it on with minutes-scale ages,
+  # and so does Kind:
+  # - `restoring` rows are failed after 600 s, the binary's default age, sized
+  #   to cover an end-to-end suspend/restore round trip. The same switch runs
+  #   the unrestorable-restoring phase, which fails a markerless `restoring`
+  #   row with no source node, snapshot or upload in flight once its
+  #   placement is 300 s old.
+  # - Every other transient lifecycle is effectively off. creating, starting,
+  #   pausing, resuming and stopping have no per-lifecycle knob and take the
+  #   default age, so the default is a year; suspending and checkpointing
+  #   take `0`, which disables them.
+  # - Failed-sandbox cleanup (retrying the teardown of `failed` rows that
+  #   still hold an active execution) ships on; rendered explicitly.
+  # At these ages a row a scenario legitimately holds mid-transition is never
+  # old enough to sweep; one that is swept was stuck past what a deployment
+  # tolerates.
+  transientLifecycleSweeper:
+    env:
+      AVENRA_TRANSIENT_LIFECYCLE_SWEEPER_ENABLED: "true"
+      AVENRA_TRANSIENT_LIFECYCLE_SWEEPER_DEFAULT_AGE_SECS: "31536000"
+      AVENRA_TRANSIENT_LIFECYCLE_SWEEPER_RESTORING_AGE_SECS: "600"
+      AVENRA_TRANSIENT_LIFECYCLE_SWEEPER_SUSPENDING_AGE_SECS: "0"
+      AVENRA_TRANSIENT_LIFECYCLE_SWEEPER_CHECKPOINTING_AGE_SECS: "0"
+      AVENRA_FAILED_SANDBOX_CLEANUP_ENABLED: "true"
+  # Stuck-snapshot reaper: cluster-wide backstop that fails suspend-snapshot
+  # rows wedged in `state = 'creating'` past the upload worker's retry window.
+  # Ships off; deployments enable it. Its 24 h age and 5 min tick are fixed
+  # (DEFAULT_MIN_AGE_SECS, stuck_snapshot_reaper/mod.rs), so on Kind it scans
+  # and, unless an upload really hangs for a day, reaps nothing.
+  stuckSnapshotReaper:
+    env:
+      AVENRA_STUCK_SNAPSHOT_REAPER_ENABLED: "true"
+  # The minimum age (AVENRA_SNAPSHOT_RETENTION_SWEEPER_MIN_AGE_SECS) is a test
+  # hook left at its release value, which equals the API's fork-retention grace
+  # (crates/libs/common/core/src/types/snapshot.rs). The retention scenarios
+  # shorten it for their own run and restore it afterwards.
+  snapshotRetentionSweeper:
+    env:
+      AVENRA_SNAPSHOT_RETENTION_SWEEPER_ENABLED: "true"
+  snapshotStorageSweeper:
+    env:
+      AVENRA_SNAPSHOT_STORAGE_SWEEPER_ENABLED: "true"
+  # Suspended-execution reaper: retires stale active execution rows on
+  # suspended sandboxes whose pod is gone, and clears the stale placement
+  # bookkeeping. Default-off here too — kind e2e tests that need it can opt
+  # in via per-test env overrides.
+  suspendedExecutionReaper:
+    env:
+      AVENRA_SUSPENDED_EXECUTION_REAPER_ENABLED: "false"
+  # Orphaned-restore-pod GC: reaps restore pods their owning row has provably
+  # superseded (row deleted, no active execution on a reverted row, or a
+  # strictly-older generation). Ships off and dry-run; deployments enable it
+  # and keep it dry-run, classifying and reporting without deleting, at the
+  # binary's 60 s interval, 45 s tick budget and 300 s threshold
+  # (orphaned_restore_pod_gc/config.rs). The orphaned-restore-pod GC scenario
+  # scopes a live, short-threshold config to itself and restores this one.
+  orphanedRestorePodGc:
+    env:
+      AVENRA_ORPHANED_RESTORE_POD_GC_ENABLED: "true"
+      AVENRA_ORPHANED_RESTORE_POD_GC_DRY_RUN: "true"
+  # Reconcile-queue GC, one reconciler with two detector instances
+  # (reconcilers.rs, reconcile_queue_gc/mod.rs).
+  # - `AVENRA_RECONCILE_QUEUE_GC_*`, the EC2 instance, ships off. Deployments
+  #   run it; Kind keeps it off because a Kind bench must not call AWS. For
+  #   a non-ready node whose live refs are 24 h old, Ec2Detector signs a
+  #   DescribeInstances call with the controller's AWS_REGION and the object
+  #   store's keys, to the public EC2 API. A reply with no live instance
+  #   would read as gone (Ec2InstanceLookup); only the call's own failure,
+  #   read as unknown, would keep the refs. There is no switch for the
+  #   detector alone, and its EC2 client (avenra_runtime_aws_client::ec2) takes
+  #   only the global AWS_ENDPOINT_URL, which would also redirect the
+  #   controller's S3 clients. The same instance runs the Postgres-only
+  #   dead-letter pass (run_dead_prune), so that stays off too.
+  # - `AVENRA_GONE_NODE_QUEUE_GC_*`, the gone-node queue GC, ships on and
+  #   dry-run: it reports the live refs of nodes absent from Kubernetes
+  #   without deleting them, from Postgres and Kubernetes reads only.
+  #   Rendered explicitly at those defaults.
+  reconcileQueueGc:
+    env:
+      AVENRA_RECONCILE_QUEUE_GC_ENABLED: "false"
+      AVENRA_GONE_NODE_QUEUE_GC_ENABLED: "true"
+      AVENRA_GONE_NODE_QUEUE_GC_DRY_RUN: "true"
+
+resources:
+  requests:
+    cpu: 25m
+    memory: 64Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# BYOK: stamp volume_encryption on creates for byok_enabled orgs (matches
+# the avenra-api-local chart; the dispatcher executes creates here).
+byokVolumeEncryption: "1"

@@ -1,0 +1,1 @@
+create index {{ if not .Transactional }}concurrently{{end}} accounts_sequences on "{{.Schema}}".accounts (address, seq);

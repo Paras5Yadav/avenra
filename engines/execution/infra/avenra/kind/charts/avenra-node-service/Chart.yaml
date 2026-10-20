@@ -1,0 +1,6 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-node-service
+description: Shared pod shape for the Kind per-service Avenra node DaemonSets
+type: library
+version: 0.1.0

@@ -1,0 +1,388 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+{{- /*
+One Deployment per API surface the process serves, as deployed: `shared`, the
+public, admin and E2B roots on one host, which every client and harness call
+here addresses; and, with admin.enabled, `admin`, the dedicated admin API
+(`--surface admin`, crates/apps/api/svc/src/main.rs) in its own process. Only
+the shared Deployment runs the ingress activation listener, and only it is
+behind the avenra-api Service. Neither runs the migrations: the avenra-db-migrate
+Job (migrate-job.yaml) does, once, before either starts.
+*/ -}}
+{{- if le (int .Values.terminationGracePeriodSeconds) (add (int .Values.preStopSleepSeconds) (int .Values.shutdownGraceSeconds)) -}}
+{{- fail "terminationGracePeriodSeconds must exceed preStopSleepSeconds + shutdownGraceSeconds" -}}
+{{- end -}}
+{{- range $surface := list "shared" "admin" }}
+{{- if or (eq $surface "shared") $.Values.admin.enabled }}
+{{- with $ }}
+{{- $name := ternary "avenra-api" "avenra-admin-api" (eq $surface "shared") }}
+{{- $shared := eq $surface "shared" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-{{ ternary "api" "admin-api" $shared }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    team: {{ .Values.datadogTeam | quote }}
+spec:
+  {{- if and $shared .Values.autoscaling.enabled }}
+  # The HorizontalPodAutoscaler (hpa.yaml) owns the replica count.
+  {{- else if $shared }}
+  replicas: 1
+  {{- else }}
+  replicas: {{ .Values.admin.replicas }}
+  {{- end }}
+  minReadySeconds: {{ .Values.minReadySeconds }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  strategy:
+    {{- if and $shared .Values.autoscaling.enabled }}
+    # Several replicas serve behind the load-balanced entry, so a rollout
+    # replaces them one at a time instead of taking every replica down at once.
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    {{- else }}
+    type: Recreate
+    {{- end }}
+  template:
+    metadata:
+      annotations:
+        {{- include "avenra-kind-telemetry.logAnnotations" . | nindent 8 }}
+        ad.datadoghq.com/tags: '{"team":"{{ .Values.datadogTeam }}"}'
+      labels:
+        app.kubernetes.io/name: {{ $name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        team: {{ .Values.datadogTeam | quote }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      priorityClassName: {{ .Values.priorityClassName }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds | int }}
+      # docker/Dockerfile.api runs the api as avenra-api (UID and GID 952).
+      # Secret files are root-owned, so the ingress activation listener reads
+      # its key through this group, with mode 0440 on rpc-identity: the
+      # listener's own identity and nobody else.
+      securityContext:
+        fsGroup: 952
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/avenra/bin/avenra-api-svc"]
+          args:
+            - --surface
+            - {{ $surface }}
+            - --listen
+            - "0.0.0.0:{{ .Values.service.port }}"
+            - --shutdown-grace-secs
+            - {{ .Values.shutdownGraceSeconds | quote }}
+          env:
+            {{- if $shared }}
+            # IngressActivationApi (docs/internal-rpc-tls.md, "Ingress
+            # activation delegation"): internal-api delegates cold wakes to this
+            # listener through the avenra-api Service, so it serves the
+            # avenra-ingress-activation-tls leaf, which names avenra-api.
+            - name: AVENRA_INGRESS_ACTIVATION_LISTEN
+              value: "0.0.0.0:9801"
+            - name: AVENRA_INTERNAL_RPC_TLS_CERT
+              value: /etc/avenra-rpc-tls/tls.crt
+            - name: AVENRA_INTERNAL_RPC_TLS_KEY
+              value: /etc/avenra-rpc-tls/tls.key
+            {{- end }}
+            # Authenticated internal RPC TLS (docs/internal-rpc-tls.md): the
+            # cluster's internal RPC CA, and the shared node-api identity, since NodeApi is dialled by node IP.
+            - name: AVENRA_INTERNAL_RPC_TLS_CA
+              value: /etc/avenra-rpc-ca/ca.crt
+            - name: AVENRA_NODE_API_TLS_SERVER_NAME
+              value: avenra-node-api
+            - name: AVENRA_CLUSTER_API_TOKEN_PATH
+              value: "/var/run/avenra-publication/cluster-api.token"
+            # The substrate's NodeApi credentials (SpaceBearerToken,
+            # crates/libs/common/svc/src/bearer_token.rs): one projected
+            # token per node-api surface, which node-api admits by TokenReview
+            # (avenra-node-api-local's auth allowlists). An explicit path makes a
+            # missing file an error rather than a fall back to the static token.
+            - name: AVENRA_NODE_API_TOKEN_PATH
+              value: /var/run/avenra-auth/node-api.token
+            - name: AVENRA_NODE_API_INTERNAL_TOKEN_PATH
+              value: /var/run/avenra-auth/node-api-internal.token
+            # Datadog tracing: DD_AGENT_HOST routes via
+            # status.hostIP to the node-local Agent selected by the backend
+            # helper. OTLP comparisons require that receiver to be running.
+            {{- include "avenra-kind-telemetry.env" . | nindent 12 }}
+            - name: AVENRA_K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: AVENRA_K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # Absolute URL the UI / external client uses to reach the
+            # data-plane.
+            # Without this, api returns relative session URLs and the UI's
+            # window.location.origin resolution lands on the UI host → 404.
+            - name: AVENRA_DATA_PLANE_PUBLIC_URL
+              value: {{ .Values.dataPlanePublicUrl | quote }}
+            # BYOK: cluster-wide opt-in for stamping volume_encryption on new
+            # sandbox creates (with the owner org's byok_enabled). The bench
+            # enables it by default: org enrollment still gates per-org, so
+            # unenrolled orgs (everything until a smoke seeds a KEK) create
+            # plaintext sandboxes exactly as before.
+            - name: AVENRA_BYOK_VOLUME_ENCRYPTION
+              value: {{ .Values.byokVolumeEncryption | quote }}
+            # The admin BYOK-enable gate must agree with the credential-manager
+            # authority's platform KEK provider, which provisions a keyless
+            # org's key lazily (avenra-credmgr-authority-local).
+            - name: AVENRA_PLATFORM_KEK_PROVIDER
+              value: intermediate-key-broker
+            # Must match the cluster-controller chart's value — see the
+            # rationale on `nodeCensusResidency` in values.yaml. `required` so
+            # a dropped key fails the render: without it a nil leaf still
+            # renders the entry, just with no value, which reads as unset.
+            - name: AVENRA_NODE_DRAIN_NODE_CENSUS_RESIDENCY
+              value: {{ required "nodeCensusResidency is required and must equal the cluster-controller chart's value" .Values.nodeCensusResidency | quote }}
+            # `required` for the same reason: avenra-api reads an unset or empty
+            # value as its default, which is on, so a dropped key would enable
+            # fork whatever the values file meant.
+            - name: AVENRA_SANDBOX_FORK_ENABLED
+              value: {{ required "fork.enabled is required: an empty value enables fork" .Values.fork.enabled | quote }}
+            - name: POSTGRES_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.secretName | default "avenra-postgres" }}
+                  key: POSTGRES_CONNECTION_STRING
+            - name: AVENRA_DB_USER_PASSWORD
+              {{- include "avenra-cluster.dbPassword" (dict "ctx" . "role" "USER" "value" .Values.postgres.managedUserPassword) | nindent 14 }}
+            - name: AVENRA_DB_CREDS_PASSWORD
+              {{- include "avenra-cluster.dbPassword" (dict "ctx" . "role" "CREDS" "value" .Values.postgres.managedCredentialsPassword) | nindent 14 }}
+            - name: POSTGRES_POOL_MAX_CONNECTIONS
+              value: {{ .Values.postgres.poolMaxConnections | quote }}
+            - name: AVENRA_INTERNAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.internal.secretName }}
+                  key: AVENRA_INTERNAL_TOKEN
+            - name: AVENRA_INTERNAL_CONTROL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.internal.secretName }}
+                  key: AVENRA_INTERNAL_CONTROL_TOKEN
+            - name: AVENRA_PUBLIC_CURSOR_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.internal.secretName }}
+                  key: AVENRA_PUBLIC_CURSOR_SECRET
+            - name: AVENRA_ECW_CREDENTIAL_KEY_PATH
+              value: /var/run/avenra-ecw-credential/ecw-credential-key
+            - name: AVENRA_API_ROUTE_ED25519_SIGNING_KEY_PATH
+              value: /var/run/avenra-route-signing/signing-key.pem
+            - name: AVENRA_API_ROUTE_ED25519_SIGNING_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.avenraApiRouteToken.ed25519.signingSecretName }}
+                  key: AVENRA_API_ROUTE_ED25519_SIGNING_KEY_ID
+            - name: AVENRA_API_ROUTE_ED25519_ISSUER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.avenraApiRouteToken.ed25519.signingSecretName }}
+                  key: AVENRA_API_ROUTE_ED25519_ISSUER
+            - name: AVENRA_CLUSTER_ID
+              value: {{ .Values.clusterId | quote }}
+            {{- with .Values.ecwHosts }}
+            # ECW (E2B-compatible) host routing — enables the local ECW smokes
+            # to reach the ECW API/data-plane surface via Host-header overrides.
+            - name: AVENRA_ECW_HOSTS
+              value: {{ . | quote }}
+            {{- end }}
+            # The env masters, then the provider. Env off is a hard off no
+            # assignment can reopen, so these two are what a bench with no
+            # EPPO_SDK_KEY sets instead of a flag. Rendered unconditionally
+            # and empty by default: an empty value reads as "not configured"
+            # and leaves the binary's own default, so the chart offers the
+            # knob without asserting a value.
+            - name: AVENRA_CLUSTER_ACTIVATION_ADMISSION_ENABLED
+              value: {{ .Values.clusterActivationAdmission.enabled | quote }}
+            - name: AVENRA_API_CLIENT_CONCURRENCY_MODE
+              value: {{ .Values.clientConcurrency.mode | quote }}
+            {{- if .Values.redis.url }}
+            # Both limiters' shared store; see `redis` in values.yaml.
+            - name: AVENRA_REDIS_URL
+              value: {{ .Values.redis.url | quote }}
+            {{- end }}
+            {{- if .Values.eppo.secretName }}
+            - name: EPPO_SDK_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.eppo.secretName }}
+                  key: {{ .Values.eppo.secretKey }}
+                  optional: true
+            {{- else }}
+            - name: EPPO_SDK_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.internal.secretName }}
+                  key: EPPO_SDK_KEY
+                  optional: true
+            {{- end }}
+            {{- if .Values.eppo.baseUrl }}
+            - name: EPPO_BASE_URL
+              value: {{ .Values.eppo.baseUrl | quote }}
+            {{- end }}
+            # KubernetesSubstrate: sandbox placement flows through the Pod
+            # reflector and node watcher; node inventory is synthesized from
+            # the labelled node-api Pods.
+            - name: AVENRA_K8S_CONTROL_PLANE
+              value: "true"
+            - name: AVENRA_SANDBOX_NAMESPACE
+              value: {{ .Values.k8s.sandboxNamespace | quote }}
+            # The node-api DaemonSets run in the release namespace. Unset, the
+            # substrate looks for them in the sandbox namespace
+            # (KubernetesState::try_from_env,
+            # crates/libs/api/src/controllers/substrate/kubernetes/mod.rs).
+            - name: AVENRA_NODE_API_NAMESPACE
+              value: {{ .Release.Namespace | quote }}
+            - name: AVENRA_SANDBOX_POD_IMAGE
+              value: {{ .Values.k8s.sandboxPodImage | quote }}
+            - name: AVENRA_SANDBOX_NODE_SELECTOR_KEY
+              value: {{ .Values.k8s.sandboxNodeSelectorKey | quote }}
+            - name: AVENRA_SANDBOX_NODE_SELECTOR_VALUE
+              value: {{ .Values.k8s.sandboxNodeSelectorValue | quote }}
+            - name: AVENRA_INTERNAL_SECRET_NAME
+              value: {{ .Values.internal.secretName | quote }}
+            {{- if $shared }}
+            # The ingress activation listener's Cluster bearer surface
+            # (ingress_activation::server; docs/internal-rpc-tls.md, "Ingress
+            # activation delegation"): TokenReview with audience
+            # avenra-cluster-api, no static fallback, and only the route
+            # resolvers that have already authorized the request. No other
+            # api surface reads these settings. The allowlist's namespace is
+            # the pod's own, read from its ServiceAccount mount
+            # (auth_namespace, crates/libs/common/svc/src/auth/k8s.rs).
+            - name: AVENRA_K8S_TOKEN_AUTH_ENABLED
+              value: "true"
+            - name: AVENRA_K8S_TOKEN_AUTH_STATIC_FALLBACK_ENABLED
+              value: "false"
+            - name: AVENRA_CLUSTER_API_AUTH_ALLOWED_SERVICE_ACCOUNTS
+              value: {{ join "," .Values.ingressActivation.allowedServiceAccounts | quote }}
+            {{- end }}
+          ports:
+            {{- if $shared }}
+            - name: activation
+              containerPort: 9801
+              protocol: TCP
+            {{- end }}
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          # Leave the entry Services' endpoints before SIGTERM stops the
+          # listener (values.yaml).
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ .Values.preStopSleepSeconds | int }}
+          # The boot budget (values.yaml). Liveness and readiness start once
+          # it passes.
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: {{ .Values.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.startupProbe.failureThreshold }}
+          readinessProbe:
+            # /readyz flips to ok only after KubernetesSubstrate's Pod
+            # reflector has completed its initial LIST; this prevents traffic
+            # from hitting an api-server replica with a cold cache. It reports
+            # draining from the moment SIGTERM arrives.
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 15
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- if $shared }}
+            - name: rpc-identity
+              mountPath: /etc/avenra-rpc-tls
+              readOnly: true
+            {{- end }}
+            - name: rpc-ca
+              mountPath: /etc/avenra-rpc-ca
+              readOnly: true
+            - name: publication-token
+              mountPath: /var/run/avenra-publication
+              readOnly: true
+            - name: node-api-token
+              mountPath: /var/run/avenra-auth
+              readOnly: true
+            - name: route-signing
+              mountPath: /var/run/avenra-route-signing
+              readOnly: true
+            - name: ecw-credential
+              mountPath: /var/run/avenra-ecw-credential
+              readOnly: true
+      volumes:
+        {{- if $shared }}
+        - name: rpc-identity
+          secret:
+            secretName: avenra-ingress-activation-tls
+            defaultMode: 0440
+        {{- end }}
+        - name: rpc-ca
+          secret:
+            secretName: avenra-internal-rpc-ca
+            defaultMode: 0444
+        - name: publication-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: cluster-api.token
+                  audience: avenra-cluster-api
+                  expirationSeconds: 3600
+        - name: node-api-token
+          projected:
+            defaultMode: 0444
+            sources:
+              - serviceAccountToken:
+                  path: node-api.token
+                  audience: avenra-node-api
+                  expirationSeconds: {{ .Values.nodeApiTokenExpirationSeconds | int }}
+              - serviceAccountToken:
+                  path: node-api-internal.token
+                  audience: avenra-node-api-internal
+                  expirationSeconds: {{ .Values.nodeApiTokenExpirationSeconds | int }}
+        - name: route-signing
+          secret:
+            secretName: {{ .Values.avenraApiRouteToken.ed25519.signingSecretName }}
+            defaultMode: 0444
+            items:
+              - key: signing-key.pem
+                path: signing-key.pem
+        - name: ecw-credential
+          secret:
+            secretName: {{ .Values.internal.secretName }}
+            defaultMode: 0444
+            items:
+              - key: ecw-credential-key
+                path: ecw-credential-key
+{{- end }}
+{{- end }}
+{{- end }}

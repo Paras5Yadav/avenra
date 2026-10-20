@@ -1,0 +1,30 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[project]
+name = "avenra-smoke"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "e2b==2.21.1",
+    "opentelemetry-exporter-otlp-proto-grpc==1.44.0",
+    "opentelemetry-sdk==1.44.0",
+]
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true
+
+# The repository-wide Python test suite's imports (ci/scripts/run-python-tests.sh).
+# Locked like the dependencies above, so an upstream release of any of these or
+# of what they pull in cannot change an unchanged run.
+[dependency-groups]
+test = [
+    "boto3==1.43.113",
+    "cel-python==0.5.0",
+    "pglast==7.10",
+    "psycopg[binary]==3.3.6",
+    "pytest==8.4.2",
+    "python-hcl2==8.1.4",
+    "pyyaml==6.0.3",
+    "requests==2.34.2",
+]

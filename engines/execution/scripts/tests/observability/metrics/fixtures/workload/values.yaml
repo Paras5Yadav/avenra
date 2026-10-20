@@ -1,0 +1,4 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+image: avenra-oss-workload:local
+run: local
+version: local

@@ -1,0 +1,7 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-object-store
+description: Local S3-compatible object store (Versity S3 Gateway, POSIX backend) for the KinD Avenra stack — backs real suspend/restore snapshot and template objects
+type: application
+version: 0.2.0
+appVersion: "v1.8.0"

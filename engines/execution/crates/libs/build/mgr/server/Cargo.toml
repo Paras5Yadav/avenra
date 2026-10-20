@@ -1,0 +1,66 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+[package]
+name = "avenra-runtime-build-mgr-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+test-hooks = ["avenra-runtime-common-svc/test-hooks"]
+default = []
+k8s = ["avenra-runtime-common-svc/k8s"]
+aws-ecr = ["avenra-runtime-build-mgr/aws-ecr"]
+otel = [
+    "avenra-runtime-build-mgr/otel",
+    "avenra-runtime-common-svc/otel",
+]
+datadog = [
+    "otel",
+    "avenra-runtime-build-mgr/datadog",
+    "avenra-runtime-common-svc/datadog",
+]
+# Deprecated for one release; use otel and datadog.
+datadog-otel = ["otel", "datadog"]
+
+[dependencies]
+avenra-runtime-common-core = { workspace = true, features = ["serde"] }
+async-trait = { workspace = true }
+futures-util = { workspace = true }
+prost = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["net", "rt", "sync", "time"] }
+tokio-util = { workspace = true }
+tonic = { workspace = true }
+tonic-health = { workspace = true }
+tracing = { workspace = true }
+
+# internal
+avenra-runtime-common-grpc = { workspace = true, features = ["internal-tls"] }
+avenra-runtime-build-mgr = { workspace = true }
+avenra-runtime-build-mgr-client = { workspace = true }
+avenra-runtime-common-jobs = { workspace = true }
+avenra-runtime-common-svc = { workspace = true }
+avenra-runtime-metrics = { workspace = true }
+
+[dev-dependencies]
+rcgen = { workspace = true, features = ["aws_lc_rs", "pem"] }
+rustls = { workspace = true, features = ["aws_lc_rs"] }
+sqlx = { workspace = true, features = ["macros", "migrate"] }
+avenra-runtime-build-mgr-client = { workspace = true, features = ["test-support"] }
+axum = { workspace = true }
+base64 = { workspace = true }
+avenra-runtime-common-svc = { workspace = true, features = ["test-support", "test-hooks", "k8s", "sqlite"] }
+avenra-runtime-test-env = { workspace = true }
+rstest = { workspace = true }
+tempfile = { workspace = true }
+tokio-stream = { workspace = true, features = ["net"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }

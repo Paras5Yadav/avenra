@@ -1,0 +1,7 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-node-debug
+description: Kind-only operator shell on each Avenra node (the node host's root shell stand-in)
+type: application
+version: 0.1.0
+appVersion: "0.8.0"

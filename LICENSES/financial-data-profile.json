@@ -1,0 +1,24 @@
+{
+  "format": "avenra-financial-data-provenance/1",
+  "scope": "Selected synthetic AA/FIP/FIU deposit implementation. Official conformance and independent participant acceptance remain unqualified. Original official documents are cached privately; they have not been relicensed or redistributed as application code.",
+  "bindings": [
+    {"role":"aa","version":"2.1.0","sha256":"e6fd56713b5775196491389064deb51e8cafd62a681c881e6eeb6aab37ae0395","source":"https://specifications.rebit.org.in/api_specifications/account_aggregator/AA_2_1_0.yaml","implementation":"avenra/aa/","qualification":"synthetic_deposit_subset"},
+    {"role":"fip","version":"2.2.0","sha256":"f4b0a0fa6167624408989b833e571f8f11e829dc5b3acaf1a2e7ebfa530cd023","source":"https://specifications.rebit.org.in/api_specifications/account_aggregator/FIP_2_2_0.yaml","implementation":"avenra/aa/","qualification":"synthetic_deposit_subset","unresolved":"Advertised 2.2.0 document declares info.version 2.1.0. This remains quarantined for official interoperability."},
+    {"role":"fiu","version":"2.0.0","sha256":"77c96cd8336c6de4a7489952365764ad5a2676f1d5823ccfdfb21d87c518238b","source":"https://specifications.rebit.org.in/api_specifications/account_aggregator/FIU_2_0_0.yaml","implementation":"avenra/aa/","qualification":"synthetic_deposit_subset"},
+    {"role":"deposit","version":"2.0.0","sha256":"e9307c5dafa81a241e6f1a3293ce2bebc36dfbd86e97d263a303082e2da9345d","source":"https://specifications.rebit.org.in/api_schema/account_aggregator/FISchema/deposit_v2.0.0.xsd","implementation":"avenra/aa/ledger_data.py","qualification":"synthetic_native_deposit_fixture"}
+  ],
+  "cryptographic_reference": {
+    "source":"https://github.com/Sahamati/rahasya",
+    "commit":"7abf7ecbe3ff981f9379c0c89f8e59f48dc2662a",
+    "file":"Node-X25519/x25519.js",
+    "sha256":"c68938a186a3b769d032fc18626c96410d763f5434a11622be719ab903f824aa",
+    "use":"Public X25519/HKDF/AES-GCM construction and fixed reference-vector inputs; application implementation and independent Node observer authored locally.",
+    "file_license":"MIT; Copyright (c) 2022 Sasikumar Ganesan. Preserved in financial-data-reference-MIT.txt.",
+    "expected_hkdf_key":"3b434ed3f93ce5ef1115a89955a50c0fa3ef09f449a842fed3bf81c2939f4261"
+  },
+  "case_research": [
+    {"source":"https://github.com/Sahamati/certification-framework","commit":"c21ff303a45839a232d50a551ae4033aa450018f","use":"Research only. The upstream certification pack has not been executed or claimed as passed."},
+    {"source":"https://github.com/Sahamati/account-aggregator-standards","commit":"9b5fa55baea3a8965cda11fa0fb148127273aca1","use":"Research only. No interoperability or complete specification claim."}
+  ],
+  "unimplemented": ["Legacy Curve25519 profile", "Other financial-information schemas", "Newer inter-AA role contracts", "Complete official error/timing semantics", "Managed participant registry, key rotation and isolated key custody", "Independent official participant/certification acceptance"]
+}

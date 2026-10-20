@@ -1,0 +1,309 @@
+{
+  "role": "monitoring",
+  "revision": "299f62ff9592b6c36ddd7e6c0d1c213641b66524",
+  "archive_sha256": "c1b7336a67dc65ac9ef688045b92f61d74b88b9ea9e7b30d22e8667f3403f5c2",
+  "changes": "Product, namespace and local module branding only. Runtime behaviour requires separate verification.",
+  "files": [
+    {
+      "original_path": ".codacy.yml",
+      "path": "engines/monitoring/.codacy.yml",
+      "original_sha256": "e0777e0b1186754b1a7b9b10b81c9821280eb2cdac71cba0a32146de6ca1b6bb",
+      "sha256": "e0777e0b1186754b1a7b9b10b81c9821280eb2cdac71cba0a32146de6ca1b6bb",
+      "modified": false
+    },
+    {
+      "original_path": ".dockerignore",
+      "path": "engines/monitoring/.dockerignore",
+      "original_sha256": "4be9c88d6ca4e3b72e3d34c519d35dc1ca9354c4f2ae475836f8f461e3aea7a6",
+      "sha256": "4be9c88d6ca4e3b72e3d34c519d35dc1ca9354c4f2ae475836f8f461e3aea7a6",
+      "modified": false
+    },
+    {
+      "original_path": ".editorconfig",
+      "path": "engines/monitoring/.editorconfig",
+      "original_sha256": "4d6adbd046981274df7b56be6b501897827c4509ffac30fda4a260251773b5e7",
+      "sha256": "4d6adbd046981274df7b56be6b501897827c4509ffac30fda4a260251773b5e7",
+      "modified": false
+    },
+    {
+      "original_path": ".env.template",
+      "path": "engines/monitoring/.env.template",
+      "original_sha256": "8c825b31145da30cd97ff5c29eadcfe6fd02ae5b1d64870db5a4afad209549a0",
+      "sha256": "8c825b31145da30cd97ff5c29eadcfe6fd02ae5b1d64870db5a4afad209549a0",
+      "modified": false
+    },
+    {
+      "original_path": ".gitignore",
+      "path": "engines/monitoring/.gitignore",
+      "original_sha256": "812bfa2f48417e000047fecba0fc979ebae0d3d29b83d6cccd6daf3aabb5951f",
+      "sha256": "812bfa2f48417e000047fecba0fc979ebae0d3d29b83d6cccd6daf3aabb5951f",
+      "modified": false
+    },
+    {
+      "original_path": ".husky/pre-commit",
+      "path": "engines/monitoring/.husky/pre-commit",
+      "original_sha256": "e2b7c9733375d7182af2033bda9a7d2a05d0db5eef5be53d26eb7b5f3df8fbc3",
+      "sha256": "e2b7c9733375d7182af2033bda9a7d2a05d0db5eef5be53d26eb7b5f3df8fbc3",
+      "modified": false
+    },
+    {
+      "original_path": ".husky/pre-push",
+      "path": "engines/monitoring/.husky/pre-push",
+      "original_sha256": "328e123c63857fd8473bd4bd3581e655b08b7440d7f5d2c31cc375607582f539",
+      "sha256": "328e123c63857fd8473bd4bd3581e655b08b7440d7f5d2c31cc375607582f539",
+      "modified": false
+    },
+    {
+      "original_path": ".npmrc",
+      "path": "engines/monitoring/.npmrc",
+      "original_sha256": "699ab976548a46a80a6a60b34feb229565191a61af14f8b6ec6221b62916cc5a",
+      "sha256": "699ab976548a46a80a6a60b34feb229565191a61af14f8b6ec6221b62916cc5a",
+      "modified": false
+    },
+    {
+      "original_path": ".prettierignore",
+      "path": "engines/monitoring/.prettierignore",
+      "original_sha256": "627fab285ac9750f9277ed64d4406c72cb2ee965eb143b0569ee2e6d10249d02",
+      "sha256": "627fab285ac9750f9277ed64d4406c72cb2ee965eb143b0569ee2e6d10249d02",
+      "modified": false
+    },
+    {
+      "original_path": ".prettierrc.json",
+      "path": "engines/monitoring/.prettierrc.json",
+      "original_sha256": "85fa9334a451e277d9e1d57e3635331b65414fc2da25c901aba88f953b2148d9",
+      "sha256": "85fa9334a451e277d9e1d57e3635331b65414fc2da25c901aba88f953b2148d9",
+      "modified": false
+    },
+    {
+      "original_path": ".sonarcloud.properties",
+      "path": "engines/monitoring/.sonarcloud.properties",
+      "original_sha256": "54d048db8b026de2df3fd5b9e95bb58a50dbc79c072307237919bc8d11c9c17f",
+      "sha256": "54d048db8b026de2df3fd5b9e95bb58a50dbc79c072307237919bc8d11c9c17f",
+      "modified": false
+    },
+    {
+      "original_path": "Dockerfile",
+      "path": "engines/monitoring/Dockerfile",
+      "original_sha256": "b7de4eafd81f09fd48ac2ea5291f28ebec7aac191a5025fedd5b3550e4a9f8ef",
+      "sha256": "b7de4eafd81f09fd48ac2ea5291f28ebec7aac191a5025fedd5b3550e4a9f8ef",
+      "modified": false
+    },
+    {
+      "original_path": "Images/Pain013_DB_High Level_Interactions.svg",
+      "path": "engines/monitoring/Images/Pain013_DB_High Level_Interactions.svg",
+      "original_sha256": "5e860d591f3a67f31fafed119928974a326f1584a870b03d9b2d9c6c51970952",
+      "sha256": "5e860d591f3a67f31fafed119928974a326f1584a870b03d9b2d9c6c51970952",
+      "modified": false
+    },
+    {
+      "original_path": "Images/Pain013_DB_High_Level_Interactions.png",
+      "path": "engines/monitoring/Images/Pain013_DB_High_Level_Interactions.png",
+      "original_sha256": "0a4d2856a20909ee6159410b67f5fb21693659ac22f5568f50b234c626ab0039",
+      "sha256": "0a4d2856a20909ee6159410b67f5fb21693659ac22f5568f50b234c626ab0039",
+      "modified": false
+    },
+    {
+      "original_path": "Images/image-20230815-100624.png",
+      "path": "engines/monitoring/Images/image-20230815-100624.png",
+      "original_sha256": "6634cc6beb957fd817d424873f47a36f9b17ebc4d0a8febb2396ec59f328d508",
+      "sha256": "6634cc6beb957fd817d424873f47a36f9b17ebc4d0a8febb2396ec59f328d508",
+      "modified": false
+    },
+    {
+      "original_path": "README.md",
+      "path": "engines/monitoring/README.md",
+      "original_sha256": "7f968660e6e55616fd87f31ac13cc708ee8237c0e51c0a51c053582637cb785f",
+      "sha256": "7f968660e6e55616fd87f31ac13cc708ee8237c0e51c0a51c053582637cb785f",
+      "modified": false
+    },
+    {
+      "original_path": "__tests__/__mocks__/ioredis.js",
+      "path": "engines/monitoring/__tests__/__mocks__/ioredis.js",
+      "original_sha256": "8616e53645b9a72732122d6a63595745efb282568c4230682193aeee1ea5e3d7",
+      "sha256": "8616e53645b9a72732122d6a63595745efb282568c4230682193aeee1ea5e3d7",
+      "modified": false
+    },
+    {
+      "original_path": "__tests__/unit/app.test.ts",
+      "path": "engines/monitoring/__tests__/unit/app.test.ts",
+      "original_sha256": "8e2148505c4878ea93cfdf96dc76870e6da3f5a516bb39ca91a0aacd03657bc1",
+      "sha256": "8e2148505c4878ea93cfdf96dc76870e6da3f5a516bb39ca91a0aacd03657bc1",
+      "modified": false
+    },
+    {
+      "original_path": "cluster-setup.ts",
+      "path": "engines/monitoring/cluster-setup.ts",
+      "original_sha256": "d285f8c03c755e3f050f094ebc4f963ec63ce4fac54de268315c8090258e1765",
+      "sha256": "d285f8c03c755e3f050f094ebc4f963ec63ce4fac54de268315c8090258e1765",
+      "modified": false
+    },
+    {
+      "original_path": "deployment.yaml",
+      "path": "engines/monitoring/deployment.yaml",
+      "original_sha256": "b0caffa36c1197217476cb5c001703c86f789e7b2f63f2265eb4c2f319260235",
+      "sha256": "b0caffa36c1197217476cb5c001703c86f789e7b2f63f2265eb4c2f319260235",
+      "modified": false
+    },
+    {
+      "original_path": "docker-compose.yaml",
+      "path": "engines/monitoring/docker-compose.yaml",
+      "original_sha256": "059747d4f4410e35d6dbf65e5df4591a06b6bf90e61e7ce49bf58f9d0c0cc1f5",
+      "sha256": "059747d4f4410e35d6dbf65e5df4591a06b6bf90e61e7ce49bf58f9d0c0cc1f5",
+      "modified": false
+    },
+    {
+      "original_path": "eslint.config.mjs",
+      "path": "engines/monitoring/eslint.config.mjs",
+      "original_sha256": "ce17b69a236a0731f8731f04ba58e6e7c11d2bef71a9fbfb55efb51680c2cb33",
+      "sha256": "ce17b69a236a0731f8731f04ba58e6e7c11d2bef71a9fbfb55efb51680c2cb33",
+      "modified": false
+    },
+    {
+      "original_path": "jest.config.ts",
+      "path": "engines/monitoring/jest.config.ts",
+      "original_sha256": "7b846c1682f5c9d565fef44c4bb6d9339ed2197807be463b6980e00605591f6e",
+      "sha256": "7b846c1682f5c9d565fef44c4bb6d9339ed2197807be463b6980e00605591f6e",
+      "modified": false
+    },
+    {
+      "original_path": "package-lock.json",
+      "path": "engines/monitoring/package-lock.json",
+      "original_sha256": "18f3d1d29205830ca0f709f853daecf6e081cba496b9b8154ccb41fc2d6b2f79",
+      "sha256": "18f3d1d29205830ca0f709f853daecf6e081cba496b9b8154ccb41fc2d6b2f79",
+      "modified": false
+    },
+    {
+      "original_path": "package.json",
+      "path": "engines/monitoring/package.json",
+      "original_sha256": "201d0a57e2f88523f97f74a630fdf826b4ec1c0aa72e1a1f4623adf9db556109",
+      "sha256": "201d0a57e2f88523f97f74a630fdf826b4ec1c0aa72e1a1f4623adf9db556109",
+      "modified": false
+    },
+    {
+      "original_path": "service.yaml",
+      "path": "engines/monitoring/service.yaml",
+      "original_sha256": "558017e8b8a7186532e3aa3f1f84b4cfb309e9da820be649efbd085be3d0f4d4",
+      "sha256": "558017e8b8a7186532e3aa3f1f84b4cfb309e9da820be649efbd085be3d0f4d4",
+      "modified": false
+    },
+    {
+      "original_path": "src/apm.ts",
+      "path": "engines/monitoring/src/apm.ts",
+      "original_sha256": "e80b766979cb68e77e895ebedc130a061a6550be2e61003e0def4b3f87f8b8b6",
+      "sha256": "e80b766979cb68e77e895ebedc130a061a6550be2e61003e0def4b3f87f8b8b6",
+      "modified": false
+    },
+    {
+      "original_path": "src/app.controller.ts",
+      "path": "engines/monitoring/src/app.controller.ts",
+      "original_sha256": "02878005d71b68ef3f83fddc5ba879ec767d769455731cff6577bb5b1bb26596",
+      "sha256": "02878005d71b68ef3f83fddc5ba879ec767d769455731cff6577bb5b1bb26596",
+      "modified": false
+    },
+    {
+      "original_path": "src/auth/authHandler.ts",
+      "path": "engines/monitoring/src/auth/authHandler.ts",
+      "original_sha256": "5589bf0f73a4930a08227e5d6e72558f1945c5d89b32d4a1233abdf456cf09d4",
+      "sha256": "5589bf0f73a4930a08227e5d6e72558f1945c5d89b32d4a1233abdf456cf09d4",
+      "modified": false
+    },
+    {
+      "original_path": "src/clients/cache-database.ts",
+      "path": "engines/monitoring/src/clients/cache-database.ts",
+      "original_sha256": "5f0644b9d212c3874eea58086b6b338f5aa372eda76bd49cf0e0e9cd7e1ca659",
+      "sha256": "5f0644b9d212c3874eea58086b6b338f5aa372eda76bd49cf0e0e9cd7e1ca659",
+      "modified": false
+    },
+    {
+      "original_path": "src/clients/fastify.ts",
+      "path": "engines/monitoring/src/clients/fastify.ts",
+      "original_sha256": "2e3b589fdb3711da581bc7334f93acddd558b380e2835a008b5ec6195b1a62d4",
+      "sha256": "2e3b589fdb3711da581bc7334f93acddd558b380e2835a008b5ec6195b1a62d4",
+      "modified": false
+    },
+    {
+      "original_path": "src/config.ts",
+      "path": "engines/monitoring/src/config.ts",
+      "original_sha256": "11dde924e9fd9a36eedc70d3a46c3fb6c9dd8c31d6bdde157ed509c0c173a7e8",
+      "sha256": "11dde924e9fd9a36eedc70d3a46c3fb6c9dd8c31d6bdde157ed509c0c173a7e8",
+      "modified": false
+    },
+    {
+      "original_path": "src/index.ts",
+      "path": "engines/monitoring/src/index.ts",
+      "original_sha256": "9e9dfef4466873ff1ebab7c77c1e2caf24b3f56a21833931439345e7214562b7",
+      "sha256": "9e9dfef4466873ff1ebab7c77c1e2caf24b3f56a21833931439345e7214562b7",
+      "modified": false
+    },
+    {
+      "original_path": "src/logic.service.ts",
+      "path": "engines/monitoring/src/logic.service.ts",
+      "original_sha256": "82e328cf6d7a7d8f550e695937fe73d214ee5bb888cd9c40a447492708d1f106",
+      "sha256": "82e328cf6d7a7d8f550e695937fe73d214ee5bb888cd9c40a447492708d1f106",
+      "modified": false
+    },
+    {
+      "original_path": "src/middleware/validateTenantMiddleware.ts",
+      "path": "engines/monitoring/src/middleware/validateTenantMiddleware.ts",
+      "original_sha256": "2b7798145b1977786244f1148549bb2e393109a2f8524450532dd6252ac27a75",
+      "sha256": "2b7798145b1977786244f1148549bb2e393109a2f8524450532dd6252ac27a75",
+      "modified": false
+    },
+    {
+      "original_path": "src/router.ts",
+      "path": "engines/monitoring/src/router.ts",
+      "original_sha256": "df0b87e7867dc26bb5a647357b1f2a6d247ee7d9b401f52d6d28ff245e77539c",
+      "sha256": "df0b87e7867dc26bb5a647357b1f2a6d247ee7d9b401f52d6d28ff245e77539c",
+      "modified": false
+    },
+    {
+      "original_path": "src/schemas/pacs.002.json",
+      "path": "engines/monitoring/src/schemas/pacs.002.json",
+      "original_sha256": "2a84adeff25cce746541f120b5c4bf3ce9278e6c50f7f1be6617e0d7db770828",
+      "sha256": "2a84adeff25cce746541f120b5c4bf3ce9278e6c50f7f1be6617e0d7db770828",
+      "modified": false
+    },
+    {
+      "original_path": "src/schemas/pacs.008.json",
+      "path": "engines/monitoring/src/schemas/pacs.008.json",
+      "original_sha256": "8dd930a1ba1c7b41a3f87a3fc3b1fa57000c78dc0e7292bb55adff31a45d2453",
+      "sha256": "8dd930a1ba1c7b41a3f87a3fc3b1fa57000c78dc0e7292bb55adff31a45d2453",
+      "modified": false
+    },
+    {
+      "original_path": "src/schemas/pain.001.json",
+      "path": "engines/monitoring/src/schemas/pain.001.json",
+      "original_sha256": "d68ac5888e0ec9758ed7f6853942092d0b8ff069160a5ab431c64d6366560c71",
+      "sha256": "d68ac5888e0ec9758ed7f6853942092d0b8ff069160a5ab431c64d6366560c71",
+      "modified": false
+    },
+    {
+      "original_path": "src/schemas/pain.013.json",
+      "path": "engines/monitoring/src/schemas/pain.013.json",
+      "original_sha256": "fd268c307f82c17b5b4c5eb4cbaac78e58ee10ad5e2b8f9746438991125f040d",
+      "sha256": "fd268c307f82c17b5b4c5eb4cbaac78e58ee10ad5e2b8f9746438991125f040d",
+      "modified": false
+    },
+    {
+      "original_path": "src/utils/schema-utils.ts",
+      "path": "engines/monitoring/src/utils/schema-utils.ts",
+      "original_sha256": "d7da63f62f6878103a44534074d1b2e6ee1b1f1ac4e69630173a603b89ffdf03",
+      "sha256": "d7da63f62f6878103a44534074d1b2e6ee1b1f1ac4e69630173a603b89ffdf03",
+      "modified": false
+    },
+    {
+      "original_path": "swagger.yaml",
+      "path": "engines/monitoring/swagger.yaml",
+      "original_sha256": "e2cdb885201c2cf2d12d0aa98579aba9879b2adc0e3bf21e3369ed3abaea4a48",
+      "sha256": "e2cdb885201c2cf2d12d0aa98579aba9879b2adc0e3bf21e3369ed3abaea4a48",
+      "modified": false
+    },
+    {
+      "original_path": "tsconfig.json",
+      "path": "engines/monitoring/tsconfig.json",
+      "original_sha256": "437c4d0b62b831c863fbeb098164abd4fe71d09b4793cd9f01ac0d400377d2c5",
+      "sha256": "437c4d0b62b831c863fbeb098164abd4fe71d09b4793cd9f01ac0d400377d2c5",
+      "modified": false
+    }
+  ]
+}

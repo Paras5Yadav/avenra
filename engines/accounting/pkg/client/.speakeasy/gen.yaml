@@ -1,0 +1,45 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+configVersion: 2.0.0
+generation:
+  devContainers:
+    enabled: true
+    schemaPath: openapi/v2.yaml
+  sdkClassName: Avenra
+  maintainOpenAPIOrder: true
+  usageSnippets:
+    optionalPropertyRendering: withExample
+    sdkInitStyle: constructor
+  useClassNamesForArrayFields: true
+  fixes:
+    nameResolutionDec2023: true
+    nameResolutionFeb2025: false
+    parameterOrderingFeb2024: true
+    requestResponseComponentNamesFeb2024: true
+    securityFeb2025: false
+    sharedErrorComponentsApr2025: false
+  auth:
+    oAuth2ClientCredentialsEnabled: true
+    oAuth2PasswordEnabled: false
+go:
+  version: 0.10.2
+  additionalDependencies: {}
+  allowUnknownFieldsInWeakUnions: false
+  baseErrorName: AvenraError
+  clientServerStatusCodesAsErrors: true
+  defaultErrorName: SDKError
+  envVarPrefix: FORMANCE
+  flattenGlobalSecurity: true
+  imports:
+    option: openapi
+    paths:
+      callbacks: models/callbacks
+      errors: models/sdkerrors
+      operations: models/operations
+      shared: models/components
+      webhooks: models/webhooks
+  inputModelSuffix: input
+  maxMethodParams: 0
+  methodArguments: require-security-and-request
+  outputModelSuffix: output
+  packageName: avenra.local/accounting/pkg/client
+  responseFormat: envelope-http

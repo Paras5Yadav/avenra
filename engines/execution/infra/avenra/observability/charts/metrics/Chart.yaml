@@ -1,0 +1,10 @@
+# Modified for Avenra. Original attribution and adaptation record: LICENSES/.
+apiVersion: v2
+name: avenra-metrics
+description: Opt-in private Avenra OTLP metrics canary (Collector and Prometheus)
+type: application
+version: 0.2.0
+dependencies:
+  - name: common
+    version: 0.1.0
+    repository: "file://../common"
