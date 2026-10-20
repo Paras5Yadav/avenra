@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 import secrets
 import sqlite3
+import sys
 import time
 from urllib.parse import parse_qs, urlencode, urlsplit
 
@@ -26,6 +27,7 @@ from .lab_identity import private_read, private_write
 from .production import ROLE_CAPABILITIES
 from .errors import DomainError, require
 from .util import canonical
+from .issuer_runtime import configuration_directory, configuration_location, require_startup, service_lease
 
 
 def pin_hash(password, salt):
@@ -36,6 +38,15 @@ def provision(directory, port, app_origin, tenant='tenant_avenra'):
     require(type(port) is int and 1 <= port <= 65535 and isinstance(app_origin, str), 'ISSUER_CONFIGURATION', 'Use a valid private issuer port and API origin.')
     origin = urlsplit(app_origin)
     require(origin.scheme == 'https' and origin.hostname == '127.0.0.1' and not (origin.path or origin.query or origin.fragment or origin.username or origin.password), 'ISSUER_CONFIGURATION', 'Register an exact loopback HTTPS API origin.')
+    directory = Path(directory).absolute()
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    require_startup(directory)
+    from .release_runtime import installation_lock
+    with installation_lock(directory), service_lease(directory):
+        return _provision(directory, port, app_origin, tenant)
+
+
+def _provision(directory, port, app_origin, tenant):
     identity = issue(directory, 'synthetic-issuer')
     folder = Path(identity['directory'])
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -57,9 +68,12 @@ def provision(directory, port, app_origin, tenant='tenant_avenra'):
 
 class Issuer:
     def __init__(self, path):
-        self.path = Path(path);self.directory = self.path.parent
+        self.path = Path(path).absolute();self.directory = self.path.parent
+        require_startup(configuration_location(self.path))
+        configuration_directory(self.path)
         self.config = json.loads(private_read(self.path))
         require(self.config.get('format') == 'avenra-synthetic-issuer/1' and self.config.get('classification') == 'synthetic_counterparty', 'ISSUER_CONFIGURATION', 'Only the declared synthetic issuer profile can start.', 503)
+        require(self.config.get('identity_reference') == 'secret://' + self.directory.name, 'ISSUER_CONFIGURATION', 'Issuer credentials belong to another deployment identity.', 503)
         origin = urlsplit(self.config['issuer'])
         require(origin.scheme == 'https' and origin.hostname == '127.0.0.1' and origin.path == '', 'ISSUER_CONFIGURATION', 'Synthetic issuer remains on loopback HTTPS.', 503)
         self.key = serialization.load_pem_private_key(private_read(self.directory / 'signing-key.pem'), password=None)
@@ -187,12 +201,20 @@ class Issuer:
 def main():
     parser = argparse.ArgumentParser(description='Avenra private synthetic OIDC counterparty')
     parser.add_argument('--config', required=True);args = parser.parse_args()
-    app = Issuer(args.config);directory = app.directory.parent.parent
-    identity = paths(directory, app.config['identity_reference'])
-    context = server_context(directory, app.config['identity_reference'])
-    import uvicorn
-    uvicorn.run(app, host='127.0.0.1', port=urlsplit(app.config['issuer']).port, http='h11', ws='none', lifespan='off', proxy_headers=False, access_log=False,
-                server_header=False, limit_concurrency=32, timeout_keep_alive=3, ssl_certfile=str(identity['cert']), ssl_keyfile=str(identity['key']), ssl_context_factory=lambda *_: context)
+    try:
+        directory = configuration_location(args.config)
+        require_startup(directory)
+        configuration_directory(args.config)
+        with service_lease(directory):
+            app = Issuer(args.config)
+            identity = paths(directory, app.config['identity_reference'])
+            context = server_context(directory, app.config['identity_reference'])
+            import uvicorn
+            uvicorn.run(app, host='127.0.0.1', port=urlsplit(app.config['issuer']).port, http='h11', ws='none', lifespan='off', proxy_headers=False, access_log=False,
+                        server_header=False, limit_concurrency=32, timeout_keep_alive=3, ssl_certfile=str(identity['cert']), ssl_keyfile=str(identity['key']), ssl_context_factory=lambda *_: context)
+    except DomainError as error:
+        print(json.dumps({'error': error.code, 'message': error.message}), file=sys.stderr, flush=True)
+        raise SystemExit(2)
 
 
 if __name__ == '__main__': main()

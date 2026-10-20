@@ -34,6 +34,12 @@ rehearsals also use disk admission with a 16 GiB floor and additional planned
 write headroom; this is not a production filesystem quota or an automated
 retention policy. See `COORDINATED_RECOVERY.md` and `QUALIFICATION_STORAGE.md`.
 
+Owned synthetic issuer provisioning and serving share a cold-capture lifetime
+fence. Copied source issuer credentials refuse ordinary startup, and signed
+release admission requires the supporting runtime declaration. SSO address
+replacement and actual recovered sign-in remain open; the process fence alone
+does not complete that topology recovery.
+
 Every completion claim must identify the exact build, deployment, supported
 profile, executable case pack and direct observed evidence. Missing, unsupported,
 blocked and unverified requirements stay open. The goal remains active until the

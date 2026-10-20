@@ -41,6 +41,35 @@ checkpoint. Independent per-file SQLite backups alone do not prove topology
 quiescence. Role databases are backed up with committed WAL and explicit close;
 runtime leases, process registrations and logs are not restored as source owners.
 
+Stop the owned synthetic identity issuer too. Its provisioner and launcher hold
+an installation-wide lease through provisioning and the whole listener lifetime,
+including shutdown. Capture holds that lease through the checkpoint and refuses
+a serving issuer before creating a destination. Provisioning also takes the
+installation configuration lock, so its new identities cannot race capture or
+release admission. The current owned profile has one serving issuer per deployment.
+The root runtime lease is excluded from recovery payloads.
+Nested deployment-secret and recovery copy parents are created one component at
+a time with owner-only permissions, independent of the process umask. Existing
+linked or non-private parents are refused rather than silently changed.
+
+Copied issuer credentials refuse ordinary startup while staging, and continue
+to refuse it after bank/native activation with `RECOVERY_IDENTITY_REQUIRED`.
+SSO address replacement and recovered sign-in still require coordinated identity
+bindings. Signed candidates must declare `issuer_runtime` support whenever owned
+issuer configurations are present. A genuine routing-compatible predecessor
+without that fence is refused without changing control rows or release selection.
+These fences cover cooperating current tools; they do not qualify arbitrary
+older or nonparticipating identity-provider processes.
+
+The cold-recovery pack requires a genuine preserved pre-fence release reference
+in private `.local/release-baselines/before-issuer-fence.json`. Its fields are
+`artifact_directory`, `trust_file` and `runtime_directory`: the independently
+signed retained artifact, its external public trust and its verified offline
+runtime. That predecessor must support the retained route/participant versions
+while lacking `issuer_runtime`. Preserve the actual historical bytes and their
+provenance; a current build relabelled as an older release cannot provide this
+evidence. Generated artifacts, trust inputs and references stay outside Git.
+
 Independent PSP/network inbox processes also hold the lifetime fence. Capture
 retains their private identities, sender registries, versioned credentials and
 durable receipts under `independent-participants`. Stop every captured service;
@@ -343,6 +372,11 @@ binding formats but lacks the retained XML contract declarations. That release
 is refused without changing any control row, sequence or release pointer.
 Both legacy and XML modes are mandatory local gates; their receipts record the
 mode and cannot substitute for each other.
+
+An explicitly labelled, signed current negative candidate separately retains
+every route and issuer-fence declaration while omitting the retained XML
+contracts. Its real release-selection refusal isolates the contract gate from
+the new issuer guard; it is never presented as a historical predecessor.
 
 ## Independent PSP and network recovery
 

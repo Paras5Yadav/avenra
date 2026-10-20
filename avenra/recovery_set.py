@@ -21,7 +21,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey,
 from . import release_bundle as bundle
 from .errors import DomainError, require
 from .lab_identity import private_read, private_write
-from .private_config import read_document, write_document
+from .private_config import read_document, write_document, make_private_parent
 from .recovery_state import INACTIVE, require_active
 from .util import canonical, digest
 
@@ -47,7 +47,7 @@ def regular(path, maximum=MAX_FILE):
 
 def copy_private(source, destination):
     source, destination = Path(source), Path(destination)
-    destination.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    make_private_parent(destination)
     before = source.lstat()
     require(stat.S_ISREG(before.st_mode) and before.st_size <= MAX_FILE, 'RECOVERY_FILE', 'Recovery inputs must be bounded regular files.', 409)
     fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW)
@@ -63,7 +63,7 @@ def copy_private(source, destination):
 def copy_tree(source, destination):
     source, destination = Path(source), Path(destination)
     require(source.is_dir() and not source.is_symlink(), 'RECOVERY_PATH', 'Recovery trees cannot be links.', 409)
-    destination.mkdir(mode=0o700, parents=True)
+    make_private_parent(destination);destination.mkdir(mode=0o700)
     for item in sorted(source.rglob('*')):
         require(not item.is_symlink(), 'RECOVERY_PATH', 'Recovery trees cannot contain links.', 409)
         target = destination / item.relative_to(source)
@@ -133,7 +133,7 @@ def pg_command(command, dsn, directory, log_name, arguments):
 def capture(data, destination, artifact_directory, release_trust, signing_key, accounting_dsn_file, native_directory, pg_bin, request_id, actor):
     import psycopg
     from psycopg import sql
-    from .release_runtime import installation_lock, migration_connection, schema_versions, validate_request, LOCK
+    from .release_runtime import installation_lock, migration_connection, schema_versions, validate_request, require_deployment_capabilities, LOCK
     from .deployment_backup import snapshot as snapshot_deployment
     from .aa.recovery import snapshot as snapshot_roles
     from .lab_identity import snapshot_private_banks, quiescent_banks
@@ -148,6 +148,7 @@ def capture(data, destination, artifact_directory, release_trust, signing_key, a
     # The directory is deliberately absent on admission refusal.
     with installation_lock(data):
         require(not read_document(data / 'release-pending.json'), 'RELEASE_RECOVERY_REQUIRED', 'Recover a pending release before a coordinated capture.', 409)
+        require_deployment_capabilities(data, artifact)
         db, _ = migration_connection(data)
         with db, ExitStack() as leases:
             require(db.execute('SELECT pg_try_advisory_lock(%s)', (LOCK,)).fetchone()[0], 'RELEASE_NODES_ACTIVE', 'Drain and stop managed API/worker nodes before capture.', 409)
@@ -166,6 +167,8 @@ def capture(data, destination, artifact_directory, release_trust, signing_key, a
                 leases.enter_context(quiescent_aa(data))
                 from .participant_peer_checkpoint import quiescent as quiescent_peers
                 leases.enter_context(quiescent_peers(data))
+                from .issuer_runtime import service_lease as quiescent_issuer
+                leases.enter_context(quiescent_issuer(data))
                 destination.mkdir(mode=0o700)
                 try:
                     databases = {};settings = {}

@@ -7,7 +7,7 @@ import sqlite3
 import stat
 
 from .errors import require
-from .private_config import read_document, write_document
+from .private_config import read_document, write_document, make_private_directories
 
 FILES = {'deployment.json', 'identity.json', 'gateway.json', 'control.dsn', 'migration.dsn', 'release-selection.json', 'release-pending.json', 'engine-endpoints.json'}
 
@@ -38,7 +38,7 @@ def snapshot(directory, destination):
     entries = []
     for source in sorted(sources):
         regular(source);relative = source.relative_to(directory)
-        target = destination / relative;target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        target = destination / relative;make_private_directories(destination, relative.parent)
         if source.suffix == '.db':
             # SQLite's backup API captures a consistent issuer state, including
             # committed WAL content, rather than copying a live database file.
@@ -72,6 +72,6 @@ def restore(snapshot_directory, destination):
     from .recovery_state import INACTIVE
     write_document(destination / INACTIVE, {'format':'avenra-recovery-inactive/1','state':'private_files_only','manifest_sha256':sha256(source / 'manifest.json')})
     for entry in manifest['files']:
-        relative = Path(entry['path']);target = destination / relative;target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        relative = Path(entry['path']);target = destination / relative;make_private_directories(destination, relative.parent)
         shutil.copyfile(source / relative, target, follow_symlinks=False);target.chmod(0o600)
     return {'valid': True, 'files': len(seen), 'activation': 'inactive_staging_only'}

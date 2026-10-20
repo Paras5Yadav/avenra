@@ -173,6 +173,9 @@ def require_deployment_capabilities(directory, artifact, configuration=None):
     if configuration.get('recovery',{}).get('peer_routes_sha256'):
         from .peer_recovery import load
         required['peer_routes'] = load(directory)['format']
+    from .issuer_runtime import configurations as issuer_configurations, FORMAT as issuer_runtime_format
+    if issuer_configurations(directory):
+        required['issuer_runtime'] = issuer_runtime_format
     if not required: return {}
     from .participant_capabilities import declared
     value = declared(artifact)

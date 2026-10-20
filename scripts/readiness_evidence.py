@@ -22,6 +22,10 @@ COMMON_OBSERVATIONS = {
     'Restored banks confirm the same original credit once after endpoint relocation and credential rotation',
     'Refused incompatible selection preserves every restored control row, sequence and the original release pointer',
     'Qualification retained one fixed build and one fixed case pack',
+    'Cold capture refuses a live synthetic issuer after the other participants have drained',
+    'A staged synthetic issuer cannot start with copied source credentials',
+    'A recovered synthetic issuer cannot reuse its original listener after activation',
+    'An otherwise routing-compatible signed predecessor without the issuer lifetime fence is refused',
 }
 PEER_OBSERVATIONS = {
     'All five independent restored listeners are owned by the verified offline runtime',
@@ -30,6 +34,10 @@ PEER_OBSERVATIONS = {
     'A second cold generation retains original signed inbox receipts after both preceding installations disappear',
     'New financial work completes after a second cold restore with each original native leg posted once',
     'Neither restoration contacted an original source participant address',
+}
+XML_OBSERVATIONS = {
+    'A signed negative candidate missing retained XML contracts is refused despite supporting every runtime route and issuer fence',
+    'Contract capability refusal preserves every restored control row, sequence and release pointer',
 }
 
 
@@ -57,7 +65,7 @@ def coordinated_evidence(root, name, value, fingerprint, case_pack_sha256):
         isinstance(item, dict) and isinstance(item.get('name'), str) and bool(item['name'])
         and item.get('passed') is True for item in checks)
     names = [item['name'] for item in checks] if valid_checks else []
-    required = COMMON_OBSERVATIONS | (PEER_OBSERVATIONS if expected[2] == 'independent' else set())
+    required = COMMON_OBSERVATIONS | (XML_OBSERVATIONS if expected[1] == 'xml' else set()) | (PEER_OBSERVATIONS if expected[2] == 'independent' else set())
     timings = all(_time(value.get(key)) for key in ['created_at', 'completed_at', 'observed_end_to_end_seconds'])
     result = {
         'application_matches': value.get('application_fingerprint') == fingerprint,

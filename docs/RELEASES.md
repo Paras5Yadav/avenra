@@ -99,8 +99,12 @@ Selection, interrupted-transition recovery and managed launch refuse missing or
 unsupported capabilities. This prevents selecting an older schema-compatible
 build that would ignore the configured physical routing or fail on the recovered
 deployment policy. The refusal precedes release-catalog mutation. Recovered bank
-service activation applies the same check. Normal deployments without those
-binding policies retain the previously qualified compatible rollback behavior.
+service activation applies the same check. Owned synthetic issuer configurations
+also require `issuer_runtime` support for their process fence and copied-identity
+startup guard. Provisioning and release admission share the installation lock;
+cold capture rechecks the selected artifact inside that lock. Normal deployments
+without these bindings or issuer configurations retain the previously qualified
+compatible rollback behavior.
 
 Every retained participant connection revision also contributes its exact
 adapter/contract-hash requirement, even after it becomes inactive. New XML

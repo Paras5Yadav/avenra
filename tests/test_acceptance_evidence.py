@@ -8,7 +8,7 @@ from unittest.mock import patch
 from avenra.private_config import write_document
 from scripts import verify_acceptance as acceptance
 from scripts.qualification_storage import CASE_PACK_HELPERS, harness_case_pack_hash
-from scripts.readiness_evidence import COMMON_OBSERVATIONS, PEER_OBSERVATIONS
+from scripts.readiness_evidence import COMMON_OBSERVATIONS, PEER_OBSERVATIONS, XML_OBSERVATIONS
 
 
 class AcceptanceEvidenceTests(unittest.TestCase):
@@ -42,7 +42,7 @@ class AcceptanceEvidenceTests(unittest.TestCase):
             'set_id': 'c' * 64, 'artifact_id': 'd' * 64, 'second_recovery_set_id': 'e' * 64,
             'production_ready': False, 'official_conformance': False,
             'directory': str(self.folder),
-            'checks': [{'name': name, 'passed': True} for name in sorted(COMMON_OBSERVATIONS | PEER_OBSERVATIONS)],
+            'checks': [{'name': name, 'passed': True} for name in sorted(COMMON_OBSERVATIONS | PEER_OBSERVATIONS | XML_OBSERVATIONS)],
             **(changes or {}),
         }
         full = self.folder / 'verification.json'

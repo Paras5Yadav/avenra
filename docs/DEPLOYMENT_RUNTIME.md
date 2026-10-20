@@ -54,6 +54,10 @@ rules for a deployment; no configuration flag establishes qualification.
   it does not silently activate old endpoints or credentials. Normal full
   backups also include runtime policy/session/grant/worker tables. Completed
   backup archives can use the existing authenticated archive encryption tool.
+  Coordinated cold capture now fences the owned issuer's actual process lifetime
+  and provisioning. Copied issuers remain unavailable pending coordinated identity
+  bindings, including after activation of the recovered bank/native topology.
+  Release admission refuses signed code without the required issuer fence.
 - Scoped operational policies, durable incidents, attributed acknowledgements,
   authenticated history cursors and monitor-owner failover execute inside these
   Runtime controls. See [OPERATIONS_MONITORING.md](OPERATIONS_MONITORING.md).

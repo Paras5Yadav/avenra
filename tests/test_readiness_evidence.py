@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 from scripts.readiness_evidence import (
-    COORDINATED_PROFILES, COMMON_OBSERVATIONS, PEER_OBSERVATIONS, coordinated_evidence,
+    COORDINATED_PROFILES, COMMON_OBSERVATIONS, PEER_OBSERVATIONS, XML_OBSERVATIONS, coordinated_evidence,
 )
 
 
@@ -24,7 +24,7 @@ class RecoveryEvidenceTests(unittest.TestCase):
     def document(self, name=None):
         name = name or self.name
         profile, protocol, participants = COORDINATED_PROFILES[name]
-        observations = COMMON_OBSERVATIONS | (PEER_OBSERVATIONS if participants == 'independent' else set())
+        observations = COMMON_OBSERVATIONS | (XML_OBSERVATIONS if protocol == 'xml' else set()) | (PEER_OBSERVATIONS if participants == 'independent' else set())
         return {
             'passed': True, 'application_fingerprint': 'a' * 64, 'case_pack_sha256': 'b' * 64,
             'qualification_profile': profile, 'protocol_mode': protocol, 'participant_mode': participants,

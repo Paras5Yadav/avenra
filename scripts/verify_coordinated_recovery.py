@@ -33,7 +33,7 @@ from avenra.gateways import AccountingGateway
 from avenra.lab_identity import LabIdentity, private_read, private_write, rotate_client, revoke_client
 from avenra.lab_bank_client import LabBankClient
 from avenra.local_database import admin_dsn
-from avenra.private_config import read_document, write_document
+from avenra.private_config import read_document, write_document, make_private_parent, make_private_directories
 from avenra.recovery_state import INACTIVE
 from avenra.synthetic_lab import fixture, prepare, authorize, advance, provision as provision_banks, connect as connect_banks, start as start_bank
 from avenra.util import application_fingerprint, canonical, digest, uid
@@ -41,6 +41,9 @@ from avenra import participant_peer_lab as peer_lab, recovery_peers as peers, pe
 from avenra.participant_peer_identity import PeerIdentity, rotate as rotate_peer, revoke as revoke_peer
 from avenra.participant_peer_client import PeerClient
 from avenra.participant_peer_contract import ADAPTER as PEER
+from avenra.synthetic_identity import Issuer, provision as provision_issuer
+from avenra.services import Transport
+from avenra.issuer_runtime import FORMAT as ISSUER_RUNTIME, LEASE as ISSUER_LEASE
 from scripts.readiness_evidence import COORDINATED_PROFILES
 from scripts.qualification_storage import QualificationStorage, StorageRefused, record_refusal, harness_case_pack_hash as guarded_case_pack_hash
 
@@ -195,6 +198,15 @@ def run(xml=False, independent=False, storage=None):
         check('Dedicated native authority completes a participant payment and commits an actually unacknowledged original effect',normal['evidence']['valid'] and uncertain['state']=='unknown' and len(original_effect)==1)
         expected_accounts=source_gateway.accounts(ledger);expected_journal=source_gateway.transactions(ledger,all_pages=True)
         credential=json.loads(private_read(data/'credentials.json'))
+        issuer=provision_issuer(data,free_port(),'https://127.0.0.1:'+str(free_port()),tenant)
+        issuer_relative=Path(issuer['config']).relative_to(data)
+        issuer_code='import sys;sys.path.insert(0,sys.argv.pop(1));from avenra.synthetic_identity import main;main()'
+        issuer_process=start([str(runtime/'bin/python'),'-I','-B','-c',issuer_code,installed['directory'],'--config',issuer['config']],'source-issuer')
+        def issuer_ready():
+            try:return Transport(issuer['issuer'],ca_file=issuer['ca_file']).call('GET','/jwks',timeout=2)
+            except EngineError:return None
+        issuer_keys=wait(issuer_ready)
+        check('The owned synthetic issuer is actually serving its original HTTPS JWKS',issuer_process.poll() is None and len(issuer_keys['keys'])==1 and issuer_keys['keys'][0]['kid']=='synthetic-issuer-k1')
         app.close();app=None
         releases.transition(data,installed['directory'],release_trust,runtime,None,str(uuid.uuid4()),'recovery-verifier')
         capture_arguments=[data,folder/'checkpoint',installed['directory'],release_trust,recovery_key,source_dsn_file,native_source,pg,str(uuid.uuid4()),'recovery-verifier']
@@ -210,6 +222,10 @@ def run(xml=False, independent=False, storage=None):
             denied('Live independent inbox services prevent a cold capture after banks have drained',lambda:recovery.capture(*capture_arguments),'RECOVERY_BANK_ACTIVE')
             check('A live inbox refusal creates no partial recovery destination',not (folder/'checkpoint').exists())
             for child in peer_processes:stop(child)
+        denied('Cold capture refuses a live synthetic issuer after the other participants have drained',lambda:recovery.capture(*capture_arguments),'RECOVERY_IDENTITY_ACTIVE')
+        check('A live issuer refusal creates no partial recovery destination',not (folder/'checkpoint').exists())
+        stop(issuer_process)
+        source_issuer_files={path.name:bundle.sha(path) for path in (data/issuer_relative.parent).iterdir() if path.is_file()}
         def observe(listener):
             listener.settimeout(.2)
             while not observer_stop.is_set():
@@ -223,6 +239,10 @@ def run(xml=False, independent=False, storage=None):
             observer=threading.Thread(target=observe,args=(listener,),daemon=True);observer.start();observers.append(observer)
         storage.checkpoint('cold_checkpoint_capture')
         captured=recovery.capture(*capture_arguments);checkpoint=folder/'checkpoint';verified=recovery.verify(checkpoint,recovery_trust,release_trust)
+        private_checkpoint=read_document(checkpoint/'private-deployment/manifest.json')
+        check('The cold set retains the stopped issuer journal and identities without copying its runtime lease',
+              any(item['path']==(issuer_relative.parent/'issuer.db').as_posix() for item in private_checkpoint['files']) and
+              not any(item['path'].endswith(ISSUER_LEASE) for item in verified['manifest']['files']))
         if independent:
             from avenra.participant_peer_checkpoint import validate as validate_peers
             peer_snapshot=validate_peers(checkpoint/'independent-participants')
@@ -268,6 +288,7 @@ def run(xml=False, independent=False, storage=None):
         storage.checkpoint('cold_runtime_stage_and_database_import')
         target=folder/'recovered';staged=recovery.stage(decrypted,target,recovery_trust,release_trust)
         check('Staging rebuilds a new offline runtime and retains the inactive guard',staged['activation']=='inactive' and (target/'runtime/release-runtime.json').exists() and (target/'data'/INACTIVE).exists())
+        denied('A staged synthetic issuer cannot start with copied source credentials',lambda:Issuer(target/'data'/issuer_relative),'RECOVERY_INACTIVE')
         denied('App construction refuses restored source credentials before opening a pool',lambda:App(target/'data',control_dsn='deliberately-invalid-no-network'),'RECOVERY_INACTIVE')
         denied('Managed startup also refuses inactive source connections',lambda:releases.command(target/'data',release_trust,'api',free_port()),'RECOVERY_INACTIVE')
         from avenra.lab_bank import SyntheticBank
@@ -405,6 +426,7 @@ def run(xml=False, independent=False, storage=None):
         (target/'data/engine-endpoints.json').write_bytes(saved);(target/'data/engine-endpoints.json').chmod(0o600)
         activated=restore.activate(target,recovery_trust,release_trust,origin,fault_origin,activation_id,'recovery-verifier')
         check('Activation rebinds the same selected release without original installation paths or financial rewrites',activated['source_release_pointer_preserved'] and not activated['financial_outcomes_rewritten'] and not (target/'data'/INACTIVE).exists())
+        denied('A recovered synthetic issuer cannot reuse its original listener after activation',lambda:Issuer(target/'data'/issuer_relative),'RECOVERY_IDENTITY_REQUIRED')
         if independent:
             check('The activated receiver returns its byte-identical historical message receipt under rotated credentials',PeerClient(PeerIdentity(target/'data',peer_reference)).deliver(original_xml,0)==original_receipt)
         check('An identical activation retry is attributed and idempotent',restore.activate(target,recovery_trust,release_trust,origin,fault_origin,activation_id,'recovery-verifier')['replayed'])
@@ -528,9 +550,54 @@ def run(xml=False, independent=False, storage=None):
             with psycopg.connect(private_read(target/'data/migration.dsn').decode().strip()) as db:
                 needed=ensure(db,bundle.verify_installed(target/'artifacts'/built['artifact_id'],release_trust))
             check('The selected signed build explicitly supports every retained XML profile hash',len(needed)==(3 if independent else 2) and all(item.startswith((WIRE_LOCAL+'/',WIRE_TLS+'/',PEER+'/')) for item in needed))
-        expected_bindings={'engine_bindings':'avenra-loopback-engines/1','bank_routes':'avenra-bank-recovery-routes/1'}
+        expected_bindings={'engine_bindings':'avenra-loopback-engines/1','bank_routes':'avenra-bank-recovery-routes/1','issuer_runtime':ISSUER_RUNTIME}
         if independent:expected_bindings['peer_routes']=peer_routes.FORMAT
         check('The selected signed recovery build explicitly declares every configured binding format',releases.require_deployment_capabilities(target/'data',bundle.verify_installed(target/'artifacts'/built['artifact_id'],release_trust))==expected_bindings)
+        issuer_baseline=read_document(ROOT/'.local/release-baselines/before-issuer-fence.json')
+        if not issuer_baseline:raise RuntimeError('Preserve the actual signed routing-compatible predecessor in before-issuer-fence.json before this qualification.')
+        old_issuer_build=bundle.verify_installed(issuer_baseline['artifact_directory'],issuer_baseline['trust_file'])
+        from avenra.participant_capabilities import declared
+        old_issuer_capabilities=declared(old_issuer_build)
+        check('The preserved issuer predecessor supports every required route while lacking the new lifetime fence',
+              old_issuer_build['manifest']['application_fingerprint']!=report['application_fingerprint'] and not old_issuer_capabilities.get('issuer_runtime') and
+              all(version in old_issuer_capabilities.get(key,[]) for key,version in expected_bindings.items() if key!='issuer_runtime'))
+        denied('An otherwise routing-compatible signed predecessor without the issuer lifetime fence is refused',
+               lambda:releases.transition(target/'data',issuer_baseline['artifact_directory'],issuer_baseline['trust_file'],issuer_baseline['runtime_directory'],built['artifact_id'],str(uuid.uuid4()),'recovery-verifier'),'RELEASE_CAPABILITIES')
+        with psycopg.connect(private_read(target/'data/migration.dsn').decode().strip()) as db:
+            db.execute("SET LOCAL timezone='UTC'");issuer_selection_after=recovery.database_inventory(db)
+        check('Issuer capability refusal preserves every restored control row, sequence and release pointer',
+              issuer_selection_after==selection_before and releases.status(target/'data')['selection']['artifact_id']==built['artifact_id'] and not (target/'data/release-pending.json').exists())
+        check('Issuer capture and rejected startup preserve every original issuer state and identity byte',
+              source_issuer_files=={path.name:bundle.sha(path) for path in (source_bank_root/issuer_relative.parent).iterdir() if path.is_file()})
+        if xml:
+            # This is an explicitly constructed negative candidate, not a
+            # historical predecessor. It keeps the new issuer fence so that
+            # omission of retained XML contracts is tested independently.
+            storage.checkpoint('signed_contract_negative_candidate')
+            negative_source=folder/'contract-negative-source';negative_source.mkdir(mode=0o700)
+            for relative,original in bundle.source_inventory(ROOT).items():
+                destination=negative_source/relative;make_private_parent(destination);shutil.copyfile(original,destination)
+            negative_capabilities=declared(bundle.verify_installed(target/'artifacts'/built['artifact_id'],release_trust))
+            negative_capabilities['participant_profiles']=[]
+            (negative_source/'avenra/deployment_capabilities.py').write_text('CAPABILITIES = '+repr(negative_capabilities)+'\n')
+            make_private_directories(negative_source,'.local/bin')
+            for role in ['accounting','fault']:
+                shutil.copyfile(ROOT/'.local/bin'/role,negative_source/'.local/bin'/role)
+            negative_archive=folder/'contract-negative-candidate.tar.gz'
+            bundle.build(negative_source,ROOT/'.local/release-inputs/wheels',release_key,negative_archive,'contract-negative-candidate')
+            negative=bundle.install(negative_archive,release_trust,folder/'contract-negative-artifacts')
+            negative_runtime=folder/'contract-negative-runtime';bundle.prepare_runtime(negative['directory'],release_trust,negative_runtime)
+            negative=bundle.verify_installed(negative['directory'],release_trust)
+            check('The labelled signed contract-negative fixture supports every runtime route and issuer fence',
+                  negative['manifest']['label']=='contract-negative-candidate' and negative['manifest']['application_fingerprint']!=report['application_fingerprint'] and
+                  releases.require_deployment_capabilities(target/'data',negative)==expected_bindings)
+            denied('A signed negative candidate missing retained XML contracts is refused despite supporting every runtime route and issuer fence',
+                   lambda:releases.transition(target/'data',negative['directory'],release_trust,negative_runtime,built['artifact_id'],str(uuid.uuid4()),'recovery-verifier'),'RELEASE_CAPABILITIES')
+            with psycopg.connect(private_read(target/'data/migration.dsn').decode().strip()) as db:
+                db.execute("SET LOCAL timezone='UTC'");contract_selection_after=recovery.database_inventory(db)
+            check('Contract capability refusal preserves every restored control row, sequence and release pointer',
+                  contract_selection_after==selection_before and releases.status(target/'data')['selection']['artifact_id']==built['artifact_id'] and not (target/'data/release-pending.json').exists())
+            report['contract_negative_artifact_id']=negative['artifact_id']
         if independent:
             peers.stop(target);banks.stop(target);native.stop(target);native_started=False
             storage.checkpoint('second_cold_generation')
