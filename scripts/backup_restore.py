@@ -22,6 +22,7 @@ from avenra.util import canonical, digest
 from avenra.lab_identity import snapshot_private_banks, restore_private_banks
 from avenra.deployment_backup import snapshot as snapshot_deployment, restore as restore_deployment
 from avenra.aa.recovery import snapshot as snapshot_financial_data, restore as restore_financial_data
+from avenra.participant_peer_checkpoint import quiescent as quiescent_peers, snapshot as snapshot_peers, restore as restore_peers
 from avenra.private_config import write_document
 
 
@@ -109,6 +110,9 @@ def main():
         shutil.copyfile(ROOT / '.local/data/evidence.key', directory / 'evidence.key')
         (directory / 'evidence.key').chmod(0o600)
         synthetic_manifest = snapshot_private_banks(ROOT/'.local/data',directory/'synthetic-components')
+        with quiescent_peers(ROOT/'.local/data'):
+            peers_manifest = snapshot_peers(ROOT/'.local/data',directory/'independent-participants')
+        report['independent_participants'] = {'workers':len(peers_manifest['workers']),'identities':len(peers_manifest['identities'])}
         report['synthetic_components'] = {'workers':len(synthetic_manifest['workers']),'identities':len(synthetic_manifest['identities'])}
         report['deployment_components'] = snapshot_deployment(ROOT/'.local/data', directory/'deployment-components')
         report['financial_data_components'] = snapshot_financial_data(ROOT/'.local/data', directory/'financial-data-components')
@@ -132,6 +136,8 @@ def main():
             shutil.copyfile(directory / 'evidence.key', restore_data / 'evidence.key');(restore_data / 'evidence.key').chmod(0o600)
             restored = App(restore_data, control_dsn=connections['control'])
             synthetic_restored = restore_private_banks(directory/'synthetic-components',restore_data)
+            peers_restored = restore_peers(directory/'independent-participants',restore_data)
+            check('Independent participant identities and durable inboxes survive isolated restoration',peers_restored['valid'])
             deployment_restored = restore_deployment(directory/'deployment-components', directory/'inactive-deployment-recovery')
             check('Private deployment settings survive restore without activating network endpoints', deployment_restored['valid'] and deployment_restored['activation'] == 'inactive_staging_only', deployment_restored)
             financial_restored = restore_financial_data(directory/'financial-data-components', directory/'inactive-financial-data-recovery')

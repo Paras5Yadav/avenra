@@ -151,6 +151,9 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
                 if 'aa-recovery.json' in previous['bound_file_hashes']:
                     from .recovery_aa import check as check_aa
                     check_aa(directory)
+                if 'peer-recovery.json' in previous['bound_file_hashes']:
+                    from .recovery_peers import check as check_peers
+                    check_peers(directory)
                 artifact=bundle.verify_installed(directory/'artifacts'/stage['artifact_id'],release_trust);runtime_receipt(artifact,directory/'runtime')
                 require_deployment_capabilities(data,artifact,read_document(data/'deployment.json',{}))
                 require(all(bundle.sha(data/name)==hashed_file for name,hashed_file in previous['bound_file_hashes'].items()),'RECOVERY_CONFIGURATION_CHANGED','Retain the guard: published recovery bindings changed after activation preparation.',409)
@@ -204,10 +207,17 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
             from .recovery_banks import check as check_banks
             recovered_banks = check_banks(directory)
         config.update(database={**config.get('database',{}),'mode':'runtime'},release={'artifact_id':stage['artifact_id'],'application_fingerprint':stage['application_fingerprint']})
-        if recovered_banks or recovered_aa:
+        recovered_peers = None
+        if stage.get('private_peers', {}).get('workers'):
+            require((directory/'peer-services.json').exists(), 'RECOVERY_PEER_REQUIRED',
+                    'Start every captured participant through authenticated replacement routes before activation.', 409)
+            from .recovery_peers import check as check_peers
+            recovered_peers = check_peers(directory)
+        if recovered_banks or recovered_aa or recovered_peers:
             config['recovery'] = {'set_id':checked['set_id']}
             if recovered_banks:config['recovery']['bank_routes_sha256']=bundle.sha(data/'bank-recovery.json')
             if recovered_aa:config['recovery']['aa_routes_sha256']=bundle.sha(data/'aa-recovery.json')
+            if recovered_peers:config['recovery']['peer_routes_sha256']=bundle.sha(data/'peer-recovery.json')
         require_deployment_capabilities(data,artifact,config)
         dsn = private_read(data / 'migration.dsn').decode().strip()
         with psycopg.connect(dsn, autocommit=True) as db:
@@ -218,7 +228,8 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
                 require(selected[:2] == (stage['artifact_id'],stage['application_fingerprint']), 'RECOVERY_RELEASE', 'Restored database selects another release.', 409)
                 from .participant_capabilities import ensure
                 ensure(db,artifact)
-                remote = db.execute('SELECT 1 FROM participant_connections WHERE adapter_id NOT IN (%s,%s,%s,%s) LIMIT 1',(LOCAL,TLS_LAB,WIRE_LOCAL,WIRE_TLS)).fetchone()
+                from .participant_peer_contract import ADAPTER as PEER
+                remote = db.execute('SELECT 1 FROM participant_connections WHERE adapter_id NOT IN (%s,%s,%s,%s,%s) LIMIT 1',(LOCAL,TLS_LAB,WIRE_LOCAL,WIRE_TLS,PEER)).fetchone()
                 require(not remote, 'RECOVERY_BINDINGS_REQUIRED', 'Retained network participant connections require coordinated replacement before activation.', 409)
                 for tenant, environment, participant, raw in db.execute('SELECT tenant_id,environment_id,participant_id,config_json FROM participant_connections WHERE adapter_id IN (%s,%s)',(TLS_LAB,WIRE_TLS)):
                     import json
@@ -228,6 +239,15 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
                     require(recovered_banks and (identity.document['tenant_id'],identity.document['environment_id'],identity.document['participant_id']) == (tenant,environment,participant),
                             'RECOVERY_BANK_BINDING', 'A retained connection lacks its captured, scoped bank authority.', 409)
                     LabBankClient(identity,connection['endpoint'],connection['credential_binding']).probe()
+                for tenant, environment, participant, raw in db.execute('SELECT tenant_id,environment_id,participant_id,config_json FROM participant_connections WHERE adapter_id=%s', (PEER,)):
+                    import json
+                    from .participant_peer_identity import PeerIdentity
+                    from .participant_peer_client import PeerClient
+                    connection = json.loads(raw)
+                    identity = PeerIdentity(data, connection['secret_reference'])
+                    require(recovered_peers and (identity.document['tenant_id'],identity.document['environment_id'],identity.document['participant_id']) == (tenant,environment,participant),
+                            'RECOVERY_PEER_BINDING', 'A retained connection lacks its captured scoped participant authority.', 409)
+                    PeerClient(identity, connection['endpoint'], connection['credential_binding']).probe()
                 # Liveness is deployment-specific. Financial identities, policy
                 # history and uncertainty are never rewritten by activation.
                 db.execute('UPDATE runtime_workers SET last_seen=0')
@@ -238,7 +258,7 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
             # A recovered deployment starts with no implicit callback egress.
             write_document(data / 'services.json',{**services,'callback_origins':[]})
             write_document(data / 'release-selection.json',{'artifact_id':stage['artifact_id'],'application_fingerprint':stage['application_fingerprint'],'artifact_directory':artifact['directory'],'runtime_directory':str((directory / 'runtime').resolve()),'request_id':selected[2]})
-            bound_files = ['deployment.json','engine-endpoints.json','services.json','release-selection.json','control.dsn','migration.dsn','accounting.dsn'] + (['bank-recovery.json'] if recovered_banks else []) + (['aa-recovery.json'] if recovered_aa else [])
+            bound_files = ['deployment.json','engine-endpoints.json','services.json','release-selection.json','control.dsn','migration.dsn','accounting.dsn'] + (['bank-recovery.json'] if recovered_banks else []) + (['aa-recovery.json'] if recovered_aa else []) + (['peer-recovery.json'] if recovered_peers else [])
             record = {'format':'avenra-recovery-activation/1',**payload,'payload_hash':hashed,'activated_at':time.time(),'artifact_id':stage['artifact_id'],
                       'bound_file_hashes':{name:bundle.sha(data/name) for name in bound_files},
                       'source_release_pointer_preserved':True,'financial_outcomes_rewritten':False,'scope':'Recovered loopback native services and local/TLS synthetic participants; other external roles/services remain gated.'}

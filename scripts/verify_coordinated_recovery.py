@@ -37,6 +37,10 @@ from avenra.private_config import read_document, write_document
 from avenra.recovery_state import INACTIVE
 from avenra.synthetic_lab import fixture, prepare, authorize, advance, provision as provision_banks, connect as connect_banks, start as start_bank
 from avenra.util import application_fingerprint, canonical, digest, uid
+from avenra import participant_peer_lab as peer_lab, recovery_peers as peers, peer_recovery as peer_routes
+from avenra.participant_peer_identity import PeerIdentity, rotate as rotate_peer, revoke as revoke_peer
+from avenra.participant_peer_client import PeerClient
+from avenra.participant_peer_contract import ADAPTER as PEER
 
 
 def case_pack_hash():return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
@@ -85,7 +89,7 @@ def crash_bank_start(instructions):
     return 9
 
 
-def main(xml=False):
+def main(xml=False, independent=False):
     import psycopg
     from psycopg import sql
     from psycopg.conninfo import conninfo_to_dict,make_conninfo
@@ -93,7 +97,7 @@ def main(xml=False):
     report={'passed':False,'checks':[],'directory':str(folder),'created_at':time.time(),'application_fingerprint':application_fingerprint(),'case_pack_sha256':case_pack_hash(),
             'production_ready':False,'official_conformance':False,'protocol_mode':'xml' if xml else 'legacy','scope':'Dedicated local cold managed-deployment capture; independently trusted recovery/application signatures; full table/sequence import into new roles/databases; rebuilt offline runtime, pinned native binaries and two owned mTLS bank processes at authenticated replacement addresses; operator-crash replay, credential rotation and same-app original-ID recovery with original paths/listeners unavailable. AA/SSO/provider/service rebinding, multi-host failover, broker replay, off-host retention and institutional recovery targets remain open.'}
     children=[];app=None;target=None;native_started=False;pg=Path('/opt/homebrew/opt/postgresql@16/bin')
-    source_sockets=[];source_attempts=[];observer_stop=threading.Event();observers=[]
+    source_sockets=[];source_attempts=[];observer_stop=threading.Event();observers=[];peer_workers=[];peer_processes=[];second_target=None
     def check(name,condition):
         report['checks'].append({'name':name,'passed':bool(condition)});print(json.dumps({'check':name,'passed':bool(condition)}),flush=True)
         if not condition:raise AssertionError(name)
@@ -158,6 +162,10 @@ def main(xml=False):
                 app.upi.connections.activate(tenant,env,c['id'],{'check_id':checked_connection['id']})
             connect_banks(app,value,bank_workers,adapter_id=WIRE_TLS)
         else:connect_banks(app,value,bank_workers)
+        if independent:
+            peer_workers=peer_lab.provision_all(app,tenant,env)
+            peer_processes=[peer_lab.start(app,worker) for worker in peer_workers];children.extend(peer_processes)
+            peer_lab.connect(app,tenant,env,peer_workers)
         normal=prepare(app,value,375);authorize(app,value,normal);normal=advance(app,value,normal)
         bank_uncertain=prepare(app,value,825,financial_fault='lost_credit_response');authorize(app,value,bank_uncertain)
         bank_uncertain=advance(app,value,bank_uncertain,state='unknown')
@@ -169,7 +177,7 @@ def main(xml=False):
             original_connections=[dict(row) for row in db.execute('SELECT * FROM participant_connections ORDER BY id')]
             original_envelopes={row['id']:{k:row[k] for k in ['id','document_json','document_hash','signature','key_id']} for row in db.execute('SELECT * FROM upi_envelopes WHERE payment_id=?',(bank_uncertain['id'],))}
         if xml:
-            check('XML source intents retain both exact versioned adapter profiles', {b['adapter_id'] for b in json.loads(original_pinned[0]).values()}=={WIRE_LOCAL,WIRE_TLS})
+            check('XML source intents retain every exact versioned adapter profile', {b['adapter_id'] for b in json.loads(original_pinned[0]).values()}==({PEER,WIRE_TLS} if independent else {WIRE_LOCAL,WIRE_TLS}))
             check('Original XML messages were validated before the real unacknowledged bank credit',len([e for e in bank_uncertain['events'] if e['event']=='wire.validated'])==4)
         check('Separate mTLS banks retain an uncertain original credit after real post-commit response loss',bank_uncertain['state']=='unknown' and bank_credit['state']=='unknown' and len(original_bank_effect)==1)
         legacy=app.create_environment(tenant,'Cold recovery uncertainty')['id'];app.provision(tenant,legacy)
@@ -191,6 +199,10 @@ def main(xml=False):
         stop(source_engine);stop(source_fault)
         denied('Cold capture refuses still-running bank services even after native accounting has stopped',lambda:recovery.capture(*capture_arguments),'RECOVERY_BANK_ACTIVE')
         for child in bank_processes:stop(child)
+        if independent:
+            denied('Live independent inbox services prevent a cold capture after banks have drained',lambda:recovery.capture(*capture_arguments),'RECOVERY_BANK_ACTIVE')
+            check('A live inbox refusal creates no partial recovery destination',not (folder/'checkpoint').exists())
+            for child in peer_processes:stop(child)
         def observe(listener):
             listener.settimeout(.2)
             while not observer_stop.is_set():
@@ -198,11 +210,23 @@ def main(xml=False):
                     connection,_=listener.accept();source_attempts.append(listener.getsockname()[1]);connection.close()
                 except TimeoutError:pass
                 except OSError:return
-        for worker in bank_workers:
+        for worker in bank_workers+peer_workers:
             listener=socket.socket();listener.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
             listener.bind(('127.0.0.1',routing.origin(worker['endpoint'])));listener.listen(4);source_sockets.append(listener)
             observer=threading.Thread(target=observe,args=(listener,),daemon=True);observer.start();observers.append(observer)
         captured=recovery.capture(*capture_arguments);checkpoint=folder/'checkpoint';verified=recovery.verify(checkpoint,recovery_trust,release_trust)
+        if independent:
+            from avenra.participant_peer_checkpoint import validate as validate_peers
+            peer_snapshot=validate_peers(checkpoint/'independent-participants')
+            check('The externally signed capture includes all five original independent participant authorities and durable inbox rows',len(peer_snapshot['workers'])==5 and all(item['receipt_counts'] for item in peer_snapshot['workers']) and any(item['receipt_counts']['inbox']>0 for item in peer_snapshot['workers']))
+            original_peer_files={relative:bundle.sha(data/relative) for relative in peer_snapshot['files']}
+            from avenra.participant_peer_checkpoint import restore as restore_private_peers
+            refused_directory=folder/'refused-participant-restore';refused_directory.mkdir(mode=0o700)
+            corrupted=checkpoint/'independent-participants/synthetic-participants'/peer_workers[0]['worker_id']/'server-signer.raw'
+            saved=corrupted.read_bytes();corrupted.write_bytes(b'z'*32);corrupted.chmod(0o600)
+            denied('The component restore validates every checkpoint hash before creating any private destination',lambda:restore_private_peers(checkpoint/'independent-participants',refused_directory),'CHECKPOINT_INTEGRITY')
+            check('Rejected participant restore materializes no identity or inbox roots',not list(refused_directory.iterdir()))
+            corrupted.write_bytes(saved);corrupted.chmod(0o600)
         check('Cold capture binds independent recovery/application signatures, both full database inventories and exact native pins',captured['set_id']==verified['set_id'] and set(verified['manifest']['databases'])=={'control','accounting'} and len(verified['manifest']['files'])>200)
         denied('A public key carried by another signer cannot establish recovery trust',lambda:recovery.verify(checkpoint,other_trust,release_trust),'RECOVERY_SIGNATURE')
         denied('Correct recovery trust cannot replace separate application trust',lambda:recovery.verify(checkpoint,recovery_trust,other_trust),'RELEASE_SIGNATURE')
@@ -240,6 +264,10 @@ def main(xml=False):
         from avenra.lab_bank import SyntheticBank
         denied('A restored bank cannot bypass inactive routing through its ordinary service launcher',lambda:SyntheticBank(target/'data/synthetic-banks'/bank_workers[0]['worker_id']/'worker.json'),'RECOVERY_INACTIVE')
         denied('A restored client cannot fall back to an original bank address before routing exists',lambda:LabBankClient(LabIdentity(target/'data',bank_workers[0]['connections'][0]['secret_reference'])),'RECOVERY_BANK_REQUIRED')
+        if independent:
+            from avenra.participant_peer import ParticipantPeer
+            denied('The ordinary inbox launcher cannot bypass inactive restoration',lambda:ParticipantPeer(target/'data/synthetic-participants'/peer_workers[0]['worker_id']/'worker.json'),'RECOVERY_INACTIVE')
+            denied('A restored participant client cannot contact a source address before routing exists',lambda:PeerClient(PeerIdentity(target/'data',peer_workers[0]['secret_reference'])),'RECOVERY_PEER_REQUIRED')
         import_id=str(uuid.uuid4())
         instructions={'directory':str(target),'recovery_trust':str(recovery_trust),'release_trust':str(release_trust),'administrative_dsn_file':str(admin_file),'pg_bin':str(pg),'request_id':import_id,'actor':'recovery-verifier'}
         instruction_file=folder/'import-crash.json';write_document(instruction_file,instructions)
@@ -312,6 +340,50 @@ def main(xml=False):
         except EngineError as error:check('Restored banks enforce signing-key revocation across original financial uncertainty',error.code=='SIGNING_KEY_REVOKED')
         else:check('Restored banks enforce signing-key revocation across original financial uncertainty',False)
         check('Credential rotation retains the original logical authority and authenticated new physical route',LabBankClient(LabIdentity(target/'data',beneficiary['secret_reference'])).probe()['credential_epoch']==2)
+        if independent:
+            denied('Bound banks alone cannot activate captured but unbound independent inboxes',lambda:restore.activate(target,recovery_trust,release_trust,origin,fault_origin,activation_id,'recovery-verifier'),'RECOVERY_PEER_REQUIRED')
+            peer_ports={w['worker_id']:free_port() for w in peer_workers};peer_request=str(uuid.uuid4())
+            damaged=target/'data/synthetic-participants'/peer_workers[0]['worker_id']/'server-signer.raw';saved=damaged.read_bytes()
+            damaged.write_bytes(b'x'*32);damaged.chmod(0o600)
+            denied('Participant startup refuses changed staged keys before publishing routes',lambda:peers.start(target,peer_ports,recovery_trust,release_trust,peer_request,'recovery-verifier'),'RECOVERY_PEER_BINDING')
+            damaged.write_bytes(saved);damaged.chmod(0o600)
+            restored_inbox=target/'data/synthetic-participants'/peer_workers[0]['worker_id']/'participant.sqlite'
+            retained_inbox=restored_inbox.with_name('participant.sqlite-retained');restored_inbox.rename(retained_inbox)
+            source_inbox=data/'synthetic-participants'/peer_workers[0]['worker_id']/'participant.sqlite'
+            try:
+                restored_inbox.symlink_to(source_inbox)
+                denied('A linked inbox cannot redirect restored writes into the source installation',lambda:peers.start(target,peer_ports,recovery_trust,release_trust,peer_request,'recovery-verifier'),'RECOVERY_BANK_BINDING')
+                restored_inbox.unlink();os.link(source_inbox,restored_inbox)
+                denied('A hard-linked inbox is refused before starting a restored participant',lambda:peers.start(target,peer_ports,recovery_trust,release_trust,peer_request,'recovery-verifier'),'RECOVERY_BANK_BINDING')
+            finally:
+                restored_inbox.unlink(missing_ok=True);retained_inbox.rename(restored_inbox)
+            started_peers=peers.start(target,peer_ports,recovery_trust,release_trust,peer_request,'recovery-verifier')
+            check('All five independent restored listeners are owned by the verified offline runtime',len(started_peers['services'])==5 and len(peers.check(target)['services'])==5)
+            retry=peers.start(target,peer_ports,recovery_trust,release_trust,peer_request,'recovery-verifier')
+            check('An identical participant startup reuses every original registered process',retry['reused_plan'] and retry['services']==started_peers['services'])
+            denied('Changed participant startup attribution cannot reuse the accepted plan',lambda:peers.start(target,peer_ports,recovery_trust,release_trust,peer_request,'other-actor'),'RECOVERY_CONFLICT')
+            selected_peer=next(w for w in peer_workers if w['role']=='network');peer_reference=selected_peer['secret_reference']
+            peer_identity=PeerIdentity(target/'data',peer_reference);old_peer=PeerClient(peer_identity)
+            original_message=next(e for e in normal['messages'] if e['step']==1)
+            from avenra.upi_wire import encode
+            original_xml=encode(json.loads(original_message['document_json']),original_message['signature'])
+            original_receipt=json.loads(next(e['details_json'] for e in normal['events'] if e['event']=='peer.accepted' and e['message_id']==original_message['id']))['receipt']
+            try:old_peer.deliver(original_xml,0)
+            except EngineError as error:check('Inactive restored inboxes permit authenticated probes while refusing message delivery',error.code=='OUTCOME_UNKNOWN')
+            else:check('Inactive restored inboxes permit authenticated probes while refusing message delivery',False)
+            rotated_peer=rotate_peer(target/'data',peer_reference);revoke_peer(target/'data',peer_reference,rotated_peer['previous_key_id'])
+            try:old_peer.probe()
+            except EngineError as error:check('Restored independent receivers enforce transport signing-key revocation',error.code=='OUTCOME_UNKNOWN')
+            else:check('Restored independent receivers enforce transport signing-key revocation',False)
+            new_peer=PeerClient(PeerIdentity(target/'data',peer_reference))
+            check('Rotation retains the original authority and authenticated new physical route',new_peer.identity.binding==peer_identity.binding and new_peer.document['identity_epoch']==2 and new_peer.probe()['worker_id']==selected_peer['worker_id'])
+            routes_path=target/'data'/peer_routes.FILE;route_saved=routes_path.read_bytes()
+            tampered=read_document(routes_path);tampered['actor']='unattributed';write_document(routes_path,tampered)
+            denied('A changed route signature is refused before any recovered participant connection',lambda:PeerClient(PeerIdentity(target/'data',peer_reference)),'RECOVERY_PEER_AUTHENTICATION')
+            routes_path.write_bytes(route_saved);routes_path.chmod(0o600)
+            tampered=peer_routes.load(target/'data');tampered['workers'][selected_peer['worker_id']]['origin']='https://192.0.2.1:8443';peer_routes.signed_write(target/'data',routes_path,tampered)
+            denied('Even an attributed participant route cannot enable external egress',lambda:PeerClient(PeerIdentity(target/'data',peer_reference)),'RECOVERY_BANK_ROUTE')
+            routes_path.write_bytes(route_saved);routes_path.chmod(0o600)
         # Original installation paths cease to exist. The restored launch must
         # use only its copied artifacts, wheels, binaries, identities and DBs.
         for path in [data,Path(installed['directory']).parent,runtime,native_source]:path.rename(path.with_name(path.name+'-unavailable'))
@@ -324,6 +396,8 @@ def main(xml=False):
         (target/'data/engine-endpoints.json').write_bytes(saved);(target/'data/engine-endpoints.json').chmod(0o600)
         activated=restore.activate(target,recovery_trust,release_trust,origin,fault_origin,activation_id,'recovery-verifier')
         check('Activation rebinds the same selected release without original installation paths or financial rewrites',activated['source_release_pointer_preserved'] and not activated['financial_outcomes_rewritten'] and not (target/'data'/INACTIVE).exists())
+        if independent:
+            check('The activated receiver returns its byte-identical historical message receipt under rotated credentials',PeerClient(PeerIdentity(target/'data',peer_reference)).deliver(original_xml,0)==original_receipt)
         check('An identical activation retry is attributed and idempotent',restore.activate(target,recovery_trust,release_trust,origin,fault_origin,activation_id,'recovery-verifier')['replayed'])
         denied('Changed activation endpoints cannot replay the original decision',lambda:restore.activate(target,recovery_trust,release_trust,source_origin,fault_origin,activation_id,'recovery-verifier'),'RECOVERY_CONFLICT')
         api_port=free_port();api_origin='http://127.0.0.1:'+str(api_port);opener=build_opener(ProxyHandler({}))
@@ -354,6 +428,14 @@ def main(xml=False):
             with db.cursor(row_factory=dict_row) as cursor:
                 restored_connections=cursor.execute('SELECT * FROM participant_connections ORDER BY id').fetchall()
         check('Original accepted connection rows and payment topology/bindings remain byte-identical',pinned==original_pinned and restored_connections==original_connections)
+        if independent:
+            check('Recovered delivery retains signed independent receipts without granting inboxes financial authority',len([e for e in bank_done['events'] if e['event']=='peer.accepted'])==5 and bank_done['evidence']['valid'])
+            peer_route_path=target/'data'/peer_routes.FILE;peer_route_bytes=peer_route_path.read_bytes();peer_route_path.unlink()
+            denied('An already-constructed client revalidates route pins before every network operation',lambda:new_peer.probe(),'RECOVERY_PEER_BINDING')
+            denied('An activated participant client refuses a missing route instead of source fallback',lambda:PeerClient(PeerIdentity(target/'data',peer_reference)),'RECOVERY_PEER_BINDING')
+            from avenra.private_config import deployment
+            denied('Managed startup refuses a missing activated independent participant route',lambda:deployment(target/'data'),'RECOVERY_PEER_BINDING')
+            peer_route_path.write_bytes(peer_route_bytes);peer_route_path.chmod(0o600)
         if xml:
             recovered_envelopes={m['id']:{k:m[k] for k in ['id','document_json','document_hash','signature','key_id']} for m in bank_done['messages']}
             check('Every accepted original XML envelope and signature survives relocation byte-identically',all(recovered_envelopes.get(k)==v for k,v in original_envelopes.items()))
@@ -373,6 +455,24 @@ def main(xml=False):
         fresh=wait(lambda:api(upi_scope+'/'+fresh['id'])[1],lambda r:r['state']=='succeeded' and r['evidence'])
         check('Fresh post-restore financial work completes with native evidence and valid continued identities',fresh['evidence']['valid'] and len(fresh['operation']['legs'])==2 and all(leg['ledger_id'] for leg in fresh['operation']['legs']))
         check('Post-restore evidence records actual encrypted bank traffic at authenticated new physical addresses',all(trace['channel'].get('recovery_set_id')==captured['set_id'] and trace['channel'].get('physical_endpoint')!=trace['channel'].get('logical_endpoint') for trace in fresh['evidence']['manifest']['bank_transport_receipts'] if trace.get('channel')))
+        if independent:
+            original_network=peers.check(target)['services'][selected_peer['worker_id']]
+            os.kill(original_network['pid'],signal.SIGKILL)
+            def peer_reaped():
+                try:os.waitpid(original_network['pid'],os.WNOHANG)
+                except ChildProcessError:pass
+                return native.process_identity(original_network['pid']) is None
+            wait(peer_reaped)
+            status,peer_interrupted=api(upi_scope,{**body,'amount_paise':215,'request_key':uid('peer_restart')})
+            api(upi_scope+'/'+peer_interrupted['id']+'/authorize',{'device_id':value['devices'][0],'device_proof':value['proofs'][0],'approved':True})
+            peer_interrupted=wait(lambda:api(upi_scope+'/'+peer_interrupted['id'])[1],lambda r:any(e['event']=='peer.unconfirmed' for e in r['events']))
+            check('Actual recovered network loss blocks financial dispatch without an implicit local participant',status==202 and
+                  peer_interrupted['operation']['state']=='pending' and all(leg['state']=='pending' and not leg['ledger_id'] and
+                  not recovered_gateway.transactions(bank_ledger,leg['id']) for leg in peer_interrupted['operation']['legs']))
+            restarted_peers=peers.start(target,peer_ports,recovery_trust,release_trust,peer_request,'recovery-verifier')
+            check('An active recovery restarts the dead inbox under the original attributed route decision',restarted_peers['reused_plan'] and restarted_peers['services'][selected_peer['worker_id']]['pid']!=original_network['pid'])
+            peer_resumed=wait(lambda:api(upi_scope+'/'+peer_interrupted['id'])[1],lambda r:r['state']=='succeeded' and r['evidence'])
+            check('Network restart completes the original accepted payment with valid evidence and one native posting per leg',peer_resumed['id']==peer_interrupted['id'] and peer_resumed['evidence']['valid'] and all(len(recovered_gateway.transactions(bank_ledger,leg['id']))==1 for leg in peer_resumed['operation']['legs']))
         before_bank_crash=banks.check(target);beneficiary_id=bank_workers[1]['worker_id'];crashed_bank=before_bank_crash['services'][beneficiary_id]
         os.kill(crashed_bank['pid'],signal.SIGKILL)
         def reaped():
@@ -394,6 +494,8 @@ def main(xml=False):
                            'databases':{worker['worker_id']:bank_rows(source_bank_root/'synthetic-banks'/worker['worker_id']/'bank.sqlite') for worker in bank_workers}}
         write_document(folder/'source-banks-after.json',source_bank_after)
         check('Recovered bank activity and key rotation leave every original bank/identity byte and full receipt row unchanged',source_bank_before==source_bank_after)
+        if independent:
+            check('Recovered participant activity leaves every original private identity and receipt database byte unchanged',original_peer_files=={relative:bundle.sha(source_bank_root/relative) for relative in peer_snapshot['files']})
         with psycopg.connect(source_dsn) as db:
             db.execute("SET LOCAL timezone='UTC'");source_unchanged=recovery.database_inventory(db)==verified['manifest']['databases']['accounting']
         with psycopg.connect(dsn) as db:
@@ -403,11 +505,12 @@ def main(xml=False):
         # physical binding policy. Reject it before changing this recovered DB,
         # rather than selecting it and discovering a startup/source-route error.
         stop(worker);stop(api_process)
-        predecessor=read_document(ROOT/'.local/release-baselines'/('before-upi-wire-recovery.json' if xml else 'before-operations.json'))
-        old=bundle.verify_installed(predecessor['directory'],predecessor['trust_file'])
+        predecessor=read_document(ROOT/'.local/peer-recovery-predecessor/baseline.json') if independent else read_document(ROOT/'.local/release-baselines'/('before-upi-wire-recovery.json' if xml else 'before-operations.json'))
+        predecessor_directory=predecessor.get('artifact_directory',predecessor.get('directory'))
+        old=bundle.verify_installed(predecessor_directory,predecessor['trust_file'])
         with psycopg.connect(private_read(target/'data/migration.dsn').decode().strip()) as db:
             db.execute("SET LOCAL timezone='UTC'");selection_before=recovery.database_inventory(db)
-        denied('A restored deployment refuses a genuine signed predecessor without required binding capabilities',lambda:releases.transition(target/'data',predecessor['directory'],predecessor['trust_file'],predecessor['runtime_directory'],built['artifact_id'],str(uuid.uuid4()),'recovery-verifier'),'RELEASE_CAPABILITIES')
+        denied('A restored deployment refuses a genuine signed predecessor without required binding capabilities',lambda:releases.transition(target/'data',predecessor_directory,predecessor['trust_file'],predecessor['runtime_directory'],built['artifact_id'],str(uuid.uuid4()),'recovery-verifier'),'RELEASE_CAPABILITIES')
         with psycopg.connect(private_read(target/'data/migration.dsn').decode().strip()) as db:
             db.execute("SET LOCAL timezone='UTC'");selection_after=recovery.database_inventory(db)
         check('Refused incompatible selection preserves every restored control row, sequence and the original release pointer',selection_before==selection_after and releases.status(target/'data')['selection']['artifact_id']==built['artifact_id'] and not (target/'data/release-pending.json').exists())
@@ -415,8 +518,35 @@ def main(xml=False):
             from avenra.participant_capabilities import ensure
             with psycopg.connect(private_read(target/'data/migration.dsn').decode().strip()) as db:
                 needed=ensure(db,bundle.verify_installed(target/'artifacts'/built['artifact_id'],release_trust))
-            check('The selected signed build explicitly supports both retained XML profile hashes',len(needed)==2 and all(item.startswith((WIRE_LOCAL+'/',WIRE_TLS+'/')) for item in needed))
-        check('The selected signed recovery build explicitly declares both configured binding formats',releases.require_deployment_capabilities(target/'data',bundle.verify_installed(target/'artifacts'/built['artifact_id'],release_trust))=={'engine_bindings':'avenra-loopback-engines/1','bank_routes':'avenra-bank-recovery-routes/1'})
+            check('The selected signed build explicitly supports every retained XML profile hash',len(needed)==(3 if independent else 2) and all(item.startswith((WIRE_LOCAL+'/',WIRE_TLS+'/',PEER+'/')) for item in needed))
+        expected_bindings={'engine_bindings':'avenra-loopback-engines/1','bank_routes':'avenra-bank-recovery-routes/1'}
+        if independent:expected_bindings['peer_routes']=peer_routes.FORMAT
+        check('The selected signed recovery build explicitly declares every configured binding format',releases.require_deployment_capabilities(target/'data',bundle.verify_installed(target/'artifacts'/built['artifact_id'],release_trust))==expected_bindings)
+        if independent:
+            peers.stop(target);banks.stop(target);native.stop(target);native_started=False
+            second_checkpoint=folder/'second-checkpoint'
+            second_capture=recovery.capture(target/'data',second_checkpoint,target/'artifacts'/built['artifact_id'],release_trust,recovery_key,target/'data/accounting.dsn',target/'native',pg,str(uuid.uuid4()),'recovery-verifier')
+            second_peer_snapshot=validate_peers(second_checkpoint/'independent-participants')
+            check('A second-generation capture records current physical origins while preserving original logical authorities',all(item['source_origin']=='https://127.0.0.1:'+str(peer_ports[item['worker_id']]) for item in second_peer_snapshot['workers']))
+            second_target=folder/'second-recovered';recovery.stage(second_checkpoint,second_target,recovery_trust,release_trust)
+            restore.restore_databases(second_target,recovery_trust,release_trust,admin_file,pg,str(uuid.uuid4()),'recovery-verifier')
+            second_accounting_port,second_fault_port=free_port(),free_port()
+            second_origin='http://127.0.0.1:'+str(second_accounting_port);second_fault='http://127.0.0.1:'+str(second_fault_port)
+            native.start(second_target,second_accounting_port,second_fault_port,recovery_trust,release_trust)
+            banks.start(second_target,{w['worker_id']:free_port() for w in bank_workers},recovery_trust,release_trust,str(uuid.uuid4()),'recovery-verifier')
+            second_peer_request=str(uuid.uuid4());second_ports={w['worker_id']:free_port() for w in peer_workers}
+            denied('Second-generation recovery refuses reusing the preceding physical participant ports',lambda:peers.start(second_target,peer_ports,recovery_trust,release_trust,second_peer_request,'recovery-verifier'),'RECOVERY_PEER_PLAN')
+            peers.start(second_target,second_ports,recovery_trust,release_trust,second_peer_request,'recovery-verifier')
+            target.rename(target.with_name('first-recovered-unavailable'))
+            restore.activate(second_target,recovery_trust,release_trust,second_origin,second_fault,str(uuid.uuid4()),'recovery-verifier')
+            check('A second cold generation retains original signed inbox receipts after both preceding installations disappear',PeerClient(PeerIdentity(second_target/'data',peer_reference)).deliver(original_xml,0)==original_receipt)
+            second_app=App(second_target/'data',control_dsn=private_read(second_target/'data/control.dsn').decode().strip())
+            try:
+                next_payment=prepare(second_app,value,145);authorize(second_app,value,next_payment);next_payment=advance(second_app,value,next_payment)
+                check('New financial work completes after a second cold restore with each original native leg posted once',next_payment['evidence']['valid'] and all(len(AccountingGateway(second_origin).transactions(bank_ledger,leg['id']))==1 for leg in next_payment['operation']['legs']))
+            finally:second_app.close()
+            check('Neither restoration contacted an original source participant address',not source_attempts)
+            report['second_recovery_set_id']=second_capture['set_id']
         check('Qualification retained one fixed build and one fixed case pack',report['application_fingerprint']==application_fingerprint() and report['case_pack_sha256']==case_pack_hash())
         report.update(passed=True,set_id=captured['set_id'],artifact_id=built['artifact_id'],capture_seconds=captured['capture_seconds'],stage_seconds=staged['stage_seconds'],source_effect_id=str(original_effect[0]['id']),uncertain_payment_id=uncertain['id'],restored_databases=imported['databases'],observed_end_to_end_seconds=time.time()-report['created_at'])
     except Exception as error:report.update(error=type(error).__name__+': '+str(error),traceback=traceback.format_exc())
@@ -429,10 +559,17 @@ def main(xml=False):
         if target and (target/'data'/routing.FILE).exists():
             try:banks.stop(target)
             except Exception as error:report['bank_cleanup_error']=type(error).__name__+': '+str(error);report['passed']=False
+        if second_target:
+            for component in [peers,banks,native]:
+                try:component.stop(second_target)
+                except Exception as error:report['second_cleanup_error']=type(error).__name__+': '+str(error);report['passed']=False
+        elif target and (target/'data'/peer_routes.FILE).exists():
+            try:peers.stop(target)
+            except Exception as error:report['peer_cleanup_error']=type(error).__name__+': '+str(error);report['passed']=False
         if native_started:
             try:native.stop(target)
             except Exception as error:report['cleanup_error']=type(error).__name__+': '+str(error);report['passed']=False
-        report['completed_at']=time.time();write_document(folder/'verification.json',report);write_document(ROOT/'.local'/('coordinated-upi-wire-recovery-verification.json' if xml else 'coordinated-recovery-verification.json'),report)
+        report['completed_at']=time.time();write_document(folder/'verification.json',report);write_document(ROOT/'.local'/('coordinated-peer-recovery-verification.json' if independent else 'coordinated-upi-wire-recovery-verification.json' if xml else 'coordinated-recovery-verification.json'),report)
         print(json.dumps({'passed':report['passed'],'checks':len(report['checks']),'directory':str(folder),'error':report.get('error'),'cleanup_error':report.get('cleanup_error')}),flush=True)
     return 0 if report['passed'] else 1
 
@@ -441,4 +578,4 @@ if __name__=='__main__':
     if len(sys.argv)==3 and sys.argv[1]=='--import-crash':raise SystemExit(crash_import(Path(sys.argv[2])))
     if len(sys.argv)==3 and sys.argv[1]=='--activation-crash':raise SystemExit(crash_activation(Path(sys.argv[2])))
     if len(sys.argv)==3 and sys.argv[1]=='--bank-start-crash':raise SystemExit(crash_bank_start(Path(sys.argv[2])))
-    raise SystemExit(main(xml='--xml' in sys.argv))
+    raise SystemExit(main(xml='--xml' in sys.argv or '--independent' in sys.argv,independent='--independent' in sys.argv))

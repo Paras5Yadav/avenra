@@ -137,11 +137,12 @@ def recovery_configuration(directory, set_id):
     """Qualify only new target bindings, never a copied source's physical pins."""
     directory=Path(directory);configuration=read_document(directory/'deployment.json',{})
     recovery={'set_id':set_id}
-    for name,field,module in [('bank-recovery.json','bank_routes_sha256','bank'),('aa-recovery.json','aa_routes_sha256','aa')]:
+    for name,field,module in [('bank-recovery.json','bank_routes_sha256','bank'),('aa-recovery.json','aa_routes_sha256','aa'),('peer-recovery.json','peer_routes_sha256','peer')]:
         path=directory/name
         if not path.exists() and not path.is_symlink():continue
         if module=='bank':from .bank_recovery import load
-        else:from .aa.routing import load
+        elif module=='aa':from .aa.routing import load
+        else:from .peer_recovery import load
         require(load(directory)['set_id']==set_id,'RECOVERY_CONFIGURATION_CHANGED','A physical binding belongs to another target recovery.',409)
         recovery[field]=hashlib.sha256(private_read(path)).hexdigest()
     configuration['recovery']=recovery if len(recovery)>1 else {}
@@ -169,6 +170,9 @@ def require_deployment_capabilities(directory, artifact, configuration=None):
     if configuration.get('recovery',{}).get('aa_routes_sha256'):
         from .aa.routing import load
         required['aa_routes'] = load(directory)['format']
+    if configuration.get('recovery',{}).get('peer_routes_sha256'):
+        from .peer_recovery import load
+        required['peer_routes'] = load(directory)['format']
     if not required: return {}
     from .participant_capabilities import declared
     value = declared(artifact)

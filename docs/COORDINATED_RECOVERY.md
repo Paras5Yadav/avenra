@@ -3,7 +3,8 @@
 These operator tools recover the existing Avenra application. They do not create
 another console, change the payment balance authority or enable a live rail.
 The supported activation profile is a cold, managed deployment with local
-participants, optional owned mTLS synthetic banks and AA/FIP/FIU listeners, and
+participants, optional owned mTLS synthetic banks, independent PSP/network
+inboxes and AA/FIP/FIU listeners, and
 dedicated loopback accounting/fault services. SSO, other provider/monitoring and
 external service bindings still require coordinated replacement before activation.
 
@@ -39,6 +40,13 @@ process lease through shutdown; capture obtains every role lease for the whole
 checkpoint. Independent per-file SQLite backups alone do not prove topology
 quiescence. Role databases are backed up with committed WAL and explicit close;
 runtime leases, process registrations and logs are not restored as source owners.
+
+Independent PSP/network inbox processes also hold the lifetime fence. Capture
+retains their private identities, sender registries, versioned credentials and
+durable receipts under `independent-participants`. Stop every captured service;
+activation requires authenticated replacement routes for all of them. Follow
+[the participant recovery guide](PARTICIPANT_RECOVERY.md) after starting the
+restored native, bank and AA services and before activation.
 
 The set includes both database dumps, the exact application and supplied offline
 wheels, pinned accounting/fault executable bytes, original evidence authority,

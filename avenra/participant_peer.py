@@ -23,7 +23,7 @@ from .util import canonical, digest, now
 
 
 class ParticipantPeer:
-    def __init__(self, configuration):
+    def __init__(self, configuration, recovery_data=None):
         self.path = Path(configuration).absolute()
         require(not self.path.is_symlink() and not self.path.parent.is_symlink(),
                 'PRIVATE_IDENTITY_REQUIRED', 'Participant paths cannot be links.', 409)
@@ -31,10 +31,18 @@ class ParticipantPeer:
         from .recovery_state import require_active
         from .private_config import read_document
         self.installation=self.directory.parent.parent
-        require_active(self.installation)
-        require(not read_document(self.installation/'deployment.json',{}).get('recovery'),
-                'RECOVERY_PARTICIPANT_UNQUALIFIED','Independent participant cold address rebinding is not yet qualified.',409)
+        if not recovery_data:
+            require_active(self.installation)
+            require(not read_document(self.installation/'deployment.json',{}).get('recovery'),
+                    'RECOVERY_PEER_REQUIRED','Recovered participants require authenticated physical routes.',409)
+        else:
+            require(Path(recovery_data).resolve() == self.installation,
+                    'RECOVERY_PEER_BINDING', 'Recovery context belongs to another installation.', 409)
         config = self.configuration()
+        self.endpoint = config['endpoint']
+        if recovery_data:
+            from .peer_recovery import register_process
+            self.endpoint = register_process(recovery_data, self.path)
         self.signer = Ed25519PrivateKey.from_private_bytes(private_read(self.directory/'server-signer.raw'))
         from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
         require(self.signer.public_key().public_bytes(Encoding.Raw,PublicFormat.Raw).hex() == config['server_signer_public'],
@@ -186,8 +194,8 @@ class ParticipantPeer:
 
     def command(self, wrapper):
         from .recovery_state import require_active
-        require_active(self.installation)
         document,config=self._verify(wrapper)
+        if document['action'] != 'probe': require_active(self.installation)
         fingerprint=digest(document)
         with self.database() as db:
             db.execute('BEGIN IMMEDIATE')
@@ -247,11 +255,12 @@ class ParticipantPeer:
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--config',required=True);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--config',required=True)
+    parser.add_argument('--recovery-data');args=parser.parse_args()
     from urllib.parse import urlsplit
     import uvicorn
     with bank_service_lease(Path(args.config).absolute().parent):
-        app=ParticipantPeer(args.config);origin=urlsplit(app.configuration()['endpoint'])
+        app=ParticipantPeer(args.config,args.recovery_data);origin=urlsplit(app.endpoint)
         require(origin.scheme=='https' and origin.hostname=='127.0.0.1' and origin.port and not origin.path and not origin.query and not origin.fragment and '@' not in origin.netloc,
                 'LOOPBACK_REQUIRED','Synthetic participants bind only to literal loopback HTTPS origins.')
         uvicorn.run(app,host='127.0.0.1',port=origin.port,ssl_certfile=str(app.directory/'server.pem'),ssl_keyfile=str(app.directory/'server-key.pem'),

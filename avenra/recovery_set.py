@@ -164,6 +164,8 @@ def capture(data, destination, artifact_directory, release_trust, signing_key, a
                 leases.enter_context(quiescent_banks(data))
                 from .aa.runtime import quiescent as quiescent_aa
                 leases.enter_context(quiescent_aa(data))
+                from .participant_peer_checkpoint import quiescent as quiescent_peers
+                leases.enter_context(quiescent_peers(data))
                 destination.mkdir(mode=0o700)
                 try:
                     databases = {};settings = {}
@@ -183,6 +185,8 @@ def capture(data, destination, artifact_directory, release_trust, signing_key, a
                         snapshot_deployment(data, destination / 'private-deployment')
                         snapshot_roles(data, destination / 'financial-data')
                         snapshot_private_banks(data, destination / 'synthetic-banks')
+                        from .participant_peer_checkpoint import snapshot as snapshot_peers
+                        snapshot_peers(data, destination / 'independent-participants')
                         for name in ['evidence.key', 'services.json', 'identity.json', 'product-credentials.json']:
                             if (data / name).exists():
                                 regular(data / name);copy_private(data / name, destination / 'private' / name)
@@ -251,6 +255,10 @@ def stage(source, destination, recovery_trust, release_trust):
         if (destination / 'original-financial-data/aa-scopes').exists():
             shutil.move(str(destination / 'original-financial-data/aa-scopes'), data / 'aa-scopes')
         banks = restore_private_banks(destination / 'payload/synthetic-banks', data)
+        peers = {'valid': True, 'workers': 0, 'identities': 0, 'activation': 'inactive'}
+        if (destination / 'payload/independent-participants').exists():
+            from .participant_peer_checkpoint import restore as restore_peers
+            peers = restore_peers(destination / 'payload/independent-participants', data)
         for name in ['evidence.key', 'services.json', 'identity.json', 'product-credentials.json']:
             if (destination / 'payload/private' / name).exists():
                 original = destination / 'payload/private' / name
@@ -262,7 +270,7 @@ def stage(source, destination, recovery_trust, release_trust):
             (destination / 'native' / role).chmod(0o700)
         value = {'format': 'avenra-recovery-stage/1', 'set_id': checked['set_id'], 'artifact_id': checked['manifest']['artifact_id'],
                  'application_fingerprint': checked['manifest']['application_fingerprint'], 'activation': 'inactive', 'stage_seconds': time.time() - started,
-                 'private_roles': restored_roles, 'private_banks': banks, 'created_at': time.time()}
+                 'private_roles': restored_roles, 'private_banks': banks, 'private_peers': peers, 'created_at': time.time()}
         write_document(destination / 'recovery-stage.json', value)
         return {**value, 'directory': str(destination.resolve())}
     except BaseException:

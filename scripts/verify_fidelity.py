@@ -355,6 +355,9 @@ def main():
         # The original HTTP regression explicitly selects its original six
         # cases. Hardware-backed POC cases have a separate acceptance pack.
         registration.add('scripts/verify.py')
+        # Source publication added explicit environment-file exclusions. This
+        # reviewed repository hygiene change does not alter financial engines.
+        registration.add('.gitignore')
         changed = [p for p, hashed in original_files.items() if hashlib.sha256((ROOT/p).read_bytes()).hexdigest() != hashed]
         check('Existing financial modules are preserved; modifications are limited to additive integration points', set(changed) <= registration and all(x not in changed for x in ['avenra/upi.py', 'avenra/banking.py', 'avenra/simulation.py', 'avenra/gateways.py']), 'PRESERVE', {'registration_files': changed})
         check('The retained workspace audit chain verifies', app.store.verify_audit()['valid'], 'EVIDENCE')
