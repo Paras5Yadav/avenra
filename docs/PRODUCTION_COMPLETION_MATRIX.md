@@ -25,6 +25,15 @@ subset or a new profile does not establish completion of the full objective.
 | Release assessment | Independent security/dependency assessment and institutional operational acceptance remain. Source/tests/self-issued signatures are not independent assessment. |
 | Future official replacement | Connection snapshots preserve original recovery. Current external draft cannot execute; implement and qualify selected official adapters when their accepted contracts/access exist. Credentials alone do not enable unfinished software. No live payment access is authorized or enabled. |
 
+Independent PSP/network cold recovery now has its own mandatory local gate:
+five owned mTLS inbox processes, original receipt and financial identities,
+process-loss recovery and two complete cold relocations. Legacy, XML-only and
+independent receipts cannot substitute for one another. Intact retained case
+records and current application/case-pack identities are required. Covered heavy
+rehearsals also use disk admission with a 16 GiB floor and additional planned
+write headroom; this is not a production filesystem quota or an automated
+retention policy. See `COORDINATED_RECOVERY.md` and `QUALIFICATION_STORAGE.md`.
+
 Every completion claim must identify the exact build, deployment, supported
 profile, executable case pack and direct observed evidence. Missing, unsupported,
 blocked and unverified requirements stay open. The goal remains active until the

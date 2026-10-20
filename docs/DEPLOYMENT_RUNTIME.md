@@ -106,12 +106,16 @@ requires this evidence in addition to existing financial/lifecycle acceptance.
 It separately reports the locally exercised runtime scope and keeps whole-product
 production readiness false while remaining requirements are open.
 
-`scripts/verify_acceptance.py` runs the 27 identity, API/worker,
+`scripts/verify_acceptance.py` runs the identity, API/worker,
 payment/banking/simulation/UPI, synthetic-bank, lifecycle, product, service
 recovery, financial-data, signed-release, standalone-checkpoint, operational
-outage, additive migration, coordinated cold recovery, reference-capacity, native-clock and full-restore
+outage, additive migration, legacy/XML/independent participant cold recovery,
+AA recovery, reference-capacity, native-clock and full-restore
 suites sequentially. Each receipt must match the
 fixed application fingerprint and be freshly written by its subprocess.
+Covered heavy cases and resumed receipts use their complete helper/case-pack
+hashes. Cold-recovery receipts also require the exact mode, passing assertions
+and the intact linked full QA record; a summary flag cannot replace that record.
 Its manifest and per-case logs remain under `.local/verification-attempts/`.
 
 Remaining work stays in `PRODUCTION_COMPLETION_MATRIX.md`: complete selected

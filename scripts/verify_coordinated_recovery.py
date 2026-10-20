@@ -41,9 +41,11 @@ from avenra import participant_peer_lab as peer_lab, recovery_peers as peers, pe
 from avenra.participant_peer_identity import PeerIdentity, rotate as rotate_peer, revoke as revoke_peer
 from avenra.participant_peer_client import PeerClient
 from avenra.participant_peer_contract import ADAPTER as PEER
+from scripts.readiness_evidence import COORDINATED_PROFILES
+from scripts.qualification_storage import QualificationStorage, StorageRefused, record_refusal, harness_case_pack_hash as guarded_case_pack_hash
 
 
-def case_pack_hash():return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+def case_pack_hash():return guarded_case_pack_hash(ROOT, 'verify_coordinated_recovery.py')
 
 
 def free_port():
@@ -89,13 +91,16 @@ def crash_bank_start(instructions):
     return 9
 
 
-def main(xml=False, independent=False):
+def run(xml=False, independent=False, storage=None):
     import psycopg
     from psycopg import sql
     from psycopg.conninfo import conninfo_to_dict,make_conninfo
     folder=ROOT/'.local/qa'/uid('xml_coordinated_recovery' if xml else 'coordinated_recovery');folder.mkdir(mode=0o700,parents=True)
+    report_name='coordinated-peer-recovery-verification.json' if independent else 'coordinated-upi-wire-recovery-verification.json' if xml else 'coordinated-recovery-verification.json'
+    qualification_profile,protocol_mode,participant_mode=COORDINATED_PROFILES[report_name]
     report={'passed':False,'checks':[],'directory':str(folder),'created_at':time.time(),'application_fingerprint':application_fingerprint(),'case_pack_sha256':case_pack_hash(),
             'production_ready':False,'official_conformance':False,'protocol_mode':'xml' if xml else 'legacy','scope':'Dedicated local cold managed-deployment capture; independently trusted recovery/application signatures; full table/sequence import into new roles/databases; rebuilt offline runtime, pinned native binaries and two owned mTLS bank processes at authenticated replacement addresses; operator-crash replay, credential rotation and same-app original-ID recovery with original paths/listeners unavailable. AA/SSO/provider/service rebinding, multi-host failover, broker replay, off-host retention and institutional recovery targets remain open.'}
+    report.update(qualification_profile=qualification_profile,protocol_mode=protocol_mode,participant_mode=participant_mode)
     children=[];app=None;target=None;native_started=False;pg=Path('/opt/homebrew/opt/postgresql@16/bin')
     source_sockets=[];source_attempts=[];observer_stop=threading.Event();observers=[];peer_workers=[];peer_processes=[];second_target=None
     def check(name,condition):
@@ -125,6 +130,7 @@ def main(xml=False, independent=False):
             time.sleep(.1)
         raise TimeoutError('Recovery rehearsal did not reach its required observed state; inspect private logs.')
     try:
+        storage.checkpoint('signed_application_and_offline_runtime')
         release_key,release_trust,recovery_key,recovery_trust,other_key,other_trust=[folder/x for x in ['release-key.raw','release-trust.raw','recovery-key.raw','recovery-trust.raw','other-key.raw','other-trust.raw']]
         for key,trust in [(release_key,release_trust),(recovery_key,recovery_trust),(other_key,other_trust)]:bundle.new_key(key,trust)
         built=bundle.build(ROOT,ROOT/'.local/release-inputs/wheels',release_key,folder/'application.tar.gz','coordinated-recovery-qualification')
@@ -132,6 +138,7 @@ def main(xml=False, independent=False):
         native_source=folder/'source-native';native_source.mkdir(mode=0o700)
         for role in ['accounting','fault']:
             shutil.copyfile(ROOT/'.local/bin'/role,native_source/role);(native_source/role).chmod(0o700)
+        storage.checkpoint('source_database_creation')
         admin=admin_dsn(ROOT);admin_file=folder/'admin.dsn';private_write(admin_file,admin)
         suffix=uid('native').split('_')[1];db_name='avn_recovery_source_'+suffix;db_role='avn_recovery_engine_'+suffix;password=uuid.uuid4().hex
         with psycopg.connect(admin,autocommit=True) as db:
@@ -214,6 +221,7 @@ def main(xml=False, independent=False):
             listener=socket.socket();listener.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
             listener.bind(('127.0.0.1',routing.origin(worker['endpoint'])));listener.listen(4);source_sockets.append(listener)
             observer=threading.Thread(target=observe,args=(listener,),daemon=True);observer.start();observers.append(observer)
+        storage.checkpoint('cold_checkpoint_capture')
         captured=recovery.capture(*capture_arguments);checkpoint=folder/'checkpoint';verified=recovery.verify(checkpoint,recovery_trust,release_trust)
         if independent:
             from avenra.participant_peer_checkpoint import validate as validate_peers
@@ -257,6 +265,7 @@ def main(xml=False, independent=False):
         encrypted=encrypt_snapshot(checkpoint,folder/'checkpoint.avenra.enc',encryption_key);decrypted=folder/'decrypted-checkpoint'
         recovered=restore_snapshot(folder/'checkpoint.avenra.enc',decrypted,encryption_key)
         check('The complete signed recovery set survives authenticated encryption with its identical manifest and external trust',encrypted['manifest_hash']==recovered['manifest_hash'] and recovery.verify(decrypted,recovery_trust,release_trust)['set_id']==captured['set_id'])
+        storage.checkpoint('cold_runtime_stage_and_database_import')
         target=folder/'recovered';staged=recovery.stage(decrypted,target,recovery_trust,release_trust)
         check('Staging rebuilds a new offline runtime and retains the inactive guard',staged['activation']=='inactive' and (target/'runtime/release-runtime.json').exists() and (target/'data'/INACTIVE).exists())
         denied('App construction refuses restored source credentials before opening a pool',lambda:App(target/'data',control_dsn='deliberately-invalid-no-network'),'RECOVERY_INACTIVE')
@@ -524,6 +533,7 @@ def main(xml=False, independent=False):
         check('The selected signed recovery build explicitly declares every configured binding format',releases.require_deployment_capabilities(target/'data',bundle.verify_installed(target/'artifacts'/built['artifact_id'],release_trust))==expected_bindings)
         if independent:
             peers.stop(target);banks.stop(target);native.stop(target);native_started=False
+            storage.checkpoint('second_cold_generation')
             second_checkpoint=folder/'second-checkpoint'
             second_capture=recovery.capture(target/'data',second_checkpoint,target/'artifacts'/built['artifact_id'],release_trust,recovery_key,target/'data/accounting.dsn',target/'native',pg,str(uuid.uuid4()),'recovery-verifier')
             second_peer_snapshot=validate_peers(second_checkpoint/'independent-participants')
@@ -569,9 +579,21 @@ def main(xml=False, independent=False):
         if native_started:
             try:native.stop(target)
             except Exception as error:report['cleanup_error']=type(error).__name__+': '+str(error);report['passed']=False
-        report['completed_at']=time.time();write_document(folder/'verification.json',report);write_document(ROOT/'.local'/('coordinated-peer-recovery-verification.json' if independent else 'coordinated-upi-wire-recovery-verification.json' if xml else 'coordinated-recovery-verification.json'),report)
+        report['storage_admission']=storage.snapshot()
+        report['completed_at']=time.time();write_document(folder/'verification.json',report)
+        summary={**report,'evidence':{'path':str(folder/'verification.json'),'sha256':hashlib.sha256((folder/'verification.json').read_bytes()).hexdigest()}}
+        write_document(ROOT/'.local'/report_name,summary)
         print(json.dumps({'passed':report['passed'],'checks':len(report['checks']),'directory':str(folder),'error':report.get('error'),'cleanup_error':report.get('cleanup_error')}),flush=True)
     return 0 if report['passed'] else 1
+
+
+def main(xml=False, independent=False):
+    try:
+        with QualificationStorage(ROOT,'coordinated_recovery') as storage:
+            return run(xml,independent,storage)
+    except StorageRefused as error:
+        name='coordinated-peer-recovery-verification.json' if independent else 'coordinated-upi-wire-recovery-verification.json' if xml else 'coordinated-recovery-verification.json'
+        return record_refusal(ROOT,name,error,application_fingerprint(),case_pack_hash())
 
 
 if __name__=='__main__':

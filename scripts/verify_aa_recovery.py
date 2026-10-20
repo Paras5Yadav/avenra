@@ -37,13 +37,11 @@ from avenra.private_config import read_document,write_document,deployment
 from avenra.recovery_state import INACTIVE
 from avenra.synthetic_lab import fixture
 from avenra.util import application_fingerprint,canonical,digest,uid
+from scripts.qualification_storage import QualificationStorage, StorageRefused, record_refusal, harness_case_pack_hash as guarded_case_pack_hash
 
 
 def case_pack_hash():
-    result=hashlib.sha256()
-    for name in ['verify_aa_recovery.py','aa_review_oracle.cjs']:
-        result.update(name.encode()+b'\0'+(ROOT/'scripts'/name).read_bytes())
-    return result.hexdigest()
+    return guarded_case_pack_hash(ROOT, 'verify_aa_recovery.py')
 
 
 def role_rows(path):
@@ -73,7 +71,7 @@ def crash_activate(path):
     return 9
 
 
-def main():
+def run(storage):
     import psycopg
     from psycopg import sql
     from psycopg.conninfo import make_conninfo,conninfo_to_dict
@@ -115,6 +113,7 @@ def main():
         release_bundle.new_key(release_key,release_trust);release_bundle.new_key(recovery_key,recovery_trust)
         built=release_bundle.build(ROOT,ROOT/'.local/release-inputs/wheels',release_key,folder/'application.tar.gz','aa-topology-recovery-qualification')
         installed=release_bundle.install(folder/'application.tar.gz',release_trust,folder/'source-artifacts')
+        storage.checkpoint('source_offline_runtime')
         runtime=folder/'source-runtime';release_bundle.prepare_runtime(installed['directory'],release_trust,runtime)
         admin=admin_dsn(ROOT);private_write(folder/'admin.dsn',admin);suffix=uuid.uuid4().hex[:16]
         name='avn_aa_source_'+suffix;owner='avn_aa_engine_'+suffix;password=uuid.uuid4().hex
@@ -202,6 +201,7 @@ def main():
         check('Refused live-role capture creates no purported complete set',not (folder/'checkpoint').exists())
         for child in role_processes.values():stop(child)
         source_rows={node:role_rows(path.parent/'role.db') for node,path in nodes(data).items() if node.split('/')[1]!='ingress'}
+        storage.checkpoint('aa_cold_capture_and_restore')
         captured=recovery_set.capture(*capture_args);verified=recovery_set.verify(folder/'checkpoint',recovery_trust,release_trust)
         aa_manifest=read_document(folder/'checkpoint/financial-data/manifest.json')
         source_bytes={entry['path']:release_bundle.sha(data/'aa-scopes'/entry['path']) for entry in aa_manifest['files']}
@@ -347,6 +347,7 @@ def main():
         # physical pins cannot prevent a new target from planning new routes.
         first_target=target;first_routes=routing.load(first_target/'data')
         recovery_aa.stop(first_target);recovery_native.stop(first_target);native_started=False
+        storage.checkpoint('aa_second_cold_generation')
         second_capture=recovery_set.capture(first_target/'data',folder/'second-checkpoint',first_target/'artifacts'/built['artifact_id'],release_trust,recovery_key,
             first_target/'data/accounting.dsn',first_target/'native',pg,str(uuid.uuid4()),'aa-recovery-verifier')
         second_verified=recovery_set.verify(folder/'second-checkpoint',recovery_trust,release_trust)
@@ -392,11 +393,20 @@ def main():
         observe_stop.set()
         for listener in listeners:listener.close()
         for observer in observers:observer.join(timeout=1)
+        report['storage_admission']=storage.snapshot()
         report['completed_at']=time.time();write_document(folder/'verification.json',report)
         write_document(ROOT/'.local/aa-coordinated-recovery-verification.json',report)
         print(json.dumps({'passed':report['passed'],'checks':len(report['checks']),'directory':str(folder),'error':report.get('error'),'aa_cleanup_error':report.get('aa_cleanup_error'),'native_cleanup_error':report.get('native_cleanup_error')}),flush=True)
         if not report['passed']:print(report.get('traceback',''),flush=True)
     return 0 if report['passed'] else 1
+
+
+def main():
+    try:
+        with QualificationStorage(ROOT,'aa_recovery') as storage:
+            return run(storage)
+    except StorageRefused as error:
+        return record_refusal(ROOT,'aa-coordinated-recovery-verification.json',error,application_fingerprint(),case_pack_hash())
 
 
 if __name__=='__main__':

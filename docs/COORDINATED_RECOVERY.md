@@ -343,3 +343,32 @@ binding formats but lacks the retained XML contract declarations. That release
 is refused without changing any control row, sequence or release pointer.
 Both legacy and XML modes are mandatory local gates; their receipts record the
 mode and cannot substitute for each other.
+
+## Independent PSP and network recovery
+
+Run `.local/runtime/bin/python scripts/verify_coordinated_recovery.py --independent`
+for the separate `avenra-cold-independent-recovery/1` profile. It exercises five
+owned mTLS inbox processes, authenticated replacement addresses, unchanged
+logical authorities, original signed receipts, key revocation and rotation,
+bank/network process loss and recovery, and two complete cold generations.
+The inboxes validate messages; financial postings remain authoritative in the
+accounting engine. There is no fallback to an embedded receiver when a required
+independent participant is unavailable.
+
+The latest receipt is `.local/coordinated-peer-recovery-verification.json`.
+It is a mandatory local release-readiness gate alongside the legacy and XML-only
+profiles. Reports declare their exact qualification, protocol and participant
+modes. Readiness requires the current application and case-pack hashes, passing
+individual assertions, required cold-recovery observations and completed timing
+metadata. The independent profile also requires two distinct recovery-set IDs.
+
+Every summary links by SHA-256 to its full retained `verification.json` in the
+private QA case. A modified, missing, externally located or linked record cannot
+satisfy the gate. A top-level passing flag cannot override failed assertions or
+a different retained attempt. These checks establish the integrity and scope of
+local engineering records; they do not constitute independent attestation,
+official UPI compatibility or institutional recovery acceptance.
+
+These large rehearsals now use the shared storage admission described in
+[Qualification storage](QUALIFICATION_STORAGE.md). Storage refusal does not
+remove earlier case evidence or start a partial database/runtime rehearsal.
