@@ -28,6 +28,7 @@ def main():
     files.append('coordinated-upi-wire-recovery-verification.json')
     files.append('coordinated-peer-recovery-verification.json')
     files.append('aa-coordinated-recovery-verification.json')
+    files.append('identity-coordinated-recovery-verification.json')
     files.extend(['upi-wire-verification.json', 'upi-wire-postgres-verification.json'])
     for name in files:
         path = ROOT / '.local' / name
@@ -62,7 +63,10 @@ def main():
                 reports[name]['case_pack_matches'] = value.get('case_pack_sha256') == checkpoint_case_pack_hash()
                 reports[name]['passed'] = reports[name]['passed'] and reports[name]['case_pack_matches']
             if name in COORDINATED_PROFILES:
-                from verify_coordinated_recovery import case_pack_hash as recovery_case_pack_hash
+                if name == 'identity-coordinated-recovery-verification.json':
+                    from verify_identity_recovery import case_pack_hash as recovery_case_pack_hash
+                else:
+                    from verify_coordinated_recovery import case_pack_hash as recovery_case_pack_hash
                 reports[name].update(coordinated_evidence(ROOT, name, value, fingerprint, recovery_case_pack_hash()))
             if name == 'aa-coordinated-recovery-verification.json':
                 from verify_aa_recovery import case_pack_hash as aa_recovery_case_pack_hash
@@ -135,6 +139,11 @@ def main():
         'passed_for_current_build': peer_recovery_observed['passed'] and peer_recovery_observed.get('application_matches') is True,
         'checks': peer_recovery_observed.get('checks'), 'official_conformance': False,
         'scope': 'Five separately owned local mTLS PSP/network inboxes, authenticated address replacement, original signed receipts, real bank/network process loss and original financial recovery through two cold generations. This dedicated mode is mandatory and cannot substitute for legacy or XML-only recovery. Off-host, institutional RPO/RTO and independent acceptance remain open.'}
+    identity_observed = reports['identity-coordinated-recovery-verification.json']
+    value['synthetic_identity_recovery_qualification'] = {
+        'passed_for_current_build': identity_observed['passed'] and identity_observed.get('application_matches') is True,
+        'checks': identity_observed.get('checks'), 'official_conformance': False,
+        'scope': 'Owned static synthetic issuer and HTTPS API at authenticated replacement addresses, unchanged logical issuer/subjects/keys, original sessions/grants/expiry, code/PKCE sign-in, same-person checking, operator/issuer death and original mTLS bank effects through two cold generations. Stable-origin discovery, external IdPs, combined AA/HTTPS recovery, off-host and institutional qualification remain open.'}
     qualified = local_passed if args.profile == 'local' else local_passed and value['profiles'][args.profile]['ready']
     value.update(selected_profile=args.profile, selected_profile_ready=qualified)
     path.write_text(json.dumps(value, indent=2) + '\n')

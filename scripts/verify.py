@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Exercise the actual local HTTP, ledger, fault and durable-state boundaries."""
 import argparse
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import hmac
 from http.cookiejar import CookieJar
 import json
+import os
 from pathlib import Path
 import subprocess
+import socket
+import stat
 import sys
 import time
 import urllib.error
@@ -17,7 +21,8 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 BASE = 'http://127.0.0.1:4827'
 sys.path.insert(0,str(ROOT))
-from avenra.util import application_fingerprint
+from avenra.util import application_fingerprint, uid
+from avenra.private_config import write_document
 REPORT = ROOT / '.local/verification.json'
 checks = []
 
@@ -29,8 +34,9 @@ def check(name, condition, detail=None):
         raise AssertionError(name + ': ' + str(detail))
 
 
-def run(restart=False):
-    credentials = json.loads((ROOT / '.local/data/credentials.json').read_text())
+def run(restart=False, data_directory=None, restart_services=None):
+    data_directory = Path(data_directory or ROOT / '.local/data')
+    credentials = json.loads((data_directory / 'credentials.json').read_text())
     token = credentials['api_key']
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     operator = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPCookieProcessor(CookieJar()))
@@ -49,6 +55,8 @@ def run(restart=False):
             with error:
                 return error.code, json.load(error)
 
+    status, readiness = call('GET', '/health/ready', auth=False)
+    check('The actual HTTP deployment runs the current candidate application', status == 200 and readiness.get('source_fingerprint') == application_fingerprint())
     status, catalog = call('GET', '/api/catalog')
     check('Scoped API catalogue is available', status == 200)
     check('API key sees only its workspace', [t['id'] for t in catalog['tenants']] == [credentials['tenant_id']])
@@ -130,7 +138,7 @@ def run(restart=False):
     evidence = results['lost_response']['evidence']
     raw = json.dumps(evidence['manifest'], sort_keys=True, separators=(',', ':'), ensure_ascii=False, allow_nan=False)
     calculated = hashlib.sha256(raw.encode()).hexdigest()
-    local_key = (ROOT / '.local/data/evidence.key').read_bytes()
+    local_key = (data_directory / 'evidence.key').read_bytes()
     signed = hmac.new(local_key, calculated.encode(), hashlib.sha256).hexdigest()
     check('Evidence hash and HMAC verify independently', evidence['valid'] and calculated == evidence['manifest_hash'] and hmac.compare_digest(signed, evidence['signature']))
     tampered = json.loads(raw)
@@ -141,8 +149,11 @@ def run(restart=False):
     check('Retained audit chain verifies', status == 200 and audit['valid'] and audit['checked'] > 0)
     check('VM execution stays unavailable on this host', next(s for s in catalog['services'] if s['key'] == 'execution')['state'] == 'unavailable')
     if restart:
-        subprocess.run([sys.executable, str(ROOT / 'scripts/local.py'), 'stop'], cwd=ROOT, check=True)
-        subprocess.run([sys.executable, str(ROOT / 'scripts/local.py'), 'start'], cwd=ROOT, check=True)
+        if restart_services:
+            restart_services()
+        else:
+            subprocess.run([sys.executable, str(ROOT / 'scripts/local.py'), 'stop'], cwd=ROOT, check=True)
+            subprocess.run([sys.executable, str(ROOT / 'scripts/local.py'), 'start'], cwd=ROOT, check=True)
         status, replay = call('POST', path + '/payments', body)
         check('Payment identity and ledger transaction survive process restart', status == 202 and replay['id'] == payment_id and replay['ledger_transaction_id'] == payment['ledger_transaction_id'])
         _, restarted = call('GET', path + '/overview')
@@ -153,17 +164,102 @@ def run(restart=False):
     return {'environment_id': env, 'payment_id': payment_id, 'runs': run_ids, 'audit_events_checked': audit['checked'], 'restart_exercised': restart}
 
 
+@contextmanager
+def isolated():
+    """Preserve the complete legacy regression against an owned candidate API."""
+    from avenra.app import App
+    folder = ROOT / '.local/qa' / uid('legacy_http')
+    folder.mkdir(mode=0o700, parents=True)
+    data = folder / 'data'
+    data.mkdir(mode=0o700)
+    app = App(data)
+    try:
+        app.bootstrap()
+        with app.store.reader() as db:
+            scopes = [(row['tenant_id'], row['id']) for row in db.execute('SELECT tenant_id,id FROM environments')]
+        for tenant, environment in scopes:
+            app.provision(tenant, environment)
+    finally:
+        app.close()
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        number = listener.getsockname()[1]
+    origin = 'http://127.0.0.1:' + str(number)
+    process = None
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    def stop():
+        if process and process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=20)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)
+    def start():
+        nonlocal process
+        log = folder / 'api.log'
+        descriptor = os.open(log, os.O_WRONLY | os.O_CREAT | os.O_APPEND | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, 'ab') as output:
+            process = subprocess.Popen([sys.executable, '-B', '-m', 'avenra.asgi', '--data', str(data), '--port', str(number), '--mode', 'combined'],
+                cwd=ROOT, stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT)
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline:
+            if process.poll() is not None:
+                raise RuntimeError('Isolated candidate API exited; inspect its private API log.')
+            try:
+                with opener.open(origin + '/health/ready', timeout=2) as response:
+                    value = json.load(response)
+                if value.get('ready') and value.get('source_fingerprint') == application_fingerprint():
+                    return
+            except (OSError, urllib.error.URLError):
+                pass
+            time.sleep(.1)
+        raise TimeoutError('Isolated candidate API did not become ready.')
+    def restart():
+        stop()
+        start()
+    try:
+        start()
+        yield folder, data, origin, restart
+    finally:
+        stop()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--restart', action='store_true', help='Restart only this installation’s tracked services and verify persistence.')
+    parser.add_argument('--isolated', action='store_true', help='Use a fresh private control store, owned candidate API port and existing native loopback services.')
     args = parser.parse_args()
     failure = None
     details = {}
+    case = None
+    started_at = time.time()
     try:
-        details = run(args.restart)
+        if args.isolated:
+            with isolated() as (case, data, origin, restart_services):
+                BASE = origin
+                details = {**run(args.restart, data, restart_services), 'api_origin': origin, 'directory': str(case),
+                    'scope': 'Fresh private control store and owned candidate ASGI process; existing native loopback accounting/fault services with separate fixture ledgers.'}
+        else:
+            details = run(args.restart)
     except Exception as error:
         failure = str(error)
         print('Verification stopped: ' + failure, file=sys.stderr)
-    REPORT.write_text(json.dumps({'passed': failure is None, 'checks': checks, 'details': details, 'error': failure, 'application_fingerprint': application_fingerprint()}, indent=2) + '\n')
+    report = {'passed': failure is None, 'checks': checks, 'details': details, 'error': failure, 'application_fingerprint': application_fingerprint(),
+              'created_at':started_at,'completed_at':time.time()}
+    if case:
+        write_document(case / 'verification.json', report)
+    if REPORT.exists() or REPORT.is_symlink():
+        descriptor = os.open(REPORT, os.O_RDONLY | os.O_NOFOLLOW)
+        try:
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_nlink != 1:
+                raise ValueError('A qualification summary must be an ordinary owned single-link file.')
+            # Earlier verifier versions created this report with the umask.
+            # Narrow only this evidence file, never deployment configuration.
+            os.fchmod(descriptor, 0o600)
+        finally:
+            os.close(descriptor)
+    write_document(REPORT, report)
     print(f'{sum(c["passed"] for c in checks)}/{len(checks)} checks passed. Report: {REPORT}')
     raise SystemExit(1 if failure else 0)

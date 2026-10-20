@@ -7,7 +7,7 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from avenra.errors import DomainError
-from avenra import recovery_set, recovery_restore, recovery_native, recovery_banks, recovery_aa, recovery_peers
+from avenra import recovery_set, recovery_restore, recovery_native, recovery_banks, recovery_aa, recovery_peers, recovery_identity
 from avenra.private_config import read_document
 
 
@@ -39,6 +39,9 @@ def main():
     peers=sub.add_parser('peer-start');peers.add_argument('--directory',required=True);peers.add_argument('--ports',required=True)
     for name in ['recovery-trust','release-trust','request-id','actor']:peers.add_argument('--'+name,required=True)
     peer_stop=sub.add_parser('peer-stop');peer_stop.add_argument('--directory',required=True)
+    identity=sub.add_parser('identity-start');identity.add_argument('--directory',required=True);identity.add_argument('--issuer-port',type=int,required=True);identity.add_argument('--api-origin',required=True)
+    for name in ['recovery-trust','release-trust','request-id','actor']:identity.add_argument('--'+name,required=True)
+    identity_stop=sub.add_parser('identity-stop');identity_stop.add_argument('--directory',required=True)
     args=parser.parse_args()
     try:
         if args.action=='capture':value=recovery_set.capture(args.data,args.destination,args.artifact,args.release_trust,args.signing_key,args.accounting_dsn,args.native_directory,args.pg_bin,args.request_id,args.actor)
@@ -55,6 +58,8 @@ def main():
         elif args.action=='aa-stop':value=recovery_aa.stop(args.directory)
         elif args.action=='peer-start':value=recovery_peers.start(args.directory,read_document(args.ports),args.recovery_trust,args.release_trust,args.request_id,args.actor)
         elif args.action=='peer-stop':value=recovery_peers.stop(args.directory)
+        elif args.action=='identity-start':value=recovery_identity.start(args.directory,args.issuer_port,args.api_origin,args.recovery_trust,args.release_trust,args.request_id,args.actor)
+        elif args.action=='identity-stop':value=recovery_identity.stop(args.directory)
         else:value=recovery_restore.activate(args.directory,args.recovery_trust,args.release_trust,args.accounting_origin,args.fault_origin,args.request_id,args.actor)
         print(json.dumps(value));return 0
     except DomainError as error:

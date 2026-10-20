@@ -15,11 +15,12 @@ import uuid
 
 GIB = 1024 ** 3
 FREE_FLOOR = 16 * GIB
-BUDGETS = {'coordinated_recovery': 6 * GIB, 'aa_recovery': 6 * GIB,
+BUDGETS = {'coordinated_recovery': 6 * GIB, 'aa_recovery': 6 * GIB, 'identity_recovery': 6 * GIB,
            'release_upgrade': 4 * GIB, 'capacity': 2 * GIB}
 CASE_PACK_HELPERS = {
     'verify_coordinated_recovery.py': ('readiness_evidence.py',),
     'verify_aa_recovery.py': ('aa_review_oracle.cjs',),
+    'verify_identity_recovery.py': ('readiness_evidence.py',),
     'verify_releases.py': (),
     'verify_capacity.py': (),
 }

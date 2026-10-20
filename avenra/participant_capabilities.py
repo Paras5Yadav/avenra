@@ -14,7 +14,7 @@ import stat
 from .errors import require
 
 RELATIVE = 'avenra/deployment_capabilities.py'
-FIELDS = {'format', 'engine_bindings', 'bank_routes', 'aa_routes', 'peer_routes', 'issuer_runtime', 'participant_profiles'}
+FIELDS = {'format', 'engine_bindings', 'bank_routes', 'aa_routes', 'peer_routes', 'issuer_runtime', 'issuer_routes', 'participant_profiles'}
 VERSION = re.compile(r'[a-z0-9][a-z0-9_./-]{0,127}')
 
 # Explicit compatibility with the original, byte-pinned owned contracts. An

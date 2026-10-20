@@ -252,7 +252,7 @@ def stage(source, destination, recovery_trust, release_trust):
         runtime = destination / 'runtime';bundle.prepare_runtime(artifact, release_trust, runtime)
         restore_deployment(destination / 'payload/private-deployment', destination / 'original-deployment')
         for path in (destination / 'original-deployment').rglob('*'):
-            if path.is_file() and path.relative_to(destination / 'original-deployment').as_posix()!=INACTIVE:
+            if path.is_file() and path.relative_to(destination / 'original-deployment').as_posix() not in {INACTIVE, 'issuer-recovery.json'}:
                 copy_private(path, data / path.relative_to(destination / 'original-deployment'))
         restored_roles = restore_roles(destination / 'payload/financial-data', destination / 'original-financial-data')
         if (destination / 'original-financial-data/aa-scopes').exists():

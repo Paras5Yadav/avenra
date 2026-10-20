@@ -8,6 +8,7 @@ and check available bytes before creating their QA case or starting services:
 | --- | ---: |
 | `scripts/verify_coordinated_recovery.py`, including `--xml` and `--independent` | 6 GiB |
 | `scripts/verify_aa_recovery.py` | 6 GiB |
+| `scripts/verify_identity_recovery.py` | 6 GiB |
 | `scripts/verify_releases.py` | 4 GiB |
 | `scripts/verify_capacity.py`, including `--smoke` | 2 GiB |
 

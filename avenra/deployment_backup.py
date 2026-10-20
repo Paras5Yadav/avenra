@@ -9,7 +9,7 @@ import stat
 from .errors import require
 from .private_config import read_document, write_document, make_private_directories
 
-FILES = {'deployment.json', 'identity.json', 'gateway.json', 'control.dsn', 'migration.dsn', 'release-selection.json', 'release-pending.json', 'engine-endpoints.json'}
+FILES = {'deployment.json', 'identity.json', 'gateway.json', 'control.dsn', 'migration.dsn', 'release-selection.json', 'release-pending.json', 'engine-endpoints.json', 'issuer-recovery.json'}
 
 
 def regular(path):
@@ -33,7 +33,7 @@ def snapshot(directory, destination):
         require(secrets.is_dir() and not secrets.is_symlink(), 'RECOVERY_FILE', 'Deployment secret root cannot be a link.', 409)
         for folder in secrets.iterdir():
             require(folder.is_dir() and not folder.is_symlink(), 'RECOVERY_FILE', 'Deployment identity folders cannot be links.', 409)
-            sources.extend(p for p in folder.iterdir() if not p.name.endswith(('-wal', '-shm', '-journal')))
+            sources.extend(p for p in folder.iterdir() if not p.name.endswith(('-wal', '-shm', '-journal')) and p.name not in {'recovery-process.json', 'recovery-service.log'})
     require(len(sources) <= 256, 'RECOVERY_LIMIT', 'Deployment recovery file count exceeds this profile.', 409)
     entries = []
     for source in sorted(sources):

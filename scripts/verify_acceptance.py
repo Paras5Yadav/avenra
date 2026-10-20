@@ -21,7 +21,7 @@ from scripts.readiness_evidence import COORDINATED_PROFILES, coordinated_evidenc
 CASES = [
     ('Identity/store', 'verify_units.py', [], 'unit-verification.json'),
     ('API/worker separation', 'verify_asgi.py', [], 'asgi-verification.json'),
-    ('Original local financial/HTTP', 'verify.py', [], 'verification.json'),
+    ('Original local financial/HTTP', 'verify.py', ['--isolated', '--restart'], 'verification.json'),
     ('Banking SQLite', 'verify_banking.py', [], 'banking-verification.json'),
     ('Banking PostgreSQL', 'verify_banking.py', ['--postgres'], 'banking-postgres-verification.json'),
     ('Banking HTTP', 'verify_banking_http.py', [], 'banking-http-verification.json'),
@@ -48,6 +48,7 @@ CASES = [
     ('Coordinated XML participant cold recovery and contract-aware rollback', 'verify_coordinated_recovery.py', ['--xml'], 'coordinated-upi-wire-recovery-verification.json'),
     ('Coordinated independent PSP/network cold recovery', 'verify_coordinated_recovery.py', ['--independent'], 'coordinated-peer-recovery-verification.json'),
     ('Coordinated AA participant recovery', 'verify_aa_recovery.py', [], 'aa-coordinated-recovery-verification.json'),
+    ('Coordinated HTTPS synthetic identity and bank recovery', 'verify_identity_recovery.py', [], 'identity-coordinated-recovery-verification.json'),
     ('Mixed-tenant capacity and actual worker loss', 'verify_capacity.py', [], 'capacity-verification.json'),
     ('Native journal UTC policy', 'qualify_clock.py', [], 'accounting-clock-verification.json'),
     ('Full control/accounting restore', 'backup_restore.py', ['--verify-restore'], 'backup-verification.json'),

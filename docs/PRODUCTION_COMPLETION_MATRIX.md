@@ -35,10 +35,15 @@ write headroom; this is not a production filesystem quota or an automated
 retention policy. See `COORDINATED_RECOVERY.md` and `QUALIFICATION_STORAGE.md`.
 
 Owned synthetic issuer provisioning and serving share a cold-capture lifetime
-fence. Copied source issuer credentials refuse ordinary startup, and signed
-release admission requires the supporting runtime declaration. SSO address
-replacement and actual recovered sign-in remain open; the process fence alone
-does not complete that topology recovery.
+fence. Copied source issuer credentials refuse ordinary startup. An explicit
+static issuer/API route now preserves the original logical issuer, subjects,
+keys, sessions, grants and expiry policy at authenticated new HTTPS addresses.
+The dedicated recovery gate exercises real code/PKCE sign-in, old callback
+refusal, same-person checking, original native credit recovery, process death
+and two cold generations. Signed release admission requires both issuer runtime
+and configured route support. Stable-origin dynamic discovery, external IdPs,
+combined AA/HTTPS topology, broader IAM/key lifecycle and institutional acceptance
+remain open; this gate does not complete whole-service recovery.
 
 Every completion claim must identify the exact build, deployment, supported
 profile, executable case pack and direct observed evidence. Missing, unsupported,

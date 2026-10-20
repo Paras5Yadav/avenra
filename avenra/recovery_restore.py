@@ -154,6 +154,9 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
                 if 'peer-recovery.json' in previous['bound_file_hashes']:
                     from .recovery_peers import check as check_peers
                     check_peers(directory)
+                if 'issuer-recovery.json' in previous['bound_file_hashes']:
+                    from .recovery_identity import check as check_identity
+                    check_identity(directory)
                 artifact=bundle.verify_installed(directory/'artifacts'/stage['artifact_id'],release_trust);runtime_receipt(artifact,directory/'runtime')
                 require_deployment_capabilities(data,artifact,read_document(data/'deployment.json',{}))
                 require(all(bundle.sha(data/name)==hashed_file for name,hashed_file in previous['bound_file_hashes'].items()),'RECOVERY_CONFIGURATION_CHANGED','Retain the guard: published recovery bindings changed after activation preparation.',409)
@@ -169,8 +172,21 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
         config = read_document(data / 'deployment.json', {})
         services = read_document(data / 'services.json', {})
         identity_config = read_document(data / 'identity.json', {})
-        require(not services.get('services') and not services.get('callback_origins') and identity_config.get('mode','local') == 'local' and not config.get('transport'),
+        captured_identity = directory / 'payload/private-deployment/identity.json'
+        require((not captured_identity.exists() and not (data/'identity.json').exists()) or
+                (captured_identity.exists() and (data/'identity.json').exists() and bundle.sha(data/'identity.json')==bundle.sha(captured_identity)),
+                'RECOVERY_IDENTITY_BINDING', 'Retain the captured identity settings; recovery cannot disable or replace institutional sign-in.', 409)
+        captured_deployment = read_document(directory/'payload/private-deployment/deployment.json',{})
+        require(all(config.get(key,{})==captured_deployment.get(key,{}) for key in ['http','identity']),
+                'RECOVERY_IDENTITY_BINDING','Retain the captured API TLS, authentication and session policy.',409)
+        require(not services.get('services') and not services.get('callback_origins') and not config.get('transport'),
                 'RECOVERY_BINDINGS_REQUIRED', 'Retained external service, identity or counterparty bindings require coordinated replacement before activation.', 409)
+        recovered_identity = None
+        if identity_config.get('mode','local') != 'local':
+            require(identity_config.get('mode')=='institutional' and (directory/'identity-service.json').exists(),
+                    'RECOVERY_IDENTITY_REQUIRED','Start the captured synthetic issuer through authenticated replacement HTTPS routes before activation.',409)
+            from .recovery_identity import check as check_identity
+            recovered_identity = check_identity(directory)
         recovered_aa = None;aa_scopes = set()
         if stage['private_roles']['files']:
             require((directory/'aa-services.json').exists(),'RECOVERY_AA_REQUIRED','Start all captured AA listeners through authenticated replacement routes before activation.',409)
@@ -213,11 +229,12 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
                     'Start every captured participant through authenticated replacement routes before activation.', 409)
             from .recovery_peers import check as check_peers
             recovered_peers = check_peers(directory)
-        if recovered_banks or recovered_aa or recovered_peers:
+        if recovered_banks or recovered_aa or recovered_peers or recovered_identity:
             config['recovery'] = {'set_id':checked['set_id']}
             if recovered_banks:config['recovery']['bank_routes_sha256']=bundle.sha(data/'bank-recovery.json')
             if recovered_aa:config['recovery']['aa_routes_sha256']=bundle.sha(data/'aa-recovery.json')
             if recovered_peers:config['recovery']['peer_routes_sha256']=bundle.sha(data/'peer-recovery.json')
+            if recovered_identity:config['recovery']['issuer_routes_sha256']=bundle.sha(data/'issuer-recovery.json')
         require_deployment_capabilities(data,artifact,config)
         dsn = private_read(data / 'migration.dsn').decode().strip()
         with psycopg.connect(dsn, autocommit=True) as db:
@@ -258,10 +275,10 @@ def activate(directory, recovery_trust, release_trust, accounting_origin, fault_
             # A recovered deployment starts with no implicit callback egress.
             write_document(data / 'services.json',{**services,'callback_origins':[]})
             write_document(data / 'release-selection.json',{'artifact_id':stage['artifact_id'],'application_fingerprint':stage['application_fingerprint'],'artifact_directory':artifact['directory'],'runtime_directory':str((directory / 'runtime').resolve()),'request_id':selected[2]})
-            bound_files = ['deployment.json','engine-endpoints.json','services.json','release-selection.json','control.dsn','migration.dsn','accounting.dsn'] + (['bank-recovery.json'] if recovered_banks else []) + (['aa-recovery.json'] if recovered_aa else []) + (['peer-recovery.json'] if recovered_peers else [])
+            bound_files = ['deployment.json','engine-endpoints.json','services.json','release-selection.json','control.dsn','migration.dsn','accounting.dsn'] + (['bank-recovery.json'] if recovered_banks else []) + (['aa-recovery.json'] if recovered_aa else []) + (['peer-recovery.json'] if recovered_peers else []) + (['issuer-recovery.json','identity.json'] if recovered_identity else [])
             record = {'format':'avenra-recovery-activation/1',**payload,'payload_hash':hashed,'activated_at':time.time(),'artifact_id':stage['artifact_id'],
                       'bound_file_hashes':{name:bundle.sha(data/name) for name in bound_files},
-                      'source_release_pointer_preserved':True,'financial_outcomes_rewritten':False,'scope':'Recovered loopback native services and local/TLS synthetic participants; other external roles/services remain gated.'}
+                      'source_release_pointer_preserved':True,'financial_outcomes_rewritten':False,'scope':'Recovered loopback native services, local/TLS synthetic participants and explicitly bound owned synthetic identity; other external roles/services remain gated.'}
             key = private_read(data / 'evidence.key');record['signature'] = hmac.new(key, canonical(record).encode(),hashlib.sha256).hexdigest()
             write_document(directory / 'recovery-activation.json',record)
             (data / INACTIVE).unlink()

@@ -11,6 +11,7 @@ COORDINATED_PROFILES = {
     'coordinated-recovery-verification.json': ('avenra-cold-recovery/1', 'legacy', 'in_process'),
     'coordinated-upi-wire-recovery-verification.json': ('avenra-cold-xml-recovery/1', 'xml', 'in_process'),
     'coordinated-peer-recovery-verification.json': ('avenra-cold-independent-recovery/1', 'xml', 'independent'),
+    'identity-coordinated-recovery-verification.json': ('avenra-cold-identity-recovery/1', 'xml', 'synthetic_identity'),
 }
 
 # These observations distinguish actual cold recovery from a startup smoke test.
@@ -39,6 +40,22 @@ XML_OBSERVATIONS = {
     'A signed negative candidate missing retained XML contracts is refused despite supporting every runtime route and issuer fence',
     'Contract capability refusal preserves every restored control row, sequence and release pointer',
 }
+IDENTITY_OBSERVATIONS = {
+    'Actual operator death leaves an owned inactive issuer that exact retry reuses',
+    'An inactive replacement issuer proves its keys but refuses authorization and tokens',
+    'A different certificate under the original CA receives no confidential request bytes',
+    'Recovered sessions preserve every original subject, expiry and grant row',
+    'Fresh recovered HTTPS sign-in preserves the original principal and approval identity',
+    'Recovered sign-in cannot approve the same person’s original proposal',
+    'Old code and interaction bindings cannot be redirected to the recovered callback',
+    'Original uncertain bank credit is confirmed once through recovered HTTPS identity',
+    'A genuine signed predecessor without issuer routing is refused before any control change',
+    'Actual issuer death is restarted under the same authenticated recovery decision',
+    'Second-generation HTTPS sign-in retains the original subject and revoked grant',
+    'New financial work completes after two cold identity recoveries with each original native leg posted once',
+    'Neither identity recovery contacted a preceding source listener',
+    'Qualification retained one fixed build and one fixed case pack',
+}
 
 
 def _hash(value):
@@ -65,7 +82,8 @@ def coordinated_evidence(root, name, value, fingerprint, case_pack_sha256):
         isinstance(item, dict) and isinstance(item.get('name'), str) and bool(item['name'])
         and item.get('passed') is True for item in checks)
     names = [item['name'] for item in checks] if valid_checks else []
-    required = COMMON_OBSERVATIONS | (XML_OBSERVATIONS if expected[1] == 'xml' else set()) | (PEER_OBSERVATIONS if expected[2] == 'independent' else set())
+    required = (IDENTITY_OBSERVATIONS if expected[2] == 'synthetic_identity' else
+                COMMON_OBSERVATIONS | (XML_OBSERVATIONS if expected[1] == 'xml' else set()) | (PEER_OBSERVATIONS if expected[2] == 'independent' else set()))
     timings = all(_time(value.get(key)) for key in ['created_at', 'completed_at', 'observed_end_to_end_seconds'])
     result = {
         'application_matches': value.get('application_fingerprint') == fingerprint,
@@ -80,7 +98,7 @@ def coordinated_evidence(root, name, value, fingerprint, case_pack_sha256):
         'scope_matches': value.get('production_ready') is False and value.get('official_conformance') is False,
         'complete_evidence_matches': False,
     }
-    if expected[2] == 'independent':
+    if expected[2] in {'independent', 'synthetic_identity'}:
         result['second_generation_matches'] = _hash(value.get('second_recovery_set_id')) and value['second_recovery_set_id'] != value.get('set_id')
     try:
         evidence = value.get('evidence', {})

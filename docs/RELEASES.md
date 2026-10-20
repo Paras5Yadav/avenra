@@ -84,7 +84,7 @@ profile under new database identities and explicit service bindings. Captured
 banks restart from the verified offline application with authenticated new
 physical addresses while original logical bindings remain unchanged. The signed
 bundle now also contains the root API and operator guides. Standalone operator
-bootstrap, SSO/other-provider service rebinding, host/cluster recovery and fleet disaster recovery remain
+bootstrap, external IdP/other-provider and combined AA/HTTPS service rebinding, host/cluster recovery and fleet disaster recovery remain
 open; the private file checkpoint alone does not establish them.
 
 Rollback selects a previously committed compatible artifact. Financial history,
@@ -105,6 +105,14 @@ startup guard. Provisioning and release admission share the installation lock;
 cold capture rechecks the selected artifact inside that lock. Normal deployments
 without these bindings or issuer configurations retain the previously qualified
 compatible rollback behavior.
+
+Configured owned issuer/API recovery also requires the signed `issuer_routes`
+declaration. It binds the same logical issuer and private authority to new HTTPS
+listeners without rewriting identity settings, subjects, session ages or grants.
+The selected offline runtime must own and prove the replacement issuer process.
+API launch enforces the approved callback origin. Selection, interrupted-release
+recovery and startup refuse older signed code lacking that route contract before
+mutating release state. See [COORDINATED_RECOVERY.md](COORDINATED_RECOVERY.md).
 
 Every retained participant connection revision also contributes its exact
 adapter/contract-hash requirement, even after it becomes inactive. New XML

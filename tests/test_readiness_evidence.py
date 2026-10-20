@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 from scripts.readiness_evidence import (
-    COORDINATED_PROFILES, COMMON_OBSERVATIONS, PEER_OBSERVATIONS, XML_OBSERVATIONS, coordinated_evidence,
+    COORDINATED_PROFILES, COMMON_OBSERVATIONS, PEER_OBSERVATIONS, XML_OBSERVATIONS, IDENTITY_OBSERVATIONS, coordinated_evidence,
 )
 
 
@@ -24,7 +24,8 @@ class RecoveryEvidenceTests(unittest.TestCase):
     def document(self, name=None):
         name = name or self.name
         profile, protocol, participants = COORDINATED_PROFILES[name]
-        observations = COMMON_OBSERVATIONS | (XML_OBSERVATIONS if protocol == 'xml' else set()) | (PEER_OBSERVATIONS if participants == 'independent' else set())
+        observations = (IDENTITY_OBSERVATIONS if participants == 'synthetic_identity' else
+                        COMMON_OBSERVATIONS | (XML_OBSERVATIONS if protocol == 'xml' else set()) | (PEER_OBSERVATIONS if participants == 'independent' else set()))
         return {
             'passed': True, 'application_fingerprint': 'a' * 64, 'case_pack_sha256': 'b' * 64,
             'qualification_profile': profile, 'protocol_mode': protocol, 'participant_mode': participants,
@@ -42,7 +43,7 @@ class RecoveryEvidenceTests(unittest.TestCase):
     def evaluate(self, value, name=None):
         return coordinated_evidence(self.root, name or self.name, value, 'a' * 64, 'b' * 64)
 
-    def test_all_three_profiles_accept_only_their_own_retained_mode(self):
+    def test_all_profiles_accept_only_their_own_retained_mode(self):
         for produced in COORDINATED_PROFILES:
             value = self.retain(self.document(produced))
             for requested in COORDINATED_PROFILES:
@@ -119,10 +120,11 @@ class RecoveryEvidenceTests(unittest.TestCase):
                 self.assertFalse(self.evaluate(self.retain(value))['passed'])
 
     def test_missing_or_reused_second_generation_identity_is_refused(self):
-        for item in [None, '', 'c' * 64]:
-            value = self.document()
-            value['second_recovery_set_id'] = item
-            self.assertFalse(self.evaluate(self.retain(value))['passed'])
+        for name in [self.name, 'identity-coordinated-recovery-verification.json']:
+            for item in [None, '', 'c' * 64]:
+                value = self.document(name)
+                value['second_recovery_set_id'] = item
+                self.assertFalse(self.evaluate(self.retain(value), name)['passed'])
 
     def test_official_or_whole_product_claim_cannot_be_inferred_from_this_gate(self):
         for key in ['production_ready', 'official_conformance']:

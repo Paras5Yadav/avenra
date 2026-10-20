@@ -7,6 +7,7 @@ CAPABILITIES = {
     'aa_routes': ['avenra-aa-recovery-routes/1'],
     'peer_routes': ['avenra-peer-recovery-routes/1'],
     'issuer_runtime': ['avenra-synthetic-issuer-runtime/1'],
+    'issuer_routes': ['avenra-synthetic-issuer-recovery/1'],
     'participant_profiles': [
         'avenra-xml-tls-participant/1/d7272c7dcaeb6fa024f181fa212d62dd3cd0d92b9292e368ade0edd8690cb50b',
         'avenra-xml-participant/1/415786f9ce820675e0f1bc92a3993a644a7b72b9cf9c730c3c4ecf7ffbbf96bb',

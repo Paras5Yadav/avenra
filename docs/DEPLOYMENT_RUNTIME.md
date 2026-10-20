@@ -55,9 +55,13 @@ rules for a deployment; no configuration flag establishes qualification.
   backups also include runtime policy/session/grant/worker tables. Completed
   backup archives can use the existing authenticated archive encryption tool.
   Coordinated cold capture now fences the owned issuer's actual process lifetime
-  and provisioning. Copied issuers remain unavailable pending coordinated identity
-  bindings, including after activation of the recovered bank/native topology.
-  Release admission refuses signed code without the required issuer fence.
+  and provisioning. Copied issuers refuse ordinary startup. Explicit static
+  synthetic issuer/API recovery preserves the original logical issuer, keys,
+  subjects, sessions, grants and expiry limits at new authenticated HTTPS
+  addresses. Before activation, only key/challenge probes can execute. Release
+  admission requires both the issuer fence and configured physical-route support.
+  External IdPs, stable-origin discovery and combined AA/HTTPS recovery remain
+  open. See [COORDINATED_RECOVERY.md](COORDINATED_RECOVERY.md).
 - Scoped operational policies, durable incidents, attributed acknowledgements,
   authenticated history cursors and monitor-owner failover execute inside these
   Runtime controls. See [OPERATIONS_MONITORING.md](OPERATIONS_MONITORING.md).

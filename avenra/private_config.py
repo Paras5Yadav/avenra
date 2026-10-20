@@ -127,7 +127,7 @@ def deployment(directory):
             require(isinstance(release['artifact_id'], str) and re.fullmatch('[0-9a-f]{64}', release['artifact_id']), 'DEPLOYMENT_CONFIGURATION', 'Release artifact identity is invalid.', 503)
             require(db.get('mode') == 'runtime', 'DEPLOYMENT_CONFIGURATION', 'Managed artifact selection requires a runtime database identity.', 503)
     recovery = document.get('recovery', {})
-    require(isinstance(recovery, dict) and set(recovery) <= {'set_id', 'bank_routes_sha256','aa_routes_sha256','peer_routes_sha256'} and
+    require(isinstance(recovery, dict) and set(recovery) <= {'set_id', 'bank_routes_sha256','aa_routes_sha256','peer_routes_sha256','issuer_routes_sha256'} and
             (not recovery or ('set_id' in recovery and len(recovery)>1)) and
             all(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) for value in recovery.values()),
             'DEPLOYMENT_CONFIGURATION', 'Invalid authenticated recovery routing policy.', 503)
@@ -152,4 +152,13 @@ def deployment(directory):
                 'RECOVERY_PEER_BINDING','Activated participant routes are missing or changed; startup remains unavailable.',503)
         from .peer_recovery import load
         require(load(directory)['set_id']==recovery['set_id'],'RECOVERY_PEER_BINDING','Activated participant routes belong to another recovery set.',503)
+    if recovery.get('issuer_routes_sha256'):
+        import hashlib
+        path = Path(directory)/'issuer-recovery.json'
+        require(path.exists() and hashlib.sha256(private_read(path)).hexdigest()==recovery['issuer_routes_sha256'],
+                'RECOVERY_IDENTITY_BINDING','Activated identity routing is missing or changed; startup remains unavailable.',503)
+        from .issuer_recovery import load, verify_files
+        routes = load(directory)
+        require(routes['set_id']==recovery['set_id'],'RECOVERY_IDENTITY_BINDING','Activated identity routes belong to another recovery set.',503)
+        verify_files(directory,routes)
     return document
