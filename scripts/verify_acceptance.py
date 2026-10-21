@@ -44,6 +44,7 @@ CASES = [
     ('Standalone SQLite recovery checkpoints', 'verify_checkpoints.py', [], 'checkpoint-verification.json'),
     ('Operational incidents and real outage recovery', 'verify_operations.py', [], 'operations-verification.json'),
     ('Additive migration of the preserved predecessor', 'verify_operations_upgrade.py', [], 'operations-upgrade-verification.json'),
+    ('Durable worker errors and original-ID evidence recovery', 'verify_work_queue.py', [], 'work-queue-verification.json'),
     ('Coordinated cold application and native recovery', 'verify_coordinated_recovery.py', [], 'coordinated-recovery-verification.json'),
     ('Coordinated XML participant cold recovery and contract-aware rollback', 'verify_coordinated_recovery.py', ['--xml'], 'coordinated-upi-wire-recovery-verification.json'),
     ('Coordinated independent PSP/network cold recovery', 'verify_coordinated_recovery.py', ['--independent'], 'coordinated-peer-recovery-verification.json'),
@@ -74,6 +75,9 @@ def qualified_receipt(script, filename, value, fingerprint, case_hash):
         from scripts.verify_capacity import REFERENCE
         from avenra.util import digest
         return value.get('reference_profile_passed') is True and value.get('mode')=='reference' and value.get('profile')==REFERENCE and value.get('reference_profile_sha256')==digest(REFERENCE)
+    if script=='verify_work_queue.py':
+        from scripts.verify_work_queue import complete_evidence
+        return complete_evidence(value)
     return True
 
 

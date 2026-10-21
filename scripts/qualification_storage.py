@@ -23,6 +23,7 @@ CASE_PACK_HELPERS = {
     'verify_identity_recovery.py': ('readiness_evidence.py',),
     'verify_releases.py': (),
     'verify_capacity.py': (),
+    'verify_work_queue.py': (),
 }
 
 

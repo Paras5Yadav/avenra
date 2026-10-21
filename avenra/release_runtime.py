@@ -64,6 +64,11 @@ def schema_versions(db, required=None):
         require(len(values) == 1, 'RELEASE_SCHEMA', 'Schema version inventory is ambiguous.', 409)
         observed[table] = values[0][0]
     require(observed == required, 'RELEASE_SCHEMA', 'Installed schemas are incompatible with this release. No automatic downgrade is permitted.', 409)
+    if observed['avenra_schema_version'] == 10:
+        from .outbox_retry import validate
+        from .postgres_store import Connection
+        require(db.execute("SELECT to_regclass('outbox_retry_schema')").fetchone()[0], 'RELEASE_SCHEMA', 'Worker retry migration history is missing.', 409)
+        validate(Connection(db), 'RELEASE_SCHEMA')
     if db.execute("SELECT to_regclass('ops_schema')").fetchone()[0]:
         from .operations import schema_hash
         rows=db.execute('SELECT version,source_sha256 FROM ops_schema').fetchall()

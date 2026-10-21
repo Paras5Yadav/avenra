@@ -426,11 +426,12 @@ class App:
                 self.store.defer(job, 2)
             except Exception as error:
                 logging.exception('Avenra worker operation failed: %s', job['id'])
-                self.store.finish(job, type(error).__name__)
-                if job['kind'] == 'bank_callback' and job['attempts'] >= 6:
+                from .outbox_retry import exhausted
+                finished = self.store.finish(job, type(error).__name__)
+                if finished and job['kind'] == 'bank_callback' and exhausted(job):
                     with self.store.transaction() as db:
                         db.execute("UPDATE bank_notifications SET state='dead_letter' WHERE id=? AND state!='delivered'", (job['aggregate_id'],))
-                if job['kind'] == 'environment' and job['attempts'] >= 6:
+                if finished and job['kind'] == 'environment' and exhausted(job):
                     with self.store.transaction() as db:
                         db.execute("UPDATE environments SET status='failed',error=? WHERE id=? AND status!='active'", ('Engine provisioning failed; inspect local service logs.', job['environment_id']))
 

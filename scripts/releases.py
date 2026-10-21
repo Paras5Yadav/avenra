@@ -25,8 +25,9 @@ def main():
     for action in ['activate', 'rollback']:
         command = sub.add_parser(action)
         for field in ['data', 'artifact', 'trust', 'runtime', 'expected', 'request-id', 'actor']: command.add_argument('--' + field, required=True)
-    migrate=sub.add_parser('upgrade-operations')
-    for field in ['data','artifact','trust','expected','request-id','actor']:migrate.add_argument('--'+field,required=True)
+    for action in ['upgrade-operations', 'upgrade-work-queue']:
+        migrate=sub.add_parser(action)
+        for field in ['data','artifact','trust','expected','request-id','actor']:migrate.add_argument('--'+field,required=True)
     recover = sub.add_parser('recover');recover.add_argument('--data', required=True);recover.add_argument('--trust', required=True)
     status = sub.add_parser('status');status.add_argument('--data', required=True)
     run = sub.add_parser('run');run.add_argument('--data', required=True);run.add_argument('--trust', required=True);run.add_argument('--mode', choices=['api', 'combined', 'worker'], required=True);run.add_argument('--port', type=int, default=4827);run.add_argument('--host', default='127.0.0.1')
@@ -43,6 +44,9 @@ def main():
         elif args.action=='upgrade-operations':
             from avenra.database_deployment import upgrade_operations
             value=upgrade_operations(args.data,args.artifact,args.trust,None if args.expected=='none' else args.expected,args.request_id,args.actor)
+        elif args.action=='upgrade-work-queue':
+            from avenra.database_deployment import upgrade_work_queue
+            value=upgrade_work_queue(args.data,args.artifact,args.trust,None if args.expected=='none' else args.expected,args.request_id,args.actor)
         elif args.action == 'recover': value = runtime.recover(args.data, args.trust)
         elif args.action == 'status': value = runtime.status(args.data)
         else:

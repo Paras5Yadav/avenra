@@ -17,7 +17,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from avenra import release_bundle as bundle
 from avenra import release_runtime as releases
-from avenra.database_deployment import upgrade_operations
+from avenra.database_deployment import upgrade_operations,upgrade_work_queue
 from avenra.deployment_identity import issue,client_context
 from avenra.errors import DomainError
 from avenra.lab_identity import private_read,private_write
@@ -132,16 +132,28 @@ print(json.dumps({'database':r['database']}))'''
                 try:db.execute(statement)
                 except psycopg.errors.InsufficientPrivilege:refused=True
                 check('Existing runtime identity refuses migrated-schema privilege escalation: '+statement.split()[0],refused)
-        activated=releases.transition(data,new['directory'],trust,runtime,old['artifact_id'],str(uuid.uuid4()),'upgrade-verifier')
-        server_new=start(releases.command(data,trust,'combined',port),'upgraded-api');wait(lambda:call('/health/ready'),lambda r:r[0]==200)
+        # Preserve actual additive-only rollback evidence with a genuine
+        # control-v9 operations release before the separate v10 retry change.
+        intermediate_baseline=json.loads(private_read(ROOT/'.local/release-baselines/before-work-queue.json'))
+        intermediate=bundle.verify_installed(intermediate_baseline['directory'],intermediate_baseline['trust_file'])
+        check('The intermediate operations release is a genuine preserved control-v9 artifact',intermediate['manifest']['schemas']==bundle.OPERATIONS_SCHEMAS)
+        activated=releases.transition(data,intermediate['directory'],intermediate_baseline['trust_file'],intermediate_baseline['runtime_directory'],old['artifact_id'],str(uuid.uuid4()),'upgrade-verifier')
+        server_new=start(releases.command(data,intermediate_baseline['trust_file'],'combined',port),'upgraded-operations-api');wait(lambda:call('/health/ready'),lambda r:r[0]==200)
         after=call(scope+'/payments/'+payment['id'])[1];balances={x['id']:x['balance_paise'] for x in call(scope+'/accounts')[1]['accounts']}
-        check('Upgraded application retains the original settled payment and native balances',activated['artifact_id']==new['artifact_id'] and after['ledger_transaction_id']==original['ledger_transaction_id'] and balances[payer['id']]==payer['balance_paise']-321 and balances[payee['id']]==payee['balance_paise']+321)
+        check('Operations-upgraded application retains the original settled payment and native balances',activated['artifact_id']==intermediate['artifact_id'] and after['ledger_transaction_id']==original['ledger_transaction_id'] and balances[payer['id']]==payer['balance_paise']-321 and balances[payee['id']]==payee['balance_paise']+321)
         operations=call(scope+'/banking/runtime')[1]['operations'];check('New monitoring is integrated in the existing API without creating replacement financial state',operations['policy'] is None and operations['open_count']==0)
-        stop(server_new);rolled=releases.transition(data,old['directory'],baseline['trust_file'],baseline['runtime_directory'],new['artifact_id'],str(uuid.uuid4()),'upgrade-verifier','rollback')
+        stop(server_new);rolled=releases.transition(data,old['directory'],baseline['trust_file'],baseline['runtime_directory'],intermediate['artifact_id'],str(uuid.uuid4()),'upgrade-verifier','rollback')
         server_old=start(releases.command(data,baseline['trust_file'],'combined',port),'rolled-back-predecessor');wait(lambda:call('/health/ready'),lambda r:r[0]==200)
         check('Compatible predecessor code runs after rollback while additive operations tables remain retained',rolled['artifact_id']==old['artifact_id'] and call(scope+'/payments/'+payment['id'])[1]['ledger_transaction_id']==original['ledger_transaction_id'])
         with psycopg.connect(dsn,autocommit=True) as db:retained=db.execute('SELECT version FROM ops_schema').fetchone()[0]==1
         check('Code rollback never drops the installed operations schema',retained)
+        stop(server_old)
+        upgraded=upgrade_work_queue(data,new['directory'],trust,old['artifact_id'],str(uuid.uuid4()),'upgrade-verifier')
+        releases.transition(data,new['directory'],trust,runtime,old['artifact_id'],str(uuid.uuid4()),'upgrade-verifier')
+        candidate_api=start(releases.command(data,trust,'combined',port),'current-candidate-api');wait(lambda:call('/health/ready'),lambda r:r[0]==200)
+        check('The current candidate serves the same original payment after the separate reviewed retry migration',upgraded['installed'] and call(scope+'/payments/'+payment['id'])[1]['ledger_transaction_id']==original['ledger_transaction_id'])
+        stop(candidate_api)
+        denied('Control-v9 rollback is refused once the separate control-v10 migration is installed',lambda:releases.transition(data,old['directory'],baseline['trust_file'],baseline['runtime_directory'],new['artifact_id'],str(uuid.uuid4()),'upgrade-verifier','rollback'),'RELEASE_SCHEMA')
         check('Migration qualification uses a fixed candidate source and case pack',report['application_fingerprint']==application_fingerprint() and report['case_pack_sha256']==case_pack_hash())
         report.update(passed=True,predecessor_artifact=old['artifact_id'],candidate_artifact=new['artifact_id'],payment_id=payment['id'])
     except Exception as error:report.update(error=str(error),traceback=traceback.format_exc())

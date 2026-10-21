@@ -34,7 +34,7 @@ def grant_runtime(db, migrator, runtime):
         WHERE t.tgrelid=c.oid AND p.proname='avenra_immutable_record' AND (t.tgtype & 16)=16
         AND t.tgqual IS NULL AND t.tgattr=''::int2vector)
         FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind='r'""").fetchall()
-    readonly = {'avenra_schema_version','fidelity_schema','runtime_schema','aa_schema','ops_schema','release_active','release_events'}
+    readonly = {'avenra_schema_version','fidelity_schema','runtime_schema','aa_schema','ops_schema','outbox_retry_schema','release_active','release_events'}
     for table, immutable in rows:
         permissions = ['SELECT'] if table in readonly else ['SELECT','INSERT'] + ([] if immutable else ['UPDATE'])
         if table in {'sessions','identity_logins'}: permissions.append('DELETE')

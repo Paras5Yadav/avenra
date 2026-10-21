@@ -133,3 +133,12 @@ source provenance before they can be used as resume inputs.
 Operations tables use the reviewed additive migration in [RELEASES.md](RELEASES.md).
 Full backups compare their original ordered row hashes and policy signatures
 after restoration, alongside existing native accounting/evidence checks.
+
+Worker outbox claims and processing errors have separate durable counters in
+control schema 10. Productive progress cannot consume the six-error budget.
+After exhaustion, retain the failed job and reconcile the original payment.
+A settled payment without sealed evidence still needs successful independent
+journal observation; do not replace its request or post new financial legs.
+The retained capacity failure that exposed this issue stays failed evidence.
+Only a fresh run of the unchanged reference workload can qualify the fix.
+See the offline migration and real failure rehearsal in [RELEASES.md](RELEASES.md).

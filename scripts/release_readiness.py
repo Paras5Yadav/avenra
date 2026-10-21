@@ -24,6 +24,7 @@ def main():
     files.append('release-verification.json')
     files.append('checkpoint-verification.json')
     files.extend(['operations-verification.json','operations-upgrade-verification.json','capacity-verification.json'])
+    files.append('work-queue-verification.json')
     files.append('coordinated-recovery-verification.json')
     files.append('coordinated-upi-wire-recovery-verification.json')
     files.append('coordinated-peer-recovery-verification.json')
@@ -72,16 +73,23 @@ def main():
                 from verify_aa_recovery import case_pack_hash as aa_recovery_case_pack_hash
                 reports[name]['case_pack_matches'] = value.get('case_pack_sha256') == aa_recovery_case_pack_hash()
                 reports[name]['passed'] = reports[name]['passed'] and reports[name]['case_pack_matches']
-            if name in {'operations-verification.json','operations-upgrade-verification.json','capacity-verification.json'}:
+            if name in {'operations-verification.json','operations-upgrade-verification.json','capacity-verification.json','work-queue-verification.json'}:
                 import hashlib
-                script = {'operations-verification.json':'verify_operations.py','operations-upgrade-verification.json':'verify_operations_upgrade.py','capacity-verification.json':'verify_capacity.py'}[name]
+                script = {'operations-verification.json':'verify_operations.py','operations-upgrade-verification.json':'verify_operations_upgrade.py','capacity-verification.json':'verify_capacity.py','work-queue-verification.json':'verify_work_queue.py'}[name]
                 if name == 'capacity-verification.json':
                     from verify_capacity import case_pack_hash as capacity_case_pack_hash
                     expected_case_pack = capacity_case_pack_hash()
+                elif name == 'work-queue-verification.json':
+                    from verify_work_queue import case_pack_hash as queue_case_pack_hash
+                    expected_case_pack = queue_case_pack_hash()
                 else:
                     expected_case_pack = hashlib.sha256((ROOT / 'scripts' / script).read_bytes()).hexdigest()
                 reports[name]['case_pack_matches'] = value.get('case_pack_sha256') == expected_case_pack
                 reports[name]['passed'] = reports[name]['passed'] and reports[name]['case_pack_matches']
+                if name == 'work-queue-verification.json':
+                    from verify_work_queue import complete_evidence
+                    reports[name]['complete_evidence_matches'] = complete_evidence(value)
+                    reports[name]['passed'] = reports[name]['passed'] and reports[name]['complete_evidence_matches']
                 if name == 'capacity-verification.json':
                     from verify_capacity import REFERENCE
                     from avenra.util import digest
