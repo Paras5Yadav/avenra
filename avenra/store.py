@@ -65,8 +65,21 @@ class Store:
                 migration = Path(__file__).with_name('migrations').joinpath('009_connections.sql').read_text()
                 db.executescript('BEGIN IMMEDIATE;\n' + migration + '\nPRAGMA user_version=9; COMMIT;')
                 version = 9
-            if version != 9:
+            from . import outbox_retry
+            if version == 9:
+                db.execute('BEGIN IMMEDIATE')
+                try:
+                    if db.execute('PRAGMA user_version').fetchone()[0] == 9:
+                        outbox_retry.install(db, False)
+                        db.execute('PRAGMA user_version=10')
+                    db.execute('COMMIT')
+                except BaseException:
+                    db.execute('ROLLBACK')
+                    raise
+                version = 10
+            if version != outbox_retry.CORE_VERSION:
                 raise RuntimeError("Avenra database requires a compatible application version.")
+            outbox_retry.validate(db)
         os.chmod(self.path, 0o600)
 
     @contextmanager
@@ -129,13 +142,19 @@ class Store:
 
     def finish(self, job, error=None):
         with self.transaction() as db:
+            current = db.execute("SELECT * FROM outbox WHERE id=? AND state='leased' AND lease_token=?",
+                                 (job['id'], job['lease_token'])).fetchone()
+            if current is None:
+                return False
             if error is None:
                 result = db.execute("UPDATE outbox SET state='done',completed_at=?,lease_until=NULL WHERE id=? AND state='leased' AND lease_token=?",
                                     (now(), job["id"], job["lease_token"]))
             else:
-                state = "failed" if job["attempts"] >= 6 else "ready"
-                result = db.execute("UPDATE outbox SET state=?,available_at=?,last_error=?,lease_until=NULL WHERE id=? AND state='leased' AND lease_token=?",
-                                    (state, time.time() + min(30, .25 * 2 ** job["attempts"]), str(error)[:600], job["id"], job["lease_token"]))
+                from .outbox_retry import ERROR_LIMIT, error_number, exhausted
+                state = 'failed' if exhausted(current) else 'ready'
+                errors = None if current['error_attempts'] is None else min(ERROR_LIMIT, current['error_attempts'] + 1)
+                result = db.execute("UPDATE outbox SET state=?,available_at=?,last_error=?,error_attempts=?,lease_until=NULL WHERE id=? AND state='leased' AND lease_token=?",
+                                    (state, time.time() + min(30, .25 * 2 ** min(ERROR_LIMIT, error_number(current))), str(error)[:600], errors, job["id"], job["lease_token"]))
             return result.rowcount == 1
 
     def defer(self, job, delay=1):

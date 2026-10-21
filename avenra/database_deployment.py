@@ -48,7 +48,7 @@ def provision(directory, administrative_dsn):
                 WHERE t.tgrelid=c.oid AND p.proname='avenra_immutable_record'
                 AND (t.tgtype & 16)=16 AND t.tgqual IS NULL AND t.tgattr=''::int2vector) AS immutable
             FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relkind='r'""").fetchall()
-        versions = {'avenra_schema_version', 'fidelity_schema', 'runtime_schema', 'aa_schema', 'ops_schema'}
+        versions = {'avenra_schema_version', 'fidelity_schema', 'runtime_schema', 'aa_schema', 'ops_schema', 'outbox_retry_schema'}
         for table, immutable in rows:
             permissions = ['SELECT'] if table in versions else ['SELECT', 'INSERT'] + ([] if immutable else ['UPDATE'])
             if table in {'sessions', 'identity_logins'}: permissions.append('DELETE')
@@ -107,3 +107,48 @@ def upgrade_operations(directory, artifact_directory, trusted_public_file, expec
                     db.execute(sql.SQL('GRANT {} ON TABLE {} TO {}').format(sql.SQL(',').join(map(sql.SQL,permissions)),sql.Identifier(table),sql.Identifier(role)))
                 db.execute(sql.SQL('GRANT USAGE,SELECT ON SEQUENCE ops_alerts_sequence_seq,ops_alert_events_sequence_seq TO {}').format(sql.Identifier(role)))
     return {'installed':True,'already_installed':False,'request_id':request_id,'source_sha256':schema_hash(),'release_pointer_changed':False,'financial_history_rewound':False}
+
+
+def upgrade_work_queue(directory, artifact_directory, trusted_public_file, expected, request_id, actor):
+    """Install only the reviewed control 9 -> 10 retry migration, offline."""
+    import json
+    from psycopg import sql
+    from . import outbox_retry
+    from .postgres_store import Connection
+    from .private_config import read_document
+    from .release_bundle import verify_installed, sha, SCHEMAS
+    from .release_runtime import installation_lock, migration_connection, validate_request, LOCK
+    from .util import digest
+    directory = Path(directory).resolve()
+    validate_request(request_id, expected, actor, 'activate')
+    artifact = verify_installed(artifact_directory, trusted_public_file)
+    require(artifact['manifest']['schemas'] == SCHEMAS and
+            sha(Path(artifact['directory']) / 'avenra/outbox_retry_schema.sql') == outbox_retry.schema_hash(),
+            'MIGRATION_ARTIFACT', 'The signed release must carry the exact reviewed worker retry migration.', 409)
+    payload = {'artifact_id': artifact['artifact_id'], 'expected': expected, 'actor': actor, 'source_sha256': outbox_retry.schema_hash()}
+    hashed = digest(payload)
+    with installation_lock(directory):
+        require(not read_document(directory / 'release-pending.json'), 'RELEASE_RECOVERY_REQUIRED', 'Recover the original release transition before applying another migration.', 409)
+        db, role = migration_connection(directory)
+        with db:
+            require(db.execute('SELECT pg_try_advisory_lock(%s)', (LOCK,)).fetchone()[0], 'RELEASE_NODES_ACTIVE', 'Drain all API/worker nodes before migrating worker retries.', 409)
+            with db.transaction():
+                current = None
+                if db.execute("SELECT to_regclass('release_active')").fetchone()[0]:
+                    row = db.execute('SELECT artifact_id FROM release_active WHERE singleton=1').fetchone()
+                    current = row[0] if row else None
+                require(current == expected, 'RELEASE_STALE', 'Shared release selection changed before the migration.', 409)
+                versions = db.execute('SELECT version FROM avenra_schema_version').fetchall()
+                require(versions in [[(9,)], [(10,)]], 'MIGRATION_VERSION', 'Only the reviewed control version 9 to 10 migration is supported.', 409)
+                if versions == [(10,)]:
+                    outbox_retry.validate(Connection(db), 'MIGRATION_CHECKSUM')
+                    previous = json.loads(db.execute('SELECT installation_json FROM outbox_retry_schema').fetchone()[0])
+                    replayed = previous.get('request_id') == request_id
+                    require(not replayed or previous.get('request_hash') == hashed, 'IDEMPOTENCY_CONFLICT', 'Migration request identity changed content or actor.', 409)
+                    return {'installed': True, 'already_installed': True, 'replayed': replayed, 'source_sha256': outbox_retry.schema_hash(), 'release_pointer_changed': False}
+                installation = {'request_id': request_id, 'request_hash': hashed, **payload, 'mode': 'offline_control_migration'}
+                outbox_retry.install(Connection(db), True, installation)
+                db.execute(sql.SQL('GRANT SELECT ON outbox_retry_schema TO {}').format(sql.Identifier(role)))
+                db.execute('UPDATE avenra_schema_version SET version=10')
+    return {'installed': True, 'already_installed': False, 'request_id': request_id, 'source_sha256': outbox_retry.schema_hash(),
+            'release_pointer_changed': False, 'financial_history_rewound': False, 'legacy_error_policy': 'Retained jobs with last_error keep the legacy claim budget; terminal jobs stay terminal.'}

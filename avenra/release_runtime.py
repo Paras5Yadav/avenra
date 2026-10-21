@@ -64,6 +64,11 @@ def schema_versions(db, required=None):
         require(len(values) == 1, 'RELEASE_SCHEMA', 'Schema version inventory is ambiguous.', 409)
         observed[table] = values[0][0]
     require(observed == required, 'RELEASE_SCHEMA', 'Installed schemas are incompatible with this release. No automatic downgrade is permitted.', 409)
+    if observed['avenra_schema_version'] == 10:
+        from .outbox_retry import validate
+        from .postgres_store import Connection
+        require(db.execute("SELECT to_regclass('outbox_retry_schema')").fetchone()[0], 'RELEASE_SCHEMA', 'Worker retry migration history is missing.', 409)
+        validate(Connection(db), 'RELEASE_SCHEMA')
     if db.execute("SELECT to_regclass('ops_schema')").fetchone()[0]:
         from .operations import schema_hash
         rows=db.execute('SELECT version,source_sha256 FROM ops_schema').fetchall()
@@ -137,11 +142,13 @@ def recovery_configuration(directory, set_id):
     """Qualify only new target bindings, never a copied source's physical pins."""
     directory=Path(directory);configuration=read_document(directory/'deployment.json',{})
     recovery={'set_id':set_id}
-    for name,field,module in [('bank-recovery.json','bank_routes_sha256','bank'),('aa-recovery.json','aa_routes_sha256','aa')]:
+    for name,field,module in [('bank-recovery.json','bank_routes_sha256','bank'),('aa-recovery.json','aa_routes_sha256','aa'),('peer-recovery.json','peer_routes_sha256','peer'),('issuer-recovery.json','issuer_routes_sha256','issuer')]:
         path=directory/name
         if not path.exists() and not path.is_symlink():continue
         if module=='bank':from .bank_recovery import load
-        else:from .aa.routing import load
+        elif module=='aa':from .aa.routing import load
+        elif module=='peer':from .peer_recovery import load
+        else:from .issuer_recovery import load
         require(load(directory)['set_id']==set_id,'RECOVERY_CONFIGURATION_CHANGED','A physical binding belongs to another target recovery.',409)
         recovery[field]=hashlib.sha256(private_read(path)).hexdigest()
     configuration['recovery']=recovery if len(recovery)>1 else {}
@@ -169,6 +176,17 @@ def require_deployment_capabilities(directory, artifact, configuration=None):
     if configuration.get('recovery',{}).get('aa_routes_sha256'):
         from .aa.routing import load
         required['aa_routes'] = load(directory)['format']
+    if configuration.get('recovery',{}).get('peer_routes_sha256'):
+        from .peer_recovery import load
+        required['peer_routes'] = load(directory)['format']
+    if configuration.get('recovery',{}).get('issuer_routes_sha256'):
+        from .issuer_recovery import load, verify_files
+        routes = load(directory)
+        verify_files(directory,routes)
+        required['issuer_routes'] = routes['format']
+    from .issuer_runtime import configurations as issuer_configurations, FORMAT as issuer_runtime_format
+    if issuer_configurations(directory):
+        required['issuer_runtime'] = issuer_runtime_format
     if not required: return {}
     from .participant_capabilities import declared
     value = declared(artifact)
@@ -275,6 +293,9 @@ def command(directory, trusted_public_file, mode, port=4827, host='127.0.0.1'):
     require(not value['pending_recovery'] and selection and value['active'] and selection['artifact_id'] == value['active']['artifact_id'], 'RELEASE_RECOVERY_REQUIRED', 'Complete release selection/recovery before runtime startup.', 409)
     artifact = verify_installed(selection['artifact_directory'], trusted_public_file);runtime = runtime_receipt(artifact, selection['runtime_directory'])
     require_deployment_capabilities(directory,artifact)
+    if mode != 'worker':
+        from .issuer_recovery import api_binding
+        api_binding(directory,host,port)
     require(selection['artifact_id'] == artifact['artifact_id'] and deployment(directory).get('release') == {'artifact_id': artifact['artifact_id'], 'application_fingerprint': artifact['manifest']['application_fingerprint']}, 'RELEASE_MISMATCH', 'Filesystem and database release selection disagree.', 409)
     from .participant_capabilities import ensure
     connection,_ = migration_connection(directory)

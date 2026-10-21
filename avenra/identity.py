@@ -24,8 +24,8 @@ class Identity:
         from .private_config import read_document
         path = self.app.store.directory / 'identity.json'
         config = read_document(path)
-        if config is None:
-            return {'mode': 'local'}
+        from .issuer_recovery import configuration as recovered_configuration
+        config = recovered_configuration(self.app.store.directory, config or {'mode': 'local'})
         require(config.get('mode') in {'local', 'institutional'}, 'IDENTITY_CONFIGURATION', 'Unknown identity mode.', 503)
         if config['mode'] == 'institutional':
             for field in ['issuer', 'jwks_url', 'authorization_endpoint', 'token_endpoint', 'external_origin']:
@@ -40,9 +40,10 @@ class Identity:
         require(config['mode'] == 'institutional', 'UNAUTHENTICATED', 'Institutional identity is not configured.', 401)
         require(isinstance(token, str) and len(token) <= 16000, 'UNAUTHENTICATED', 'Token exceeds the supported identity profile.', 401)
         fingerprint = digest({k: config.get(k) for k in ['issuer', 'jwks_url', 'ca_file']})
+        recovered = config.get('_recovery')
         with self._lock:
             client = self._clients.get(fingerprint)
-            if client is None:
+            if client is None and not recovered:
                 context = ssl.create_default_context(cafile=config.get('ca_file'))
                 context.minimum_version = ssl.TLSVersion.TLSv1_2
                 client = jwt.PyJWKClient(config['jwks_url'], cache_jwk_set=True, lifespan=300, timeout=3, ssl_context=context)
@@ -50,7 +51,15 @@ class Identity:
         try:
             header = jwt.get_unverified_header(token)
             require(header.get('alg') == 'RS256' and isinstance(header.get('kid'), str) and not any(k in header for k in ['jku', 'jwk', 'x5u']), 'UNAUTHENTICATED', 'Unsupported token signing profile.', 401)
-            key = client.get_signing_key_from_jwt(token).key
+            if recovered:
+                from .issuer_recovery import call
+                keys = call(self.app.store.directory, recovered, 'GET', '/jwks')
+                require(set(keys) == {'keys'} and isinstance(keys['keys'], list) and len(keys['keys']) == 1 and
+                        digest(keys['keys'][0]) == recovered['jwk_sha256'] and keys['keys'][0].get('kid') == header['kid'],
+                        'UNAUTHENTICATED', 'Recovered issuer signing authority changed.', 401)
+                key = jwt.PyJWK(keys['keys'][0]).key
+            else:
+                key = client.get_signing_key_from_jwt(token).key
             claims = jwt.decode(token, key, algorithms=['RS256'], issuer=config['issuer'], audience=config['client_id'] if nonce else config['audience'], options={'require': ['exp', 'iat', 'iss', 'aud', 'sub']}, leeway=10)
             if nonce:
                 require(claims.get('nonce') == nonce, 'UNAUTHENTICATED', 'Login nonce does not match.', 401)
@@ -95,7 +104,11 @@ class Identity:
         form = {'grant_type': 'authorization_code', 'client_id': config['client_id'], 'code': code, 'redirect_uri': config['external_origin'] + '/auth/callback', 'code_verifier': login['verifier']}
         if config.get('client_secret'):
             form['client_secret'] = config['client_secret']
-        tokens = Transport(origin, ca_file=config.get('ca_file')).call('POST', parsed.path, urlencode(form).encode(), {'Content-Type': 'application/x-www-form-urlencoded'}, timeout=8)
+        if config.get('_recovery'):
+            from .issuer_recovery import call
+            tokens = call(self.app.store.directory, config['_recovery'], 'POST', parsed.path, urlencode(form).encode(), {'Content-Type': 'application/x-www-form-urlencoded'}, timeout=8)
+        else:
+            tokens = Transport(origin, ca_file=config.get('ca_file')).call('POST', parsed.path, urlencode(form).encode(), {'Content-Type': 'application/x-www-form-urlencoded'}, timeout=8)
         identity = self.verify(tokens.get('id_token'), login['nonce'])
         token, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
         lifetime = self.app.runtime.configuration().get('identity', {}).get('max_session_seconds', 3600)

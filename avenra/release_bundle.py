@@ -32,7 +32,8 @@ from .lab_identity import private_read, private_write
 from .util import canonical, digest
 
 BASE_SCHEMAS = {'avenra_schema_version': 9, 'fidelity_schema': 2, 'runtime_schema': 1, 'aa_schema': 1}
-SCHEMAS = {**BASE_SCHEMAS, 'ops_schema': 1}
+OPERATIONS_SCHEMAS = {**BASE_SCHEMAS, 'ops_schema': 1}
+SCHEMAS = {**OPERATIONS_SCHEMAS, 'avenra_schema_version': 10}
 LIMIT = 512_000_000
 MAX_FILE = 128_000_000
 ROOT_FILES = {'requirements.txt', 'README.md', 'VERIFICATION.md', 'BANKING_IMPLEMENTATION.md', 'AGENTS.md', 'API_REFERENCE.md', 'OPERATIONS.md'}
@@ -168,7 +169,7 @@ def validate_manifest(raw, signature, trusted_public):
             'RELEASE_FORMAT', 'Unsupported or noncanonical release metadata.', 409)
     require(value.get('signing_key_id') == hashlib.sha256(trusted_public).hexdigest(), 'RELEASE_SIGNATURE', 'Release key identity is inconsistent.', 409)
     require(value.get('target') == runtime_target(), 'RELEASE_TARGET', 'Release requires its exact qualified interpreter and platform.', 409)
-    require(value.get('schemas') in [BASE_SCHEMAS,SCHEMAS] and value.get('migration_policy') == 'schema_preserving', 'RELEASE_SCHEMA', 'This installer accepts the declared compatible schema inventories only.', 409)
+    require(value.get('schemas') in [BASE_SCHEMAS, OPERATIONS_SCHEMAS, SCHEMAS] and value.get('migration_policy') == 'schema_preserving', 'RELEASE_SCHEMA', 'This installer accepts the declared schema inventories only; activation requires the exact installed versions.', 409)
     rows = value.get('files');require(isinstance(rows, list) and 0 < len(rows) <= 4096, 'RELEASE_FORMAT', 'Release inventory is missing or excessive.', 409)
     inventory = {}
     for item in rows:

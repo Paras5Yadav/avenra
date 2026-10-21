@@ -23,6 +23,7 @@ from avenra.private_config import write_document
 from avenra.production import POLICY_DEFAULT
 from avenra.runtime_rehearsal import Rehearsal,wait
 from avenra.util import application_fingerprint,digest,uid
+from scripts.qualification_storage import QualificationStorage, StorageRefused, record_refusal, harness_case_pack_hash as guarded_case_pack_hash
 
 REFERENCE={'id':'avenra-local-capacity/2','tenants':2,'api_nodes':2,'workers':2,'client_threads':32,'max_generator_inflight':96,
            'amount_paise':25,'hot_pending_limit':16,'normal_pending_limit':1000,'drain_seconds':120,
@@ -34,16 +35,15 @@ TENANTS=['tenant_avenra','tenant_integration']
 REJECTION_CODES={'TENANT_CAPACITY','REQUEST_RATE','QUEUE_CAPACITY','SERVER_CAPACITY','CAPACITY'}
 
 
-def case_pack_hash():return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+def case_pack_hash():return guarded_case_pack_hash(ROOT, 'verify_capacity.py')
 
 
 def percentile(values,fraction=.95):
     values=sorted(values);return values[max(0,math.ceil(len(values)*fraction)-1)] if values else None
 
 
-def main():
+def run(storage,args):
     import psycopg
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--smoke',action='store_true');args=parser.parse_args()
     folder=ROOT/'.local/qa'/uid('capacity');folder.mkdir(mode=0o700,parents=True)
     profile=json.loads(json.dumps(REFERENCE))
     if args.smoke:
@@ -127,6 +127,7 @@ def main():
         try:
             for phase in profile['phases']:
                 phase_name=phase['name']
+                storage.checkpoint('capacity_'+phase_name)
                 continuous_clock()
                 if phase_name=='noisy_neighbour':
                     result=rig.endpoint('/banking/runtime/policies',body={**POLICY_DEFAULT,'burst':1000,'rate_per_minute':60000,'max_inflight':16,'max_pending_jobs':REFERENCE['hot_pending_limit'],'request_key':uid('pressure_policy')},role='administrator')
@@ -210,6 +211,7 @@ def main():
         if poller:poller.join(timeout=20)
         if rig:rig.close()
         report['clock_observations']=clock_observations
+        report['storage_admission']=storage.snapshot()
         report['completed_at']=time.time();full=folder/'verification.json';write_document(full,report)
         # Per-request observations can exceed the deliberately small private
         # configuration reader budget. Preserve the complete immutable attempt
@@ -226,6 +228,16 @@ def main():
         print(json.dumps({'passed':report['passed'],'reference_profile_passed':report['reference_profile_passed'],'checks':len(report['checks']),'report':str(target),'error':report.get('error')}),flush=True)
         if not report['passed']:print(report.get('traceback',''),flush=True)
     return 0 if report['passed'] else 1
+
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--smoke',action='store_true');args=parser.parse_args()
+    try:
+        with QualificationStorage(ROOT,'capacity') as storage:
+            return run(storage,args)
+    except StorageRefused as error:
+        name='capacity-smoke-verification.json' if args.smoke else 'capacity-verification.json'
+        return record_refusal(ROOT,name,error,application_fingerprint(),case_pack_hash())
 
 
 if __name__=='__main__':raise SystemExit(main())

@@ -45,12 +45,12 @@ Managed deployments require the existing new-database installer and its distinct
 PostgreSQL migration/runtime roles. The migration identity is used by the
 offline release operator only. API/worker processes continue using `control.dsn`.
 
-The current schema inventory is control 9, lifecycle 2, runtime 1, AA 1 and
-operations 1. The preserved predecessor inventory without operations is also
-recognized for compatible code rollback. Ordinary activation does not migrate
+The current schema inventory is control 10, lifecycle 2, runtime 1, AA 1 and
+operations 1. Preserved control-9 inventories with and without operations remain
+recognized for recovery of their matching databases. Ordinary activation does not migrate
 schemas. It refuses an absent required schema, an unknown inventory or a changed
 operations checksum; it never downgrades or restores an earlier financial
-database. One reviewed additive migration is provided below. General schema
+database. Reviewed operations and worker-retry migrations are provided below. General schema
 evolution still needs reviewed compatibility plans and its own qualification.
 
 Runtime pool connections in this build hold a shared PostgreSQL advisory lock.
@@ -84,7 +84,7 @@ profile under new database identities and explicit service bindings. Captured
 banks restart from the verified offline application with authenticated new
 physical addresses while original logical bindings remain unchanged. The signed
 bundle now also contains the root API and operator guides. Standalone operator
-bootstrap, SSO/other-provider service rebinding, host/cluster recovery and fleet disaster recovery remain
+bootstrap, external IdP/other-provider and combined AA/HTTPS service rebinding, host/cluster recovery and fleet disaster recovery remain
 open; the private file checkpoint alone does not establish them.
 
 Rollback selects a previously committed compatible artifact. Financial history,
@@ -99,8 +99,20 @@ Selection, interrupted-transition recovery and managed launch refuse missing or
 unsupported capabilities. This prevents selecting an older schema-compatible
 build that would ignore the configured physical routing or fail on the recovered
 deployment policy. The refusal precedes release-catalog mutation. Recovered bank
-service activation applies the same check. Normal deployments without those
-binding policies retain the previously qualified compatible rollback behavior.
+service activation applies the same check. Owned synthetic issuer configurations
+also require `issuer_runtime` support for their process fence and copied-identity
+startup guard. Provisioning and release admission share the installation lock;
+cold capture rechecks the selected artifact inside that lock. Normal deployments
+without these bindings or issuer configurations retain the previously qualified
+compatible rollback behavior.
+
+Configured owned issuer/API recovery also requires the signed `issuer_routes`
+declaration. It binds the same logical issuer and private authority to new HTTPS
+listeners without rewriting identity settings, subjects, session ages or grants.
+The selected offline runtime must own and prove the replacement issuer process.
+API launch enforces the approved callback origin. Selection, interrupted-release
+recovery and startup refuse older signed code lacking that route contract before
+mutating release state. See [COORDINATED_RECOVERY.md](COORDINATED_RECOVERY.md).
 
 Every retained participant connection revision also contributes its exact
 adapter/contract-hash requirement, even after it becomes inactive. New XML
@@ -178,10 +190,10 @@ nodes, stale release expectations and interrupted release publication are
 refused. DDL, installation history and restricted runtime grants commit together.
 An exact request/actor replay is idempotent; changed content is rejected.
 
-Migration leaves core financial rows and the selected release unchanged. After
-success, use ordinary activation for the new artifact. Compatible old code can
-be selected again while the additional operations tables remain retained; it
+The operations migration leaves core financial rows and the selected release unchanged.
+Compatible control-9 code can be selected again while the additional operations tables remain retained; it
 does not offer the new monitoring capability. There is no destructive downgrade.
+The current candidate additionally requires the separate control-10 migration below.
 New databases install the current schema directly. The existing local operator
 installation retains its explicit local migration behavior; restricted serving
 identities cannot install a missing schema.
@@ -192,7 +204,56 @@ checks rollback/retry, activates new code, and rolls back old code while retaini
 the same native payment, balances and operational tables. The baseline artifact,
 external public trust and its prepared offline runtime must be preserved in the
 private `.local/release-baselines/before-operations.json` fixture. A current build
-cannot be relabelled as a predecessor to supply this evidence.
+cannot be relabelled as a predecessor to supply this evidence. A second genuine
+control-9 operations release supplies the intermediate activation. The verifier
+then applies the separate retry migration and serves the same payment with the
+current candidate; control-9 rollback is refused after that change.
+
+## Durable worker error accounting: control 9 to 10
+
+The outbox retains `attempts` as its lifetime lease-claim count. A separate durable
+`error_attempts` counter spends the six-error budget only when the current lease
+finishes with an error. Productive deferrals, scheduled waits, contention and
+reclaimed leases do not spend it. Stale workers cannot acknowledge, defer or
+charge an error to another lease. Error backoff uses the bounded error budget.
+
+For a managed control-9 database, drain all API/worker nodes and run:
+
+```sh
+.local/runtime/bin/python scripts/releases.py upgrade-work-queue \
+  --data <deployment-data> --artifact .local/releases/artifacts/<artifact-id> \
+  --trust .local/releases/operator/trust.raw \
+  --expected <current-artifact-id> --request-id <uuid> --actor <operator>
+```
+
+The signed candidate must contain the exact reviewed DDL. The offline migration
+identity holds the exclusive release fence; column creation, immutable migration
+history, restricted grants and version advancement commit in one transaction.
+The command preserves existing outbox columns, payment rows and release selection.
+An interrupted DDL transaction rolls back. Reusing the exact request/actor is
+idempotent. Apply a missing operations migration first, then this command, before
+activating the current release. Serving identities cannot perform either migration.
+
+Existing jobs with a recorded `last_error` have ambiguous historical error counts.
+They receive `error_attempts=NULL` and retain their legacy claim-based budget.
+The migration never invents error counts, replenishes that budget or revives
+failed jobs. Jobs without prior recorded errors and all new jobs start at zero.
+Reconcile an exhausted payment through its original participant endpoint; new
+outbox work references the same accepted payment and financial operation.
+Native journal reads must succeed before financial evidence can be sealed.
+
+Control-9 code cannot run against control 10 or be selected as a rollback target.
+This preserves the new retry contract; no database downgrade is provided. Fresh
+installations apply the reviewed delta after the generated control-9 base schema.
+The explicit local SQLite installer performs the same delta transactionally.
+
+`scripts/verify_work_queue.py` uses an authentic signed predecessor retained in
+`.local/release-baselines/before-work-queue.json`. It reproduces the old failure
+through an actual mTLS gateway read error after native settlement, kills a real
+operator inside DDL, checks rollback/retry and privileges, activates packaged code,
+and exercises automatic retry, six-error exhaustion, worker restart and explicit
+original-ID recovery. Independent native journal comparisons retain the original
+transaction IDs and postings. Its current-build receipt is a mandatory local gate.
 
 ## Qualification and remaining deployment work
 
@@ -218,7 +279,7 @@ native bank/issuer/AA integration and full restoration remain separate evidence.
 
 Qualification is for the observed exact Mac/CPython target. Linux packaging,
 signed container/native-engine releases, actual multi-node upgrade orchestration,
-general schema-changing migrations beyond the closed operations recipe,
+general schema-changing migrations beyond the closed operations/retry recipes,
 supply-chain/security review, fleet rollback,
 availability objectives and institutional operational acceptance remain open.
 The normal current-app launcher is preserved; it is not silently switched to a

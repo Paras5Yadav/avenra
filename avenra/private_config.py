@@ -4,9 +4,37 @@ import os
 import re
 from pathlib import Path
 import secrets
+import stat
 
 from .errors import DomainError, require
 from .lab_identity import private_read, private_write
+
+
+def make_private_directories(root, relative):
+    """Create each nested directory privately; never chmod an existing parent."""
+    root, relative = Path(root), Path(relative)
+    require(not relative.is_absolute() and '..' not in relative.parts,
+            'DEPLOYMENT_DIRECTORY', 'Private directories must stay below their explicit root.', 409)
+    current = root
+    for part in [None, *relative.parts]:
+        if part is not None:
+            current /= part
+            try: current.mkdir(mode=0o700)
+            except FileExistsError: pass
+        info = current.lstat()
+        require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid() and not info.st_mode & 0o077,
+                'DEPLOYMENT_DIRECTORY', 'Deployment parents must be ordinary owner-only directories.', 409)
+    return current
+
+
+def make_private_parent(path):
+    """Create a file/tree parent below its nearest existing private directory."""
+    current = Path(path).parent
+    missing = []
+    while not current.exists() and not current.is_symlink():
+        missing.append(current.name)
+        current = current.parent
+    return make_private_directories(current, Path(*reversed(missing)))
 
 
 def write_document(path, value):
@@ -99,7 +127,7 @@ def deployment(directory):
             require(isinstance(release['artifact_id'], str) and re.fullmatch('[0-9a-f]{64}', release['artifact_id']), 'DEPLOYMENT_CONFIGURATION', 'Release artifact identity is invalid.', 503)
             require(db.get('mode') == 'runtime', 'DEPLOYMENT_CONFIGURATION', 'Managed artifact selection requires a runtime database identity.', 503)
     recovery = document.get('recovery', {})
-    require(isinstance(recovery, dict) and set(recovery) <= {'set_id', 'bank_routes_sha256','aa_routes_sha256'} and
+    require(isinstance(recovery, dict) and set(recovery) <= {'set_id', 'bank_routes_sha256','aa_routes_sha256','peer_routes_sha256','issuer_routes_sha256'} and
             (not recovery or ('set_id' in recovery and len(recovery)>1)) and
             all(isinstance(value, str) and re.fullmatch('[0-9a-f]{64}', value) for value in recovery.values()),
             'DEPLOYMENT_CONFIGURATION', 'Invalid authenticated recovery routing policy.', 503)
@@ -117,4 +145,20 @@ def deployment(directory):
                 'RECOVERY_AA_BINDING','Activated AA routing is missing or changed; startup remains unavailable.',503)
         from .aa.routing import load
         require(load(directory)['set_id']==recovery['set_id'],'RECOVERY_AA_BINDING','Activated AA routes belong to another recovery set.',503)
+    if recovery.get('peer_routes_sha256'):
+        import hashlib
+        path = Path(directory)/'peer-recovery.json'
+        require(path.exists() and hashlib.sha256(private_read(path)).hexdigest()==recovery['peer_routes_sha256'],
+                'RECOVERY_PEER_BINDING','Activated participant routes are missing or changed; startup remains unavailable.',503)
+        from .peer_recovery import load
+        require(load(directory)['set_id']==recovery['set_id'],'RECOVERY_PEER_BINDING','Activated participant routes belong to another recovery set.',503)
+    if recovery.get('issuer_routes_sha256'):
+        import hashlib
+        path = Path(directory)/'issuer-recovery.json'
+        require(path.exists() and hashlib.sha256(private_read(path)).hexdigest()==recovery['issuer_routes_sha256'],
+                'RECOVERY_IDENTITY_BINDING','Activated identity routing is missing or changed; startup remains unavailable.',503)
+        from .issuer_recovery import load, verify_files
+        routes = load(directory)
+        require(routes['set_id']==recovery['set_id'],'RECOVERY_IDENTITY_BINDING','Activated identity routes belong to another recovery set.',503)
+        verify_files(directory,routes)
     return document

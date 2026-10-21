@@ -7,9 +7,9 @@ import sqlite3
 import stat
 
 from .errors import require
-from .private_config import read_document, write_document
+from .private_config import read_document, write_document, make_private_directories
 
-FILES = {'deployment.json', 'identity.json', 'gateway.json', 'control.dsn', 'migration.dsn', 'release-selection.json', 'release-pending.json', 'engine-endpoints.json'}
+FILES = {'deployment.json', 'identity.json', 'gateway.json', 'control.dsn', 'migration.dsn', 'release-selection.json', 'release-pending.json', 'engine-endpoints.json', 'issuer-recovery.json'}
 
 
 def regular(path):
@@ -33,12 +33,12 @@ def snapshot(directory, destination):
         require(secrets.is_dir() and not secrets.is_symlink(), 'RECOVERY_FILE', 'Deployment secret root cannot be a link.', 409)
         for folder in secrets.iterdir():
             require(folder.is_dir() and not folder.is_symlink(), 'RECOVERY_FILE', 'Deployment identity folders cannot be links.', 409)
-            sources.extend(p for p in folder.iterdir() if not p.name.endswith(('-wal', '-shm', '-journal')))
+            sources.extend(p for p in folder.iterdir() if not p.name.endswith(('-wal', '-shm', '-journal')) and p.name not in {'recovery-process.json', 'recovery-service.log'})
     require(len(sources) <= 256, 'RECOVERY_LIMIT', 'Deployment recovery file count exceeds this profile.', 409)
     entries = []
     for source in sorted(sources):
         regular(source);relative = source.relative_to(directory)
-        target = destination / relative;target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        target = destination / relative;make_private_directories(destination, relative.parent)
         if source.suffix == '.db':
             # SQLite's backup API captures a consistent issuer state, including
             # committed WAL content, rather than copying a live database file.
@@ -72,6 +72,6 @@ def restore(snapshot_directory, destination):
     from .recovery_state import INACTIVE
     write_document(destination / INACTIVE, {'format':'avenra-recovery-inactive/1','state':'private_files_only','manifest_sha256':sha256(source / 'manifest.json')})
     for entry in manifest['files']:
-        relative = Path(entry['path']);target = destination / relative;target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        relative = Path(entry['path']);target = destination / relative;make_private_directories(destination, relative.parent)
         shutil.copyfile(source / relative, target, follow_symlinks=False);target.chmod(0o600)
     return {'valid': True, 'files': len(seen), 'activation': 'inactive_staging_only'}

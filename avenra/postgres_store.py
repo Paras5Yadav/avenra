@@ -62,11 +62,13 @@ class PostgresStore(Store):
             raise
 
     def initialize(self, runtime_only):
+        from . import outbox_retry
         with self.pool.connection() as connection, connection.transaction():
             if runtime_only:
                 present = connection.execute("SELECT to_regclass('avenra_schema_version') AS name").fetchone()['name']
-                if not present or connection.execute('SELECT version FROM avenra_schema_version').fetchone()[0] != 9:
+                if not present or connection.execute('SELECT version FROM avenra_schema_version').fetchone()[0] != outbox_retry.CORE_VERSION:
                     raise RuntimeError('The deployment migration identity must install the matching control schema before runtime startup.')
+                outbox_retry.validate(Connection(connection))
                 privilege = connection.execute("SELECT current_setting('is_superuser') AS superuser,has_schema_privilege(current_user,'public','CREATE') AS can_create").fetchone()
                 if privilege['superuser'] != 'off' or privilege['can_create']:
                     raise RuntimeError('Runtime database identity must be non-superuser without schema creation privileges.')
@@ -109,8 +111,20 @@ class PostgresStore(Store):
                 connection.execute(postgres_migration())
                 connection.execute('UPDATE avenra_schema_version SET version=9')
                 version = 9
-            if version != 9:
+            if version == 9:
+                # A migrator App constructor must not bypass the attributed
+                # offline command for an already managed deployment.
+                managed = connection.execute("SELECT to_regclass('release_active')").fetchone()[0]
+                if managed and connection.execute('SELECT 1 FROM release_active').fetchone():
+                    raise RuntimeError('Apply the reviewed offline worker retry migration before starting this managed release.')
+                if not connection.execute('SELECT pg_try_advisory_xact_lock(781234919)').fetchone()[0]:
+                    raise RuntimeError('Drain serving nodes before the explicit local worker retry migration.')
+                outbox_retry.install(Connection(connection), True)
+                connection.execute('UPDATE avenra_schema_version SET version=10')
+                version = 10
+            if version != outbox_retry.CORE_VERSION:
                 raise RuntimeError('Control database requires a compatible application version.')
+            outbox_retry.validate(Connection(connection))
 
     def connect(self):
         from contextlib import contextmanager

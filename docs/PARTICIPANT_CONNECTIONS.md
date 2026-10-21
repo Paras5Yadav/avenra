@@ -51,9 +51,11 @@ restarts that original service and completes recovery and a linked partial refun
 Activation requires the private scoped identity and an actual authenticated probe.
 This is an owned synthetic protocol, not official participant interoperability.
 
-Cold relocation of these new PSP/network services remains unqualified. Their
-service refuses recovery-mode startup rather than silently using original
-listeners. The existing bank/AA cold-recovery receipts do not qualify this new
-profile. Production qualification must add authenticated checkpoint, routing,
-credential/registry restoration and original-message recovery for these services.
+The production recovery branch adds cold checkpoints and authenticated physical
+routes for these services. Original logical endpoints, scoped keys, connection
+revisions and signed message receipts remain unchanged. A restored server runs
+from its verified offline release, permits probes while inactive and accepts
+delivery only after explicit activation. Missing or changed recovery routes
+prevent source fallback. See [participant recovery](PARTICIPANT_RECOVERY.md) for
+the operator sequence, test scope and remaining qualification boundaries.
 

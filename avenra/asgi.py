@@ -172,6 +172,8 @@ def main():
     parser.add_argument('--host', default='127.0.0.1')
     args = parser.parse_args()
     data = Path(args.data).resolve();data.mkdir(parents=True, exist_ok=True, mode=0o700)
+    from .issuer_recovery import api_binding
+    api_binding(data,args.host,args.port)
     lock = (data / ('server.lock' if args.port == 4827 else 'server-' + str(args.port) + '.lock')).open('a')
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

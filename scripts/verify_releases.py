@@ -37,10 +37,11 @@ from avenra.local_database import admin_dsn
 from avenra.private_config import deployment, write_document
 from avenra.synthetic_lab import fixture
 from avenra.util import application_fingerprint, canonical, uid
+from scripts.qualification_storage import QualificationStorage, StorageRefused, record_refusal, harness_case_pack_hash as guarded_case_pack_hash
 
 
 def case_pack_hash():
-    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    return guarded_case_pack_hash(ROOT, 'verify_releases.py')
 
 
 def crash_child(instructions):
@@ -51,7 +52,7 @@ def crash_child(instructions):
     return 9
 
 
-def main():
+def run(storage):
     import psycopg
     directory = ROOT / '.local/qa' / uid('releases');directory.mkdir(parents=True, mode=0o700)
     report = {'passed': False, 'checks': [], 'directory': str(directory), 'created_at': time.time(), 'case_pack_sha256': case_pack_hash(),
@@ -162,6 +163,7 @@ def main():
         denied('Changed installed source refuses verification before runtime launch', lambda: bundle.verify_installed(artifact_b, trust), 'RELEASE_INTEGRITY')
         damaged.chmod(0o644);damaged.write_bytes(original);damaged.chmod(0o444)
         runtime_a, runtime_b = directory / 'runtime-a', directory / 'runtime-b'
+        storage.checkpoint('offline_application_runtimes')
         for artifact, runtime in [(artifact_a, runtime_a), (artifact_b, runtime_b)]: bundle.prepare_runtime(artifact, trust, runtime)
         check('Both fresh application runtimes install entirely from pinned local wheels and pass dependency consistency',
               all((p / 'release-runtime.json').exists() and 'Successfully installed' in (p / 'installation.log').read_text() and 'No broken requirements' in (p / 'installation.log').read_text() for p in [runtime_a, runtime_b]))
@@ -311,11 +313,20 @@ def main():
     finally:
         for child in reversed(processes): stop(child)
         if app: app.close()
+        report['storage_admission'] = storage.snapshot()
         report['completed_at'] = time.time();write_document(directory / 'verification.json', report)
         write_document(ROOT / '.local/release-verification.json', report)
         print(json.dumps({'passed': report['passed'], 'checks': len(report['checks']), 'report': str(ROOT / '.local/release-verification.json'), 'error': report.get('error')}), flush=True)
         if not report['passed']: print(report.get('traceback', ''), flush=True)
     return 0 if report['passed'] else 1
+
+
+def main():
+    try:
+        with QualificationStorage(ROOT, 'release_upgrade') as storage:
+            return run(storage)
+    except StorageRefused as error:
+        return record_refusal(ROOT,'release-verification.json',error,application_fingerprint(),case_pack_hash())
 
 
 if __name__ == '__main__':

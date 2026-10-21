@@ -14,6 +14,7 @@ import json
 from pathlib import Path
 import secrets
 import sqlite3
+import sys
 import time
 from urllib.parse import parse_qs, urlencode, urlsplit
 
@@ -26,6 +27,7 @@ from .lab_identity import private_read, private_write
 from .production import ROLE_CAPABILITIES
 from .errors import DomainError, require
 from .util import canonical
+from .issuer_runtime import configuration_directory, configuration_location, require_startup, service_lease
 
 
 def pin_hash(password, salt):
@@ -36,6 +38,15 @@ def provision(directory, port, app_origin, tenant='tenant_avenra'):
     require(type(port) is int and 1 <= port <= 65535 and isinstance(app_origin, str), 'ISSUER_CONFIGURATION', 'Use a valid private issuer port and API origin.')
     origin = urlsplit(app_origin)
     require(origin.scheme == 'https' and origin.hostname == '127.0.0.1' and not (origin.path or origin.query or origin.fragment or origin.username or origin.password), 'ISSUER_CONFIGURATION', 'Register an exact loopback HTTPS API origin.')
+    directory = Path(directory).absolute()
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    require_startup(directory)
+    from .release_runtime import installation_lock
+    with installation_lock(directory), service_lease(directory):
+        return _provision(directory, port, app_origin, tenant)
+
+
+def _provision(directory, port, app_origin, tenant):
     identity = issue(directory, 'synthetic-issuer')
     folder = Path(identity['directory'])
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -56,14 +67,30 @@ def provision(directory, port, app_origin, tenant='tenant_avenra'):
 
 
 class Issuer:
-    def __init__(self, path):
-        self.path = Path(path);self.directory = self.path.parent
+    def __init__(self, path, recovery_data=None):
+        self.path = Path(path).absolute();self.directory = self.path.parent
+        self.recovery_data = Path(recovery_data).absolute() if recovery_data else None
+        if self.recovery_data:
+            from . import issuer_recovery
+            require(configuration_location(self.path) == self.recovery_data, 'RECOVERY_IDENTITY_BINDING', 'The recovered issuer belongs to another data directory.', 409)
+            self.routes = issuer_recovery.load(self.recovery_data)
+            issuer_recovery.verify_files(self.recovery_data, self.routes)
+            require(self.recovery_data / self.routes['config'] == self.path, 'RECOVERY_IDENTITY_BINDING', 'Start only the captured issuer configuration.', 409)
+        else:
+            require_startup(configuration_location(self.path))
+            self.routes = None
+        configuration_directory(self.path)
         self.config = json.loads(private_read(self.path))
         require(self.config.get('format') == 'avenra-synthetic-issuer/1' and self.config.get('classification') == 'synthetic_counterparty', 'ISSUER_CONFIGURATION', 'Only the declared synthetic issuer profile can start.', 503)
+        require(self.config.get('identity_reference') == 'secret://' + self.directory.name, 'ISSUER_CONFIGURATION', 'Issuer credentials belong to another deployment identity.', 503)
         origin = urlsplit(self.config['issuer'])
         require(origin.scheme == 'https' and origin.hostname == '127.0.0.1' and origin.path == '', 'ISSUER_CONFIGURATION', 'Synthetic issuer remains on loopback HTTPS.', 503)
         self.key = serialization.load_pem_private_key(private_read(self.directory / 'signing-key.pem'), password=None)
         self.jwk = {**jwt.algorithms.RSAAlgorithm.to_jwk(self.key.public_key(), as_dict=True), 'kid': self.config['key_id'], 'alg': 'RS256', 'use': 'sig'}
+        if self.routes:
+            from .util import digest
+            require(self.config['issuer'] == self.routes['issuer'] and digest(self.jwk) == self.routes['jwk_sha256'],
+                    'RECOVERY_IDENTITY_BINDING', 'The recovered issuer must keep its original logical issuer and signing key.', 409)
         self.db_path = self.directory / 'issuer.db'
         with self.db() as db:
             db.executescript('''CREATE TABLE IF NOT EXISTS interactions(id TEXT PRIMARY KEY,browser_hash TEXT NOT NULL,client_id TEXT NOT NULL,redirect_uri TEXT NOT NULL,state TEXT NOT NULL,nonce TEXT NOT NULL,challenge TEXT NOT NULL,expires_at REAL NOT NULL,completed INTEGER NOT NULL DEFAULT 0);
@@ -87,9 +114,32 @@ class Issuer:
         require(all(len(v) == 1 for v in query.values()), 'INVALID_REQUEST', 'Repeated fields are refused.')
         return {k: v[0] for k, v in query.items()}
 
+    def serving(self):
+        if self.recovery_data:
+            from .recovery_state import require_active
+            from . import issuer_recovery
+            require_active(self.recovery_data)
+            require(issuer_recovery.load(self.recovery_data) == self.routes, 'RECOVERY_IDENTITY_BINDING', 'The original recovery decision changed.', 409)
+            issuer_recovery.verify_files(self.recovery_data, self.routes)
+
+    def redirect_uri(self):
+        return self.routes['api_origin'] + '/auth/callback' if self.routes else self.config['redirect_uri']
+
+    def recovery_probe(self, headers):
+        require(self.routes, 'NOT_FOUND', 'This issuer has no recovery proof endpoint.', 404)
+        nonce = headers.get(b'x-avenra-recovery-challenge', b'').decode('ascii', errors='replace')
+        import re
+        require(re.fullmatch('[A-Za-z0-9_-]{43}', nonce), 'RECOVERY_IDENTITY_BINDING', 'Supply one bounded issuer recovery challenge.', 400)
+        from .release_bundle import sha
+        now = int(time.time())
+        proof = {'iss': self.config['issuer'], 'aud': 'avenra-recovery-probe', 'sub': 'synthetic-recovery-probe', 'iat': now, 'exp': now + 20,
+                 'nonce': nonce, 'set_id': self.routes['set_id'], 'routes_sha256': sha(self.recovery_data / 'issuer-recovery.json')}
+        return {'proof': jwt.encode(proof, self.key, algorithm='RS256', headers={'kid': self.config['key_id']})}
+
     def authorize(self, query):
+        self.serving()
         require(set(query) == {'response_type', 'client_id', 'redirect_uri', 'scope', 'state', 'nonce', 'code_challenge', 'code_challenge_method'}, 'INVALID_REQUEST', 'Unsupported authorization request.')
-        require(query['response_type'] == 'code' and query['client_id'] == self.config['client_id'] and query['redirect_uri'] == self.config['redirect_uri'], 'CLIENT_BINDING', 'Client or redirect URI is not registered.', 400)
+        require(query['response_type'] == 'code' and query['client_id'] == self.config['client_id'] and query['redirect_uri'] == self.redirect_uri(), 'CLIENT_BINDING', 'Client or redirect URI is not registered.', 400)
         require(set(query['scope'].split()) <= {'openid', 'profile'} and 'openid' in query['scope'].split() and query['code_challenge_method'] == 'S256', 'INVALID_REQUEST', 'Use the registered OIDC code/S256 profile.')
         import re
         require(all(16 <= len(query[k]) <= 128 for k in ['state', 'nonce']) and re.fullmatch('[A-Za-z0-9_-]{43}', query['code_challenge']), 'INVALID_REQUEST', 'Invalid authorization binding.')
@@ -102,6 +152,7 @@ class Issuer:
         return 200, page, {'content-type': 'text/html; charset=utf-8', 'set-cookie': '__Host-avenra_issuer=' + browser + '; Path=/; Secure; HttpOnly; SameSite=Lax'}
 
     def login(self, data, cookie):
+        self.serving()
         require(set(data) == {'interaction', 'username', 'password'} and len(data['password']) <= 256, 'INVALID_REQUEST', 'Use the synthetic sign-in form.')
         jar = cookies.SimpleCookie()
         try: jar.load(cookie)
@@ -114,6 +165,7 @@ class Issuer:
             db.execute('BEGIN IMMEDIATE')
             interaction = db.execute('SELECT * FROM interactions WHERE id=?', (data['interaction'],)).fetchone()
             require(interaction and not interaction['completed'] and interaction['expires_at'] > time.time() and hmac.compare_digest(interaction['browser_hash'], hashlib.sha256(browser.value.encode()).hexdigest()), 'LOGIN_BROWSER', 'The authorization interaction is expired or belongs to another browser.', 403)
+            require(interaction['redirect_uri'] == self.redirect_uri(), 'LOGIN_BINDING', 'Begin a fresh sign-in at the registered recovered callback; old interactions are not rewritten.', 409)
             previous = db.execute('SELECT * FROM failures WHERE username=?', (data['username'],)).fetchone()
             computed = pin_hash(data['password'], user['salt'] if user else '00' * 16)
             valid = user and hmac.compare_digest(computed, user['password_hash']) and (not previous or previous['locked_until'] <= time.time())
@@ -130,8 +182,10 @@ class Issuer:
         return 303, b'', {'location': interaction['redirect_uri'] + '?' + urlencode({'code': code, 'state': interaction['state']})}
 
     def token(self, data):
+        self.serving()
         require(set(data) == {'grant_type', 'client_id', 'client_secret', 'code', 'redirect_uri', 'code_verifier'}, 'INVALID_GRANT', 'Use the registered confidential code grant.', 401)
         require(data['grant_type'] == 'authorization_code' and data['client_id'] == self.config['client_id'] and hmac.compare_digest(data['client_secret'], self.config['client_secret']), 'INVALID_CLIENT', 'Client authentication was refused.', 401)
+        require(data['redirect_uri'] == self.redirect_uri(), 'INVALID_GRANT', 'The code grant must use the registered current callback.', 401)
         import re
         require(re.fullmatch('[A-Za-z0-9._~-]{43,128}', data['code_verifier']), 'INVALID_GRANT', 'Invalid PKCE verifier.', 401)
         challenge = base64.urlsafe_b64encode(hashlib.sha256(data['code_verifier'].encode()).digest()).rstrip(b'=').decode()
@@ -150,13 +204,19 @@ class Issuer:
         if scope['type'] != 'http': return
         try:
             require(scope.get('scheme') == 'https', 'TLS_REQUIRED', 'Synthetic issuer requires TLS.', 403)
+            if self.recovery_data:
+                from . import issuer_recovery
+                require(issuer_recovery.load(self.recovery_data) == self.routes, 'RECOVERY_IDENTITY_BINDING', 'The original recovery decision changed.', 409)
+                issuer_recovery.verify_files(self.recovery_data, self.routes)
             headers = {}
             for name, value in scope['headers']:
                 require(name not in headers, 'INVALID_HEADERS', 'Duplicate headers are refused.')
                 headers[name] = value
             path, method = scope['path'], scope['method']
             if path == '/jwks' and method == 'GET': result = 200, canonical({'keys': [self.jwk]}).encode(), {}
+            elif path == '/control/probe' and method == 'GET': result = 200, canonical(self.recovery_probe(headers)).encode(), {}
             elif path == '/.well-known/openid-configuration' and method == 'GET':
+                require(not self.recovery_data, 'RECOVERY_IDENTITY_STATIC', 'The recovered synthetic issuer uses an explicit static binding; dynamic discovery at its replacement origin is unavailable.', 503)
                 c = self.config;result = 200, canonical({'issuer': c['issuer'], 'authorization_endpoint': c['issuer'] + '/authorize', 'token_endpoint': c['issuer'] + '/token', 'jwks_uri': c['issuer'] + '/jwks', 'response_types_supported': ['code'], 'subject_types_supported': ['public'], 'id_token_signing_alg_values_supported': ['RS256'], 'code_challenge_methods_supported': ['S256']}).encode(), {}
             elif path == '/authorize' and method == 'GET': result = await asyncio.to_thread(self.authorize, self.fields(scope['query_string']))
             elif path in {'/login', '/token'} and method == 'POST':
@@ -186,13 +246,27 @@ class Issuer:
 
 def main():
     parser = argparse.ArgumentParser(description='Avenra private synthetic OIDC counterparty')
-    parser.add_argument('--config', required=True);args = parser.parse_args()
-    app = Issuer(args.config);directory = app.directory.parent.parent
-    identity = paths(directory, app.config['identity_reference'])
-    context = server_context(directory, app.config['identity_reference'])
-    import uvicorn
-    uvicorn.run(app, host='127.0.0.1', port=urlsplit(app.config['issuer']).port, http='h11', ws='none', lifespan='off', proxy_headers=False, access_log=False,
-                server_header=False, limit_concurrency=32, timeout_keep_alive=3, ssl_certfile=str(identity['cert']), ssl_keyfile=str(identity['key']), ssl_context_factory=lambda *_: context)
+    parser.add_argument('--config', required=True);parser.add_argument('--recovery-data');args = parser.parse_args()
+    try:
+        directory = configuration_location(args.config)
+        if not args.recovery_data:
+            require_startup(directory)
+        else:
+            require(directory == Path(args.recovery_data).absolute(), 'RECOVERY_IDENTITY_BINDING', 'Use the captured issuer’s recovery data directory.', 409)
+        configuration_directory(args.config)
+        with service_lease(directory):
+            if args.recovery_data:
+                from .issuer_recovery import register_process
+                register_process(directory, args.config)
+            app = Issuer(args.config, args.recovery_data)
+            identity = paths(directory, app.config['identity_reference'])
+            context = server_context(directory, app.config['identity_reference'])
+            import uvicorn
+            uvicorn.run(app, host='127.0.0.1', port=urlsplit(app.routes['issuer_origin'] if app.routes else app.config['issuer']).port, http='h11', ws='none', lifespan='off', proxy_headers=False, access_log=False,
+                        server_header=False, limit_concurrency=32, timeout_keep_alive=3, ssl_certfile=str(identity['cert']), ssl_keyfile=str(identity['key']), ssl_context_factory=lambda *_: context)
+    except DomainError as error:
+        print(json.dumps({'error': error.code, 'message': error.message}), file=sys.stderr, flush=True)
+        raise SystemExit(2)
 
 
 if __name__ == '__main__': main()

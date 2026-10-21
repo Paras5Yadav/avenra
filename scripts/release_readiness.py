@@ -9,6 +9,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from avenra.util import application_fingerprint
+from readiness_evidence import COORDINATED_PROFILES, coordinated_evidence
 
 
 def main():
@@ -23,14 +24,19 @@ def main():
     files.append('release-verification.json')
     files.append('checkpoint-verification.json')
     files.extend(['operations-verification.json','operations-upgrade-verification.json','capacity-verification.json'])
+    files.append('work-queue-verification.json')
     files.append('coordinated-recovery-verification.json')
     files.append('coordinated-upi-wire-recovery-verification.json')
+    files.append('coordinated-peer-recovery-verification.json')
     files.append('aa-coordinated-recovery-verification.json')
+    files.append('identity-coordinated-recovery-verification.json')
     files.extend(['upi-wire-verification.json', 'upi-wire-postgres-verification.json'])
     for name in files:
         path = ROOT / '.local' / name
         try:
             value = json.loads(path.read_text())
+            if not isinstance(value, dict):
+                raise ValueError('Qualification report must be an object.')
             independent = name in {'component-backup-verification.json', 'database-auth-verification.json'}
             reports[name] = {'passed': value.get('passed') is True, 'checks': len(value['checks']) if isinstance(value.get('checks'), list) else value.get('tests'), 'application_matches': None if independent else value.get('application_fingerprint') == fingerprint}
             if name in {'fidelity-verification.json', 'fidelity-postgres-verification.json'}:
@@ -57,20 +63,33 @@ def main():
                 from verify_checkpoints import case_pack_hash as checkpoint_case_pack_hash
                 reports[name]['case_pack_matches'] = value.get('case_pack_sha256') == checkpoint_case_pack_hash()
                 reports[name]['passed'] = reports[name]['passed'] and reports[name]['case_pack_matches']
-            if name in {'coordinated-recovery-verification.json', 'coordinated-upi-wire-recovery-verification.json'}:
-                from verify_coordinated_recovery import case_pack_hash as recovery_case_pack_hash
-                reports[name]['case_pack_matches'] = value.get('case_pack_sha256') == recovery_case_pack_hash()
-                reports[name]['protocol_mode_matches'] = value.get('protocol_mode') == ('xml' if name == 'coordinated-upi-wire-recovery-verification.json' else 'legacy')
-                reports[name]['passed'] = reports[name]['passed'] and reports[name]['case_pack_matches'] and reports[name]['protocol_mode_matches']
+            if name in COORDINATED_PROFILES:
+                if name == 'identity-coordinated-recovery-verification.json':
+                    from verify_identity_recovery import case_pack_hash as recovery_case_pack_hash
+                else:
+                    from verify_coordinated_recovery import case_pack_hash as recovery_case_pack_hash
+                reports[name].update(coordinated_evidence(ROOT, name, value, fingerprint, recovery_case_pack_hash()))
             if name == 'aa-coordinated-recovery-verification.json':
                 from verify_aa_recovery import case_pack_hash as aa_recovery_case_pack_hash
                 reports[name]['case_pack_matches'] = value.get('case_pack_sha256') == aa_recovery_case_pack_hash()
                 reports[name]['passed'] = reports[name]['passed'] and reports[name]['case_pack_matches']
-            if name in {'operations-verification.json','operations-upgrade-verification.json','capacity-verification.json'}:
+            if name in {'operations-verification.json','operations-upgrade-verification.json','capacity-verification.json','work-queue-verification.json'}:
                 import hashlib
-                script = {'operations-verification.json':'verify_operations.py','operations-upgrade-verification.json':'verify_operations_upgrade.py','capacity-verification.json':'verify_capacity.py'}[name]
-                reports[name]['case_pack_matches'] = value.get('case_pack_sha256') == hashlib.sha256((ROOT / 'scripts' / script).read_bytes()).hexdigest()
+                script = {'operations-verification.json':'verify_operations.py','operations-upgrade-verification.json':'verify_operations_upgrade.py','capacity-verification.json':'verify_capacity.py','work-queue-verification.json':'verify_work_queue.py'}[name]
+                if name == 'capacity-verification.json':
+                    from verify_capacity import case_pack_hash as capacity_case_pack_hash
+                    expected_case_pack = capacity_case_pack_hash()
+                elif name == 'work-queue-verification.json':
+                    from verify_work_queue import case_pack_hash as queue_case_pack_hash
+                    expected_case_pack = queue_case_pack_hash()
+                else:
+                    expected_case_pack = hashlib.sha256((ROOT / 'scripts' / script).read_bytes()).hexdigest()
+                reports[name]['case_pack_matches'] = value.get('case_pack_sha256') == expected_case_pack
                 reports[name]['passed'] = reports[name]['passed'] and reports[name]['case_pack_matches']
+                if name == 'work-queue-verification.json':
+                    from verify_work_queue import complete_evidence
+                    reports[name]['complete_evidence_matches'] = complete_evidence(value)
+                    reports[name]['passed'] = reports[name]['passed'] and reports[name]['complete_evidence_matches']
                 if name == 'capacity-verification.json':
                     from verify_capacity import REFERENCE
                     from avenra.util import digest
@@ -123,6 +142,16 @@ def main():
     value['synthetic_upi_wire_recovery_qualification'] = {'passed_for_current_build':xml_recovery_observed['passed'] and xml_recovery_observed.get('application_matches') is True,
         'checks':xml_recovery_observed.get('checks'), 'official_conformance':False,
         'scope':'Cold local recovery with both XML participant contracts, unchanged original envelopes/signatures, new bank addresses, original-ID financial recovery and refusal of a genuine signed predecessor lacking retained contract support. Separate from institutional or off-host recovery qualification.'}
+    peer_recovery_observed = reports['coordinated-peer-recovery-verification.json']
+    value['synthetic_independent_participant_recovery_qualification'] = {
+        'passed_for_current_build': peer_recovery_observed['passed'] and peer_recovery_observed.get('application_matches') is True,
+        'checks': peer_recovery_observed.get('checks'), 'official_conformance': False,
+        'scope': 'Five separately owned local mTLS PSP/network inboxes, authenticated address replacement, original signed receipts, real bank/network process loss and original financial recovery through two cold generations. This dedicated mode is mandatory and cannot substitute for legacy or XML-only recovery. Off-host, institutional RPO/RTO and independent acceptance remain open.'}
+    identity_observed = reports['identity-coordinated-recovery-verification.json']
+    value['synthetic_identity_recovery_qualification'] = {
+        'passed_for_current_build': identity_observed['passed'] and identity_observed.get('application_matches') is True,
+        'checks': identity_observed.get('checks'), 'official_conformance': False,
+        'scope': 'Owned static synthetic issuer and HTTPS API at authenticated replacement addresses, unchanged logical issuer/subjects/keys, original sessions/grants/expiry, code/PKCE sign-in, same-person checking, operator/issuer death and original mTLS bank effects through two cold generations. Stable-origin discovery, external IdPs, combined AA/HTTPS recovery, off-host and institutional qualification remain open.'}
     qualified = local_passed if args.profile == 'local' else local_passed and value['profiles'][args.profile]['ready']
     value.update(selected_profile=args.profile, selected_profile_ready=qualified)
     path.write_text(json.dumps(value, indent=2) + '\n')

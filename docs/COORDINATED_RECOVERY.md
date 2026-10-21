@@ -3,9 +3,11 @@
 These operator tools recover the existing Avenra application. They do not create
 another console, change the payment balance authority or enable a live rail.
 The supported activation profile is a cold, managed deployment with local
-participants, optional owned mTLS synthetic banks and AA/FIP/FIU listeners, and
-dedicated loopback accounting/fault services. SSO, other provider/monitoring and
-external service bindings still require coordinated replacement before activation.
+participants, optional owned mTLS synthetic banks, independent PSP/network
+inboxes and AA/FIP/FIU listeners, an explicitly bound owned synthetic HTTPS
+issuer/API, and dedicated loopback accounting/fault services. External identity
+providers, monitoring and other service bindings still require coordinated
+replacement before activation. Combined AA/HTTPS identity recovery remains open.
 
 ## Captured state and trust
 
@@ -39,6 +41,42 @@ process lease through shutdown; capture obtains every role lease for the whole
 checkpoint. Independent per-file SQLite backups alone do not prove topology
 quiescence. Role databases are backed up with committed WAL and explicit close;
 runtime leases, process registrations and logs are not restored as source owners.
+
+Stop the owned synthetic identity issuer too. Its provisioner and launcher hold
+an installation-wide lease through provisioning and the whole listener lifetime,
+including shutdown. Capture holds that lease through the checkpoint and refuses
+a serving issuer before creating a destination. Provisioning also takes the
+installation configuration lock, so its new identities cannot race capture or
+release admission. The current owned profile has one serving issuer per deployment.
+The root runtime lease is excluded from recovery payloads.
+Nested deployment-secret and recovery copy parents are created one component at
+a time with owner-only permissions, independent of the process umask. Existing
+linked or non-private parents are refused rather than silently changed.
+
+Copied issuer credentials refuse ordinary startup while staging, and continue
+to refuse it after bank/native activation with `RECOVERY_IDENTITY_REQUIRED`.
+The explicit owned-issuer recovery path below supplies identity bindings for
+recovered sign-in. Signed candidates must declare `issuer_runtime` support whenever owned
+issuer configurations are present. A genuine routing-compatible predecessor
+without that fence is refused without changing control rows or release selection.
+These fences cover cooperating current tools; they do not qualify arbitrary
+older or nonparticipating identity-provider processes.
+
+The cold-recovery pack requires a genuine preserved pre-fence release reference
+in private `.local/release-baselines/before-issuer-fence.json`. Its fields are
+`artifact_directory`, `trust_file` and `runtime_directory`: the independently
+signed retained artifact, its external public trust and its verified offline
+runtime. That predecessor must support the retained route/participant versions
+while lacking `issuer_runtime`. Preserve the actual historical bytes and their
+provenance; a current build relabelled as an older release cannot provide this
+evidence. Generated artifacts, trust inputs and references stay outside Git.
+
+Independent PSP/network inbox processes also hold the lifetime fence. Capture
+retains their private identities, sender registries, versioned credentials and
+durable receipts under `independent-participants`. Stop every captured service;
+activation requires authenticated replacement routes for all of them. Follow
+[the participant recovery guide](PARTICIPANT_RECOVERY.md) after starting the
+restored native, bank and AA services and before activation.
 
 The set includes both database dumps, the exact application and supplied offline
 wheels, pinned accounting/fault executable bytes, original evidence authority,
@@ -312,7 +350,7 @@ and deployed-runtime checks. Reported phase durations are observations of this
 exact cold local rehearsal. They do not establish institutional RPO/RTO.
 
 Whole-service topology recovery remains open: standalone operator bootstrap,
-coordinated SSO and other service rebinding, remaining AA profiles and key/registry
+external SSO, combined AA/HTTPS identity and other service rebinding, remaining AA profiles and key/registry
 lifecycle, monitoring/product/provider releases, broker replay,
 off-host delivery/retention, cluster/host restoration, native upgrades and
 independent operational acceptance. The full production objective remains open.
@@ -335,3 +373,103 @@ binding formats but lacks the retained XML contract declarations. That release
 is refused without changing any control row, sequence or release pointer.
 Both legacy and XML modes are mandatory local gates; their receipts record the
 mode and cannot substitute for each other.
+
+An explicitly labelled, signed current negative candidate separately retains
+every route and issuer-fence declaration while omitting the retained XML
+contracts. Its real release-selection refusal isolates the contract gate from
+the new issuer guard; it is never presented as a historical predecessor.
+
+## Independent PSP and network recovery
+
+Run `.local/runtime/bin/python scripts/verify_coordinated_recovery.py --independent`
+for the separate `avenra-cold-independent-recovery/1` profile. It exercises five
+owned mTLS inbox processes, authenticated replacement addresses, unchanged
+logical authorities, original signed receipts, key revocation and rotation,
+bank/network process loss and recovery, and two complete cold generations.
+The inboxes validate messages; financial postings remain authoritative in the
+accounting engine. There is no fallback to an embedded receiver when a required
+independent participant is unavailable.
+
+The latest receipt is `.local/coordinated-peer-recovery-verification.json`.
+It is a mandatory local release-readiness gate alongside the legacy and XML-only
+profiles. Reports declare their exact qualification, protocol and participant
+modes. Readiness requires the current application and case-pack hashes, passing
+individual assertions, required cold-recovery observations and completed timing
+metadata. The independent profile also requires two distinct recovery-set IDs.
+
+Every summary links by SHA-256 to its full retained `verification.json` in the
+private QA case. A modified, missing, externally located or linked record cannot
+satisfy the gate. A top-level passing flag cannot override failed assertions or
+a different retained attempt. These checks establish the integrity and scope of
+local engineering records; they do not constitute independent attestation,
+official UPI compatibility or institutional recovery acceptance.
+
+These large rehearsals now use the shared storage admission described in
+[Qualification storage](QUALIFICATION_STORAGE.md). Storage refusal does not
+remove earlier case evidence or start a partial database/runtime rehearsal.
+
+## Owned synthetic HTTPS identity recovery
+
+The `avenra-synthetic-issuer-recovery/1` contract replaces the physical issuer
+and API addresses while preserving the original logical issuer, subjects,
+registered client/audience, private signing/TLS authority, passwords and session
+policy. Original `identity.json` and `issuer.json` bytes stay unchanged. An
+installation-authenticated route binds the captured immutable files, recovery
+set, selected signed artifact and every newly imported database credential.
+The captured API TLS and granular-authorization settings cannot be downgraded
+to bypass activation. External identity providers are not admitted by this profile.
+
+After native and captured bank services start, run:
+
+```sh
+.local/runtime/bin/python scripts/recovery.py identity-start \
+  --directory <recovery-directory> --issuer-port <new-issuer-port> \
+  --api-origin https://127.0.0.1:<new-api-port> \
+  --recovery-trust <external-recovery-public-key> \
+  --release-trust <external-release-public-key> \
+  --request-id <identity-start-uuid> --actor <operator>
+```
+
+Both ports must be explicit, unprivileged, distinct and absent from all preceding
+issuer/API origins and the recovered service listeners. Retry the exact same
+ports, actor and request. The verified offline runtime self-registers its process
+birth identity and executable; the controller checks actual listener ownership,
+TLS certificate pin, JWKS and a fresh challenge signed by the original key.
+Operator death after startup can reuse that surviving authenticated process.
+Use `identity-stop --directory <recovery-directory>` to drain that owned issuer.
+An identical `identity-start` can restart it after actual process death.
+
+Before activation, the issuer serves bounded JWKS/challenge probes and refuses
+authorization, login and token issuance. After activation, fresh code/S256 PKCE,
+state and nonce flows use the approved replacement HTTPS endpoints. Token/JWKS
+transport validates the captured CA, hostname and exact leaf **before sending
+client credentials**. It does not follow redirects or fall back to old addresses.
+The API launcher accepts only the registered recovered callback origin. Missing
+or changed routes, database pins, immutable identity files or policy refuse use.
+
+The logical `iss` value stays unchanged, so `issuer + sub`, approval identity,
+existing session identities and expiry limits survive. Old interaction/code
+redirect bindings are refused; they are never rewritten or extended. Explicit
+subject/environment grants, revocation and same-person checking continue to
+apply after fresh sign-in. Signed candidate admission, recovery and launch also
+require `issuer_routes`; schema compatibility alone cannot admit older code.
+
+This is an explicit **static synthetic binding**. The replacement origin refuses
+`/.well-known/openid-configuration`; it does not pretend to dynamically discover
+the original logical issuer. Stable-origin discovery, DNS/TLS failover, external
+IdP coordination and institutional acceptance remain open. See
+[OIDC Core issuer validation](https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation)
+and [Discovery validation](https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfigurationValidation).
+
+Run `.local/runtime/bin/python scripts/verify_identity_recovery.py` for the
+mandatory `avenra-cold-identity-recovery/1` gate and
+`.local/identity-coordinated-recovery-verification.json` receipt. The pack uses
+real native services, mTLS XML banks and HTTPS identity/API processes, full
+database row/sequence comparisons, operator/issuer death, original grants and
+sessions, a genuine routing-incompatible signed predecessor, and two cold
+generations with preceding paths/listeners unavailable. A wrong leaf signed by
+the original CA must receive no confidential request bytes. Both recovery-set
+IDs, current application/case-pack hashes, required observations and the intact
+private case record are mandatory. Preserve a genuine pre-route signed release
+in `.local/release-baselines/before-issuer-routes.json` using the same three
+artifact/trust/runtime fields as the issuer-fence baseline.

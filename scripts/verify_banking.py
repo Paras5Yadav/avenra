@@ -201,7 +201,7 @@ def main():
             db.execute('PRAGMA user_version=1')
         migrated = App(legacy)
         with migrated.store.reader() as db:
-            check('Version-one migration preserves existing workspace', db.execute('SELECT name FROM tenants WHERE id=\'preserve_me\'').fetchone()[0] == 'Original workspace' and db.execute('PRAGMA user_version').fetchone()[0] == 9)
+            check('Version-one migration preserves existing workspace', db.execute('SELECT name FROM tenants WHERE id=\'preserve_me\'').fetchone()[0] == 'Original workspace' and db.execute('PRAGMA user_version').fetchone()[0] == 10)
         capacity = app.create_environment(tenant, 'Pagination acceptance', fixture_profile='banking')['id']
         app.provision(tenant, capacity)
         capacity_ledger = app.environment(tenant, capacity)['ledger_name']

@@ -4,6 +4,37 @@ Updated 20 October 2026 on this Apple Silicon Mac. All results below concern syn
 
 ## Current POC increment
 
+The `codex/participant-recovery` branch adds production-objective recovery work
+without changing the running POC baseline. Application fingerprint
+`257fd218a051f7bdfc59a2fefb55416e64545aecf29c2e984f1dc5e10f2f8c37`
+passes **109 independent-participant cold-recovery checks**, **53 existing AA
+cold-recovery checks**, **75 XML wire checks**, **107 lifecycle checks** and
+**26 same-app POC regression checks**
+covering participant delivery, platform controls, signed releases and cryptography.
+These are targeted, overlapping verification packs, not independent assessment.
+
+The cold rehearsal includes five owned PSP/network inboxes, two synthetic banks,
+actual response loss and process death, original signed receipt preservation,
+rotating/revoked credentials, refusal of changed or linked recovery inputs,
+attributed restart, preserved original connection and financial identities,
+incompatible signed predecessor refusal, and two successive cold relocations
+with previous installation paths unavailable. Each native financial leg is
+observed once. Failed attempts remain in their private QA directories. One test
+assertion originally confused an allocated operation identity with a financial
+posting; the corrected assertion observes pending legs and the native journal.
+The lifecycle preservation check was also updated to recognize the reviewed
+environment-file exclusions added during source publication. The four original
+financial engine modules remain unchanged.
+
+The first AA regression attempt lacked its four byte-pinned public contract
+fixtures in the isolated worktree. After copying and verifying those public
+inputs, the complete AA recovery pack passed, including its two cold generations.
+
+The complete production matrix has not been requalified for this branch and it
+has not replaced the deployed POC. Full-service/fleet security and operations,
+specialized profiles, external acceptance and the other production requirements
+below remain open. See [the recovery guide](docs/PARTICIPANT_RECOVERY.md).
+
 Build `983ff3aa46d09871ac7b9309cc57503eae1d3aa56885ab76a9ae7367562837e2`
 passes the same-app POC HTTP pack: **46 checks across eight demonstrations**.
 All eight also pass when queued through the main console against its PostgreSQL

@@ -15,11 +15,13 @@ sys.path.insert(0, str(ROOT))
 from avenra.private_config import read_document, write_document
 from avenra.errors import DomainError
 from avenra.util import application_fingerprint
+from scripts.qualification_storage import CASE_PACK_HELPERS, harness_case_pack_hash
+from scripts.readiness_evidence import COORDINATED_PROFILES, coordinated_evidence
 
 CASES = [
     ('Identity/store', 'verify_units.py', [], 'unit-verification.json'),
     ('API/worker separation', 'verify_asgi.py', [], 'asgi-verification.json'),
-    ('Original local financial/HTTP', 'verify.py', [], 'verification.json'),
+    ('Original local financial/HTTP', 'verify.py', ['--isolated', '--restart'], 'verification.json'),
     ('Banking SQLite', 'verify_banking.py', [], 'banking-verification.json'),
     ('Banking PostgreSQL', 'verify_banking.py', ['--postgres'], 'banking-postgres-verification.json'),
     ('Banking HTTP', 'verify_banking_http.py', [], 'banking-http-verification.json'),
@@ -42,9 +44,12 @@ CASES = [
     ('Standalone SQLite recovery checkpoints', 'verify_checkpoints.py', [], 'checkpoint-verification.json'),
     ('Operational incidents and real outage recovery', 'verify_operations.py', [], 'operations-verification.json'),
     ('Additive migration of the preserved predecessor', 'verify_operations_upgrade.py', [], 'operations-upgrade-verification.json'),
+    ('Durable worker errors and original-ID evidence recovery', 'verify_work_queue.py', [], 'work-queue-verification.json'),
     ('Coordinated cold application and native recovery', 'verify_coordinated_recovery.py', [], 'coordinated-recovery-verification.json'),
     ('Coordinated XML participant cold recovery and contract-aware rollback', 'verify_coordinated_recovery.py', ['--xml'], 'coordinated-upi-wire-recovery-verification.json'),
+    ('Coordinated independent PSP/network cold recovery', 'verify_coordinated_recovery.py', ['--independent'], 'coordinated-peer-recovery-verification.json'),
     ('Coordinated AA participant recovery', 'verify_aa_recovery.py', [], 'aa-coordinated-recovery-verification.json'),
+    ('Coordinated HTTPS synthetic identity and bank recovery', 'verify_identity_recovery.py', [], 'identity-coordinated-recovery-verification.json'),
     ('Mixed-tenant capacity and actual worker loss', 'verify_capacity.py', [], 'capacity-verification.json'),
     ('Native journal UTC policy', 'qualify_clock.py', [], 'accounting-clock-verification.json'),
     ('Full control/accounting restore', 'backup_restore.py', ['--verify-restore'], 'backup-verification.json'),
@@ -55,6 +60,27 @@ def matrix_definition_hash():
     return hashlib.sha256(json.dumps(CASES,separators=(',',':')).encode()).hexdigest()
 
 
+def qualified_receipt(script, filename, value, fingerprint, case_hash):
+    """Apply the same evidence rules to fresh execution and prefix reuse."""
+    if not isinstance(value,dict) or value.get('passed') is not True or value.get('application_fingerprint')!=fingerprint:
+        return False
+    checks=value.get('checks')
+    if isinstance(checks,list) and (not checks or not all(isinstance(check,dict) and check.get('passed') is True for check in checks)):
+        return False
+    if script in CASE_PACK_HELPERS and value.get('case_pack_sha256')!=case_hash:
+        return False
+    if filename in COORDINATED_PROFILES:
+        return coordinated_evidence(ROOT,filename,value,fingerprint,case_hash)['passed']
+    if script=='verify_capacity.py':
+        from scripts.verify_capacity import REFERENCE
+        from avenra.util import digest
+        return value.get('reference_profile_passed') is True and value.get('mode')=='reference' and value.get('profile')==REFERENCE and value.get('reference_profile_sha256')==digest(REFERENCE)
+    if script=='verify_work_queue.py':
+        from scripts.verify_work_queue import complete_evidence
+        return complete_evidence(value)
+    return True
+
+
 def resume_prefix(path, fingerprint):
     original=Path(path)
     if original.is_symlink():raise ValueError('Resume input cannot be a link.')
@@ -62,16 +88,19 @@ def resume_prefix(path, fingerprint):
     if not path.is_relative_to(ROOT/'.local/verification-attempts') or path.name!='manifest.json':
         raise ValueError('Resume a retained acceptance manifest from this installation.')
     previous=read_document(path)
+    if not isinstance(previous,dict):raise ValueError('Resume requires a retained manifest object.')
     if previous.get('application_fingerprint')!=fingerprint or not isinstance(previous.get('cases'),list) or len(previous['cases'])>len(CASES):
         raise ValueError('Resume source differs from the current fixed build.')
     if previous.get('matrix_definition_sha256')!=matrix_definition_hash():
         raise ValueError('Resume requires a verified matching matrix definition, including every command argument.')
     prefix=[]
     for index,row in enumerate(previous['cases']):
+        if not isinstance(row,dict):raise ValueError('Resume cases must be retained objects.')
         if row.get('passed') is not True:break
         name,script,arguments,filename=CASES[index]
         receipt=ROOT/'.local'/filename
-        if row.get('name')!=name or row.get('case_pack_sha256')!=hashlib.sha256((ROOT/'scripts'/script).read_bytes()).hexdigest() or Path(row.get('report','')).resolve()!=receipt:
+        case_hash=harness_case_pack_hash(ROOT,script)
+        if row.get('name')!=name or row.get('case_pack_sha256')!=case_hash or Path(row.get('report','')).resolve()!=receipt:
             raise ValueError('A completed case or its script no longer matches the retained manifest.')
         info=receipt.lstat()
         if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or info.st_nlink!=1:
@@ -82,7 +111,7 @@ def resume_prefix(path, fingerprint):
         if info.st_mode&0o077:receipt.chmod(0o600)
         value=read_document(receipt)
         checks=len(value['checks']) if isinstance(value.get('checks'),list) else value.get('tests')
-        if value.get('passed') is not True or value.get('application_fingerprint')!=fingerprint or checks!=row.get('checks') or (isinstance(value.get('checks'),list) and not all(check.get('passed') is True for check in value['checks'])):
+        if checks!=row.get('checks') or not qualified_receipt(script,filename,value,fingerprint,case_hash):
             raise ValueError('A completed case lacks its matching passing receipt.')
         prefix.append((row,value))
     return prefix,{'source':str(path),'sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'reused_cases':len(prefix),
@@ -109,7 +138,7 @@ def main():
     for index, (name, script, arguments, filename) in enumerate(CASES):
         if index<len(prefix):continue
         print(json.dumps({'running': name}), flush=True)
-        case_hash = hashlib.sha256((ROOT / 'scripts' / script).read_bytes()).hexdigest()
+        case_hash = harness_case_pack_hash(ROOT,script)
         start = time.time();log = folder / (str(index + 1).zfill(2) + '.log')
         with log.open('wb') as output:
             log.chmod(0o600)
@@ -117,17 +146,12 @@ def main():
         receipt = ROOT / '.local' / filename
         try:
             value = json.loads(receipt.read_text())
+            if not isinstance(value,dict):raise ValueError('Qualification receipt must be an object.')
             checks = len(value['checks']) if isinstance(value.get('checks'), list) else value.get('tests')
             fresh = value.get('application_fingerprint') == report['application_fingerprint'] and receipt.stat().st_mtime >= start - 1
-            passed = result.returncode == 0 and value.get('passed') is True and fresh
-            if script == 'verify_coordinated_recovery.py':
-                passed = passed and value.get('protocol_mode') == ('xml' if '--xml' in arguments else 'legacy')
-            if script == 'verify_capacity.py':
-                from verify_capacity import REFERENCE
-                from avenra.util import digest
-                passed = passed and value.get('reference_profile_passed') is True and value.get('mode') == 'reference' and value.get('profile') == REFERENCE and value.get('reference_profile_sha256') == digest(REFERENCE)
-        except (OSError, ValueError): passed, checks = False, None
-        passed = passed and hashlib.sha256((ROOT / 'scripts' / script).read_bytes()).hexdigest() == case_hash
+            passed = result.returncode == 0 and fresh and qualified_receipt(script,filename,value,fingerprint,case_hash)
+        except (OSError, ValueError, TypeError, KeyError, OverflowError): passed, checks = False, None
+        passed = passed and harness_case_pack_hash(ROOT,script) == case_hash
         row = {'name': name, 'passed': passed, 'checks': checks, 'seconds': round(time.time() - start, 3), 'log': str(log),
                'report': str(receipt), 'case_pack_sha256': case_hash}
         if passed:
@@ -138,7 +162,8 @@ def main():
         if not passed or application_fingerprint() != report['application_fingerprint'] or hashlib.sha256(Path(__file__).read_bytes()).hexdigest()!=report['runner_sha256']:
             report['error'] = 'A case failed or the tested build changed; inspect retained case logs.'
             break
-    report.update(passed=len(report['cases']) == len(CASES) and all(x['passed'] for x in report['cases']) and application_fingerprint() == report['application_fingerprint'] and hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==report['runner_sha256'], completed_at=time.time())
+    cases_current=all(row['case_pack_sha256']==harness_case_pack_hash(ROOT,case[1]) for row,case in zip(report['cases'],CASES))
+    report.update(passed=len(report['cases']) == len(CASES) and all(x['passed'] for x in report['cases']) and cases_current and application_fingerprint() == report['application_fingerprint'] and hashlib.sha256(Path(__file__).read_bytes()).hexdigest()==report['runner_sha256'], completed_at=time.time())
     write_document(target, report);write_document(folder / 'manifest.json', report)
     print(json.dumps({'passed': report['passed'], 'cases': len(report['cases']), 'checks': sum(x.get('checks') or 0 for x in report['cases']), 'report': str(target)}), flush=True)
     return 0 if report['passed'] else 1
